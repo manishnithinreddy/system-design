@@ -2,6 +2,8 @@
 
 > **Level expectation:** clarify, design a clean interface, implement **one** algorithm correctly, make it thread-safe, support many users, and show it's testable. Know that other algorithms exist and roughly how they differ.
 
+> 🆕 New to rate limiting? Read [00-understand-the-product.md](00-understand-the-product.md) first. It explains keys, windows, bursts and 429s through everyday examples.
+
 Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note** = commentary for you.
 
 ---

@@ -6,13 +6,16 @@ It sounds trivial, and that's exactly why it's a favourite: the *feature* is tin
 
 ## How to read this folder
 
+> 👉 **Never used a URL shortener, or not sure why anyone needs "custom aliases" or "analytics"? Start with [00-understand-the-product.md](00-understand-the-product.md).** It explains the product from a user's point of view, where you've already seen it, and what happens when a short link is clicked.
+
 | File | Who it's for | What "good" looks like |
 |---|---|---|
+| [00-understand-the-product.md](00-understand-the-product.md) | Everyone, first | Know the product as a user: features, why they exist, how a redirect works |
 | [L4-mid.md](L4-mid.md) | Mid-level / SDE2 (2–4 yrs) | A correct, working design. Sensible components, clean API, a reasonable code-generation scheme, a cache. Answers follow-ups when asked. |
 | [L5-senior.md](L5-senior.md) | Senior (5+ yrs) | Numbers drive decisions. Compares 2–3 options for each hard part and picks one with reasons. Handles custom aliases, expiry, analytics, failure modes **without being asked**. |
 | [L6-staff.md](L6-staff.md) | Staff | Questions the requirements, designs for multi-region, abuse, cost, operability and evolution. Talks about SLOs, blast radius, migration paths and what *not* to build. |
 
-**Suggested order:** read L4 first even if you're targeting L5. Each level assumes the previous one and only explains what's new.
+**Suggested order:** product page → L4 → L5 → L6. Read L4 first even if you're targeting L5. Each level assumes the previous one and only explains what's new.
 
 ## The same problem at three levels — at a glance
 

@@ -15,6 +15,7 @@ This repo is a personal system-design interview prep library. Every session that
 ```
 HLD/
   interviews/<problem>/        one folder per problem
+    00-understand-the-product.md  the product from a USER's point of view (read first)
     README.md                  problem, how to read the folder, level comparison table
     L4-mid.md                  answer expected from a mid-level engineer (SDE2)
     L5-senior.md               answer expected from a senior engineer
@@ -23,7 +24,7 @@ HLD/
   concepts/<concept>.md        consistent hashing, ID generation, ... (ideas)
 LLD/
   interviews/<problem>/
-    README.md, L4-mid.md, L5-senior.md, L6-staff.md
+    00-understand-the-product.md, README.md, L4-mid.md, L5-senior.md, L6-staff.md
     java/                      runnable code (plain javac, no build tool)
     js/                        runnable code (plain node, no npm deps)
   libraries/java/<lib>.md      JDK classes / libraries used in solutions
@@ -34,6 +35,18 @@ LLD/
 - Same problem, different depth per level → one folder, one file per level.
 - If a level would get a genuinely different question, create a separate problem folder.
 - Reference files (technologies / concepts / libraries) are shared across interviews. Before creating one, check whether it already exists and extend it instead.
+
+## Product intro file (00-understand-the-product.md), required for every problem
+
+Never assume the reader has used the product or knows why its features exist. Before any design, explain it as a user would experience it:
+
+1. The problem as a short story (who needs it, what goes wrong without it)
+2. Where the reader has already seen it in real life / at work
+3. Each feature mentioned in the interviews, through a situation where someone needs it, and which interview question it leads to
+4. The key mechanism in plain words (e.g. what an HTTP redirect is), with a diagram
+5. "Try it yourself": point to a real public product/API the reader can use or `curl`. **Do not build toy/playground implementations** (deferred, see below)
+6. Experience → requirements table (functional / non-functional)
+7. Mini glossary
 
 ## Interview file format (L4/L5/L6)
 
@@ -68,3 +81,7 @@ Link every technology/concept the first time it is used, e.g. `[Redis](../../tec
 - Clear over clever. Short paragraphs, tables for comparisons.
 - Numbers in estimates must be shown with the arithmetic.
 - Code must compile/run. Java 21 (`javac` + `java`), Node 22 (`node`). No external dependencies in solution code; mention production libraries in the libraries/ docs instead.
+
+## Deferred ideas (come back after the main content is complete; do not build yet)
+
+- **Toy playground per problem:** a tiny runnable version (e.g. ~90-line in-memory Node URL shortener with curl commands) so the reader can *experience* the product locally, plus a table of "what the toy can't do → which interview topic fixes it". The user liked the idea but wants it later, to keep the repo focused for now.

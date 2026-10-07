@@ -8,8 +8,11 @@ A favourite LLD problem because it's small enough to code in 45 minutes but test
 
 ## How to read this folder
 
+> 👉 **Not sure what a rate limiter is, or what "burst", "window" or "429" mean? Start with [00-understand-the-product.md](00-understand-the-product.md).** It connects the idea to things you've already hit: OTP resend timers, login lockouts, API quotas, nginx `limit_req`.
+
 | File | Level | What "good" looks like |
 |---|---|---|
+| [00-understand-the-product.md](00-understand-the-product.md) | Everyone, first | Know what it does and why, the vocabulary, and the 4 algorithms as everyday pictures |
 | [L4-mid.md](L4-mid.md) | Mid / SDE2 | Clean interface, one correct algorithm (token bucket), thread-safe, per-user map, testable clock. |
 | [L5-senior.md](L5-senior.md) | Senior | Compares all 4 algorithms, Strategy + Factory, tiers, idle-key eviction, lock-free vs locked trade-off, concurrency tests. |
 | [L6-staff.md](L6-staff.md) | Staff | Makes it **distributed**: Redis + Lua atomicity, local/global hybrid, fail-open vs fail-closed, where in the stack it belongs, operating it as a platform library. |

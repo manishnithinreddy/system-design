@@ -2,6 +2,8 @@
 
 > **Level expectation:** produce a correct, complete, *working* design in ~40 minutes. You are not expected to discover every edge case alone, but you should handle them well when the interviewer raises them. Clarity beats cleverness.
 
+> 🆕 New to URL shorteners? Read [00-understand-the-product.md](00-understand-the-product.md) first. It explains custom aliases, expiry, analytics and redirects through real use.
+
 Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note** = commentary for you, not said in the interview.
 
 ---
