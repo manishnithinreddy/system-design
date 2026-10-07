@@ -1,0 +1,3 @@
+LLD/interviews/**/java/out/
+node_modules/
+.DS_Store
