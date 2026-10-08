@@ -20,12 +20,12 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 8 | [Web Crawler](HLD/interviews/web-crawler/README.md) | Politeness (per-host queues + heap), URL/content dedup (Bloom, SimHash), traps, recrawl, crawl budget | [Task Scheduler](LLD/interviews/task-scheduler/README.md) | Heap + dispatcher wake-up, fixed-rate/delay, cron + DST, retries + dead letters, misfires |
 | 9 | [Search Autocomplete](HLD/interviews/search-autocomplete/README.md) | Offline build + in-memory serving, tries with top-k, trending streams, Count-Min Sketch, suggestion safety | [Logging Framework](LLD/interviews/logging-framework/README.md) | Logger hierarchy, Strategy/Chain of Responsibility, async appender + back-pressure, MDC |
 | 10 | [Video Streaming](HLD/interviews/video-streaming/README.md) | Resumable uploads, chunked transcoding DAG, ABR segments, CDN + tiering, live, cost model | [Vending Machine](LLD/interviews/vending-machine/README.md) | State pattern, paise, bounded change-making DP, refunds, idempotent UPI |
+| 11 | [Metrics & Monitoring](HLD/interviews/metrics-monitoring/README.md) | Time-series storage, compression, cardinality, downsampling, SLO alerting | [Thread Pool / Connection Pool](LLD/interviews/thread-pool/README.md) | Pools from scratch, rejection policies, sizing, fair borrowing, leak detection |
 
 ## 🔜 Next (in order)
 
 | # | HLD | New ideas it brings | LLD | New ideas it brings |
 |---|---|---|---|---|
-| 11 | **Metrics & Monitoring System** (Prometheus-like) | Time-series storage, compression, downsampling, alerting at scale | **Thread Pool / Connection Pool** | Building concurrency primitives yourself: queues, workers, shutdown, leaks |
 | 12 | **Collaborative Editor** (Google Docs) | Operational transforms vs CRDTs, real-time sync, presence | **Text Editor with Undo/Redo** | Command + Memento, gap buffers / ropes |
 | 13 | **File Storage & Sync** (Dropbox / Drive) | Chunking, content-addressed dedup, sync conflicts, metadata vs blobs | **File System** (in-memory) | Composite pattern, path resolution, permissions |
 | 14 | **Payment System** | Double-entry ledgers at scale, PSP integration, reconciliation, exactly-once money | **ATM / Digital Wallet** | State machines with money, idempotent transfers, auditing |

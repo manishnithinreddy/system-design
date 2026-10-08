@@ -157,4 +157,5 @@ The design above is the [single-writer principle](../../concepts/single-writer-p
 
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — `LinkedBlockingQueue<Command>` from caller threads to the single simulation thread; `HallCall` / `CarCall` / `SetMaintenance` commands.
 - [Logging Framework](../../interviews/logging-framework/README.md): the async appender's **bounded `ArrayBlockingQueue`** between application threads and one writer thread, with `put` (block), `offer` (drop) and `drainTo` batching.
+- [Thread Pool / Connection Pool](../../interviews/thread-pool/README.md): the bounded work queue between `submit()` and worker threads, and why an unbounded queue silently disables max threads.
 - Related: [concurrent-collections](concurrent-collections.md), [executors-and-threads](executors-and-threads.md), [single-writer-principle](../../concepts/single-writer-principle.md), [records-and-immutability](records-and-immutability.md).

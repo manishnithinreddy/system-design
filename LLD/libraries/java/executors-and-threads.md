@@ -163,4 +163,5 @@ The elevator design picks the second: requests from many threads go into a `Link
 
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — single simulation thread vs thread-per-elevator; scheduled tick; clean shutdown.
 - [Task Scheduler](../../interviews/task-scheduler/README.md): one **dispatcher thread** hands due tasks to a **worker pool**, and `shutdown(timeout)` drains running tasks before `shutdownNow`.
+- [Thread Pool / Connection Pool](../../interviews/thread-pool/README.md): **builds a ThreadPoolExecutor from scratch**: core/max/keep-alive, the "grow past core only when the queue is full" rule, four rejection policies, graceful vs immediate shutdown.
 - Related: [scheduled-executor-service](scheduled-executor-service.md), [blocking-queues-and-producer-consumer](blocking-queues-and-producer-consumer.md), [locks-and-synchronized](locks-and-synchronized.md), [completablefuture](completablefuture.md), [thread-safety-basics](../../concepts/thread-safety-basics.md).

@@ -13,6 +13,7 @@
 | [Web Crawler](interviews/web-crawler/README.md) | Politeness-driven scheduling (per-host queues + heap), URL/content dedup (Bloom filters, SimHash), spider traps, recrawl freshness, partition by host, crawl budget |
 | [Search Autocomplete](interviews/search-autocomplete/README.md) | Offline build vs in-memory serving, tries with top-k, replicate vs shard, trending via streams, Count-Min Sketch, safety and privacy of suggestions |
 | [Video Streaming](interviews/video-streaming/README.md) | Resumable uploads, chunked parallel transcoding, bitrate ladders, segments + manifests, CDN at Tbps, storage tiering, live streaming, cost model |
+| [Metrics & Monitoring](interviews/metrics-monitoring/README.md) | Time-series storage, Gorilla compression, cardinality limits, downsampling, alerting at scale, SLO burn rates, monitoring that survives outages |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -31,6 +32,7 @@
 | [Object storage (S3)](technologies/object-storage.md) | Storing and serving files/blobs cheaply and durably |
 | [Graph databases & adjacency lists](technologies/graph-databases.md) | Storing who-follows-whom; when a real graph DB is worth it |
 | [Stream processing (Flink, Kafka Streams)](technologies/stream-processing.md) | Continuous computations over event streams: windows, state, late events |
+| [Prometheus & time-series databases](technologies/prometheus-and-time-series-databases.md) | Storing and querying metrics: series, labels, PromQL, TSDB blocks, cardinality |
 | [Elasticsearch](technologies/elasticsearch.md) | Full-text and search-as-you-type over documents; shards, refresh, suggesters |
 | [DNS](technologies/dns.md) | Turning names into IPs; TTLs, GeoDNS, why DNS failover is slow, DNS as a crawler bottleneck |
 | [Service mesh & Envoy](technologies/service-mesh-and-envoy.md) | Programmable proxies for routing, mTLS, retries and telemetry |
@@ -71,6 +73,8 @@
 | [Adaptive bitrate streaming](concepts/adaptive-bitrate-streaming.md) | How does video keep playing when your connection changes? (HLS, DASH) |
 | [Video transcoding pipeline](concepts/video-transcoding-pipeline.md) | How does one upload become many qualities, fast? |
 | [Resumable & chunked uploads](concepts/resumable-and-chunked-uploads.md) | How do big uploads survive bad networks? |
+| [Time-series compression & downsampling](concepts/time-series-compression-and-downsampling.md) | How do metrics take ~1.4 bytes per point, and stay queryable for a year? |
+| [Alerting & SLOs](concepts/alerting-and-slos.md) | How do you page less and catch more? Error budgets and burn rates |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |

@@ -258,4 +258,5 @@ Rate limiting protects you from one noisy client; back-pressure protects a compo
 ## 9. Used in
 
 - [LLD: Logging Framework](../interviews/logging-framework/README.md): the async appender's bounded queue, what to do when it's full (block, drop by level, drop counter), and flushing on shutdown.
+- [Thread Pool / Connection Pool](../interviews/thread-pool/README.md): rejection policies as back-pressure, especially **CALLER_RUNS** slowing the submitter down when the pool is saturated.
 - Related: [thread-local and context propagation](thread-local-and-context-propagation.md), [SLF4J, Logback and Log4j2](../libraries/java/slf4j-logback-and-log4j2.md), [logging in Node](../libraries/js/logging-in-node.md), [blocking queues and producer-consumer](../libraries/java/blocking-queues-and-producer-consumer.md), [executors and threads](../libraries/java/executors-and-threads.md), [resilience patterns](../../HLD/concepts/resilience-patterns.md), [Kafka](../../HLD/technologies/kafka.md).
