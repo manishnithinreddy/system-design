@@ -15,6 +15,11 @@ This repo is a personal system-design interview prep library. Every session that
 
 The reader asked Claude to choose the problems. **[ROADMAP.md](ROADMAP.md) is the plan of record**: continue with the first unfinished row (HLD + LLD pair), then move it to "Done" and update the indexes. Only deviate if the reader asks.
 
+## Side tracks
+
+- **Case studies** live in `case-studies/<name>.md`: how a real company built a system, from public sources. **Cite sources inline with years; mark anything unverified as such.** Explanations and diagrams only, no code. Link to the related interview and concept files.
+- **See it work** pieces live in `see-it-work/<name>/` (README.md + small Java or Node code). Understanding first: the README explains the mechanism step by step, shows sample output, and lists "things to try" (kill a node, partition the network). Keep code small and readable (≈50–150 lines); no external dependencies.
+
 ## Folder layout
 
 ```
@@ -89,5 +94,5 @@ Link every technology/concept the first time it is used, e.g. `[Redis](../../tec
 
 ## Deferred ideas (come back after the main content is complete; do not build yet)
 
-- **Toy playground per problem:** a tiny runnable version (e.g. ~90-line in-memory Node URL shortener with curl commands) so the reader can *experience* the product locally, plus a table of "what the toy can't do → which interview topic fixes it". The user liked the idea but wants it later, to keep the repo focused for now.
+- ~~Toy playground per problem~~: merged into the **"See it work"** side track in ROADMAP.md (small runnable pieces of HLD mechanisms, explanation first).
 - **Jargon sweep of older files:** files written before the "every technical term gets a short plain explanation" rule may still use terms without explanation. Do one pass over all files and add 1–2 sentence explanations where missing. The user asked to handle this later.

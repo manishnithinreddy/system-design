@@ -35,12 +35,41 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 
 After these 17 pairs, every major building block (storage engines, replication, consensus, caching, queues, streams, search, CDNs, consistency models, concurrency primitives, core design patterns) will have been used in at least one full interview.
 
+## 🧭 Side tracks (optional, bounded)
+
+The core track teaches interview-shaped designs. Two small side tracks add what interviews leave out. Both are about **understanding first**: explanations and diagrams, with code only where running something makes an idea click.
+
+### 📚 Case studies: how real companies actually built it
+How a real system works, from public engineering blogs, docs and talks, with sources cited and anything unverified clearly marked. No code.
+
+| # | Case study | Why it's worth it | Slot |
+|---|---|---|---|
+| C1 | ✅ [**WhatsApp vs Telegram**](case-studies/whatsapp-vs-telegram.md) | Same product, opposite choices: E2EE + delete-after-delivery vs cloud storage + multi-DC; large media; multi-device | Done |
+| C2 | **Discord: storing trillions of messages** | Real Cassandra → ScyllaDB migration, hot partitions, request coalescing in practice | After #9 |
+| C3 | **Uber: from monolith to H3 and microservices** | Geospatial indexing at scale, service sprawl and how they tamed it | After #11 |
+| C4 | **Netflix: Open Connect and chaos engineering** | Running your own CDN inside ISPs; designing for failure on purpose | After #13 |
+| C5 | **Amazon: from the Dynamo paper to DynamoDB** | How a research design became a managed service, and what changed | After #15 |
+
+### 🔬 See it work: small runnable pieces of HLD systems
+The most instructive *distributed* mechanism from an HLD interview, as a small simulation you can run and break (typically 50–150 lines), wrapped in plain-language explanation. This replaces the earlier "toy playground" idea.
+
+| # | Piece | From | Slot |
+|---|---|---|---|
+| S1 | **Hash ring + quorum reads/writes + hinted handoff**, with nodes you can "kill" | Distributed KV store | After #8 |
+| S2 | **Raft leader election**: terms, votes, timeouts, a partitioned leader | Distributed KV store / etcd | After #10 |
+| S3 | **Chat sequencer + gap detection + offline sync** | Chat system | After #12 |
+| S4 | **Saga with compensations**: book → pay → fail → undo | Ride-sharing / payments | After #14 |
+| S5 | **Fan-out worker with retries, backoff and a DLQ** | Notification system | After #16 |
+
+## 🗺️ Learning path pages
+
+- **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in the order to read them, with why each comes next.
+
 ## 🧹 Planned clean-ups
 
 - **Jargon sweep** of the early files (rule added after they were written).
-- **Toy playgrounds** per problem (deferred idea; see `CLAUDE.md`).
 - **"How to approach any design interview"** guide: a reusable 45-minute framework distilled from all the interviews.
 
 ---
 
-*This roadmap is the plan of record: future sessions continue from the first unfinished row unless the reader asks for something else.*
+*This roadmap is the plan of record: future sessions continue from the first unfinished core row, doing any side-track item whose slot has come up, unless the reader asks for something else.*

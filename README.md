@@ -14,11 +14,18 @@ LLD/                         Low-level design (classes + code)
 ├── libraries/java/          ConcurrentHashMap, atomics, locks, ...
 ├── libraries/js/            event loop, Map, middleware, ...
 └── concepts/                design patterns, SOLID, thread safety
+case-studies/                How real companies built it (sources cited, no code)
+see-it-work/                 Small runnable pieces of HLD mechanisms
 ```
 
 ## Roadmap
 
 See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's next, and which new ideas each problem adds.
+
+**Side tracks** (optional, understanding-first):
+- 🗺️ **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in reading order, from "split the data" to consensus and repair.
+- 📚 **Case studies** (`case-studies/`): how real companies built it, with sources. First up: [WhatsApp vs Telegram](case-studies/whatsapp-vs-telegram.md).
+- 🔬 **See it work** (`see-it-work/`): small runnable simulations of distributed mechanisms (planned, see the roadmap).
 
 ## Interviews
 
