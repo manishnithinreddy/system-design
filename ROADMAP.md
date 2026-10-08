@@ -45,10 +45,11 @@ How a real system works, from public engineering blogs, docs and talks, with sou
 | # | Case study | Why it's worth it | Slot |
 |---|---|---|---|
 | C1 | ✅ [**WhatsApp vs Telegram**](case-studies/whatsapp-vs-telegram.md) | Same product, opposite choices: E2EE + delete-after-delivery vs cloud storage + multi-DC; large media; multi-device | Done |
-| C2 | **Discord: storing trillions of messages** | Real Cassandra → ScyllaDB migration, hot partitions, request coalescing in practice | After #9 |
+| C2 | ✅ [**Discord: storing trillions of messages**](case-studies/discord-message-storage.md) | Real Cassandra → ScyllaDB migration, hot partitions, request coalescing in practice | Done |
 | C3 | **Uber: from monolith to H3 and microservices** | Geospatial indexing at scale, service sprawl and how they tamed it | After #11 |
 | C4 | **Netflix: Open Connect and chaos engineering** | Running your own CDN inside ISPs; designing for failure on purpose | After #13 |
 | C5 | **Amazon: from the Dynamo paper to DynamoDB** | How a research design became a managed service, and what changed | After #15 |
+| C6 | ✅ [**Video platforms: upload, transcode, store every quality, stream**](case-studies/video-upload-transcode-and-storage.md) (YouTube, Netflix, others) | Resumable chunked uploads, transcoding into a bitrate ladder, where each rendition lives (object storage, CDN, ISP caches), adaptive streaming | Done (reader request) |
 
 ### 🔬 See it work: small runnable pieces of HLD systems
 The most instructive *distributed* mechanism from an HLD interview, as a small simulation you can run and break (typically 50–150 lines), wrapped in plain-language explanation. This replaces the earlier "toy playground" idea.
@@ -64,6 +65,10 @@ The most instructive *distributed* mechanism from an HLD interview, as a small s
 ## 🗺️ Learning path pages
 
 - **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in the order to read them, with why each comes next.
+
+## 💬 To discuss
+
+- **A new section** the reader has in mind (raised during pair #10). To be discussed before building.
 
 ## 🧹 Planned clean-ups
 
