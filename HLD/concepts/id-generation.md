@@ -195,4 +195,5 @@ Also confused: **Base62 vs Base64** — Base64 includes `+`, `/`, `=`, which nee
 ## 9. Used in
 
 - [URL Shortener](../interviews/url-shortener/README.md) — generating the short code: hash vs counter + Base62, range allocation for multiple app servers, key length (62^7), and enumeration concerns.
+- [News feed](../interviews/news-feed/README.md): **Snowflake time-ordered post IDs**: sorting by ID equals sorting by time, so feed lists store just IDs, merging celebrity posts is a merge by ID, and the pagination cursor is the last post ID ([pagination](pagination.md)).
 - Related: [Redis](../technologies/redis.md) (INCR), [ZooKeeper / etcd](../technologies/zookeeper-etcd.md) (range leasing, machine ids), [PostgreSQL](../technologies/postgresql.md) (sequences, ticket table, UUID index behaviour), [CAP and consistency](cap-and-consistency.md) (why uniqueness needs strong consistency).

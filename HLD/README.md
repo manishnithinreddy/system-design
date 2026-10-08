@@ -6,6 +6,7 @@
 | [URL Shortener](interviews/url-shortener/README.md) | Read-heavy design, caching, ID generation, KV storage, async analytics, multi-region consistency |
 | [Notification System](interviews/notification-system/README.md) | Async pipelines, queues, priorities, retries/backoff/DLQ, idempotency, fan-out, third-party providers, cost |
 | [Chat System](interviews/chat-system/README.md) | Stateful connection fleets, ordering with sequence numbers, offline sync, group fan-out, presence, media, E2EE consequences |
+| [News Feed](interviews/news-feed/README.md) | Hybrid fan-out (celebrity problem), precomputed feed caches, read-time filtering, ranking pipelines, counters, cursor pagination |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -22,6 +23,7 @@
 | [WebSockets & SSE](technologies/websockets-and-sse.md) | Pushing data from server to an open app/browser in real time |
 | [Pub/sub](technologies/pub-sub.md) | Broadcasting events to whoever is subscribed (Redis Pub/Sub, Kafka, NATS) |
 | [Object storage (S3)](technologies/object-storage.md) | Storing and serving files/blobs cheaply and durably |
+| [Graph databases & adjacency lists](technologies/graph-databases.md) | Storing who-follows-whom; when a real graph DB is worth it |
 
 ## Concepts (ideas)
 | | Question it answers |
@@ -38,3 +40,7 @@
 | [Message ordering & sequencing](concepts/message-ordering-and-sequencing.md) | How do all devices see messages in the same order when clocks disagree? |
 | [Presence & heartbeats](concepts/presence-and-heartbeats.md) | How do we know who's online, cheaply? |
 | [End-to-end encryption](concepts/end-to-end-encryption.md) | What can (and can't) the server do when it can't read messages? |
+| [Feed ranking](concepts/feed-ranking.md) | How do "best first" feeds pick and order posts? |
+| [Pagination](concepts/pagination.md) | Why cursors beat page numbers on live data |
+| [Counters at scale](concepts/counters-at-scale.md) | How do you count millions of likes without a hot row? |
+| [Bloom filters](concepts/bloom-filters.md) | "Definitely not / probably yes" membership in tiny memory |

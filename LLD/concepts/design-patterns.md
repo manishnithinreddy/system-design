@@ -203,6 +203,32 @@ The full Gang-of-Four form uses a `State` interface with one class per state, ho
 
 `ParkingLot.park(vehicle)` / `unpark(ticketId)` hide floors, spots, allocation, pricing and notifications behind two methods. Callers (gates) can't reach in and break invariants, and locking lives in one place. **Over-engineering when** it becomes a god class doing the work itself instead of delegating — a facade coordinates, it doesn't compute (see [oop-modeling](oop-modeling.md)).
 
+### Command — a request as an object
+
+Wrap "do X with these arguments" into a small object that can be **queued, logged, retried or undone** instead of calling the method directly. Elevator: a button press becomes `HallCall(floor, direction)`, `CarCall(elevatorId, floor)` or `SetMaintenance(elevatorId, on)`; any thread can create one, but only the simulation thread executes it (see [single-writer-principle](single-writer-principle.md) and [blocking-queues-and-producer-consumer](../libraries/java/blocking-queues-and-producer-consumer.md)). Same idea as a message on a Kafka topic or a k8s manifest: a description of intent, applied later by an owner.
+
+```java
+public sealed interface Command permits HallCall, CarCall, SetMaintenance {}
+public record HallCall(int floor, Direction direction) implements Command {}
+public record CarCall(int elevatorId, int floor) implements Command {}
+public record SetMaintenance(int elevatorId, boolean on) implements Command {}
+
+// producer (any thread):   inbox.offer(new HallCall(5, Direction.UP));
+// consumer (sim thread, inside tick()):
+void apply(Command c) {
+    switch (c) {                                      // exhaustive over the sealed interface
+        case HallCall h       -> dispatcher.assign(h.floor(), h.direction());
+        case CarCall cc       -> elevators.get(cc.elevatorId()).addStop(cc.floor());
+        case SetMaintenance m -> elevators.get(m.elevatorId()).setMaintenance(m.on());
+    }
+}
+```
+
+The classic GoF form gives each command an `execute()` (and maybe `undo()`) method; with Java 21 records + sealed interfaces, keeping commands as **pure data** and the logic in one `switch` is often clearer, and it keeps the commands immutable and safe to pass between threads.
+
+- **Use when:** requests must cross a thread or process boundary (queue them), be recorded (audit log, replay for tests), be retried, or be undone (editor undo stack, transaction compensation).
+- **Over-engineering when:** the caller and the receiver are on the same thread and the call happens immediately — `elevator.addStop(9)` is clearer than `new AddStopCommand(elevator, 9).execute()`. Also avoid a command class per trivial setter, and don't put mutable state in commands that cross threads.
+
 ## 4. When to use it
 
 - Name a pattern when it genuinely shapes the design, and say **why** it's needed here ("algorithms are chosen per-endpoint from config, so Strategy + Factory").
@@ -248,4 +274,5 @@ Also confused: **Decorator vs Proxy** — same shape; Decorator adds behavior, P
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — Strategy for algorithms, Factory for creation, Decorator for metrics.
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — Strategy for pricing and spot allocation, Factory for building strategies from config, Observer for display boards, State for the ticket lifecycle (ACTIVE → PAID → EXITED), Facade for `ParkingLot`; Singleton warning (don't make `ParkingLot` a global singleton — create one and inject it).
 - [LLD: Design an LRU Cache](../interviews/lru-cache/README.md) — Decorator: `SynchronizedCache` wraps any `Cache<K,V>` to add locking without changing it; Strategy: the eviction policy (LRU vs LFU) behind one `Cache` interface.
+- [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — Strategy: car selection (`NearestCarStrategy`, `LeastBusyStrategy`); State: elevator status (IDLE / MOVING / DOORS_OPEN / MAINTENANCE, see [state-machines](state-machines.md)); Command: button presses as `HallCall` / `CarCall` / `SetMaintenance` queued to the simulation thread; Observer: `ElevatorListener` for displays (ARRIVED, DOORS_OPENED); Facade: `ElevatorSystem`.
 - Related: [SOLID principles](solid-principles.md) — Strategy and Decorator are how Open/Closed is usually achieved.

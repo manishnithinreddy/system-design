@@ -146,4 +146,5 @@ Note `Ticket` holds a reference to a mutable `ParkingSpot`; the ticket is still 
 ## 9. Used in
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — `Vehicle`, `Ticket`, `Receipt` as records; `ParkingSpot` / `ParkingFloor` / `ParkingLot` as classes.
+- [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — immutable command records (`HallCall`, `CarCall`, `SetMaintenance`) safely passed between threads, and event records for listeners.
 - Related: [enums-and-enummap](enums-and-enummap.md), [bigdecimal-and-money](bigdecimal-and-money.md), [oop-modeling](../../concepts/oop-modeling.md).

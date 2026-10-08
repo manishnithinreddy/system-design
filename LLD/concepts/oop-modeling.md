@@ -171,4 +171,5 @@ A class should have **one reason to change** (Single Responsibility). If you can
 
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — nouns → classes, enum + capability instead of subclasses, `ParkingLot` facade.
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — limiter interface, config as a value, registry as the entry point.
+- [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — `Elevator`, `ElevatorSystem` facade, hall calls vs car calls as distinct concepts, enums for direction and status.
 - Related: [uml-class-diagrams](uml-class-diagrams.md), [solid-principles](solid-principles.md), [design-patterns](design-patterns.md).

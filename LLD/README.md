@@ -6,6 +6,7 @@
 | [Rate Limiter](interviews/rate-limiter/README.md) | Algorithms, Strategy/Factory, thread safety, testable time, distributed atomicity | [Java](interviews/rate-limiter/java/) · [JS](interviews/rate-limiter/js/) |
 | [Parking Lot](interviews/parking-lot/README.md) | OOP modelling (enum vs inheritance, record vs class), Strategy/Observer/State, money, concurrent spot claiming, DB-level atomicity | [Java](interviews/parking-lot/java/) · [JS](interviews/parking-lot/js/) |
 | [LRU Cache](interviews/lru-cache/README.md) | HashMap + doubly linked list, O(1), thread safety where reads are writes, lock striping, TTL, LFU, stampede protection, Caffeine | [Java](interviews/lru-cache/java/) · [JS](interviews/lru-cache/js/) |
+| [Elevator System](interviews/elevator-system/README.md) | LOOK scheduling with sorted sets, dispatch cost functions, Command + single-writer concurrency, state machines, maintenance/degraded modes | [Java](interviews/elevator-system/java/) · [JS](interviews/elevator-system/js/) |
 
 ## Libraries — Java
 | | Use it for |
@@ -25,6 +26,9 @@
 | [Caffeine & Guava Cache](libraries/java/caffeine-and-guava-cache.md) | Production in-process caches |
 | [CompletableFuture](libraries/java/completablefuture.md) | Async results; sharing one in-flight load (single-flight) |
 | [References & GC](libraries/java/references-and-gc.md) | Weak/soft references, heap and GC cost of caches |
+| [TreeSet & PriorityQueue](libraries/java/treeset-and-priorityqueue.md) | Sorted sets with "next above X" queries vs heaps |
+| [Blocking queues & producer-consumer](libraries/java/blocking-queues-and-producer-consumer.md) | Handing work between threads safely |
+| [Executors & threads](libraries/java/executors-and-threads.md) | Thread pools, virtual threads, shutdown |
 
 ## Libraries — JavaScript
 | | Use it for |
@@ -35,6 +39,8 @@
 | [Money & numbers in JS](libraries/js/money-and-numbers-in-js.md) | Floating point traps, integer paise, BigInt, formatting |
 | [Classes & private fields](libraries/js/classes-and-private-fields.md) | `#private`, `Object.freeze`, enums in JS |
 | [LRU with Map](libraries/js/lru-with-map.md) | Map insertion order as a 20-line LRU |
+| [Sorted collections in JS](libraries/js/sorted-collections-in-js.md) | Living without TreeSet |
+| [Async/await & timers](libraries/js/async-await-and-timers.md) | Promises, timers, and keeping logic testable |
 
 ## Concepts
-[OOP modelling](concepts/oop-modeling.md) · [Hash map & linked list](concepts/hashmap-and-linked-list.md) · [Cache eviction policies](concepts/cache-eviction-policies.md) · [Big-O complexity](concepts/big-o-complexity.md) · [UML class diagrams](concepts/uml-class-diagrams.md) · [Design patterns](concepts/design-patterns.md) · [SOLID](concepts/solid-principles.md) · [Thread-safety basics](concepts/thread-safety-basics.md)
+[OOP modelling](concepts/oop-modeling.md) · [Hash map & linked list](concepts/hashmap-and-linked-list.md) · [Cache eviction policies](concepts/cache-eviction-policies.md) · [Big-O complexity](concepts/big-o-complexity.md) · [State machines](concepts/state-machines.md) · [Scheduling algorithms](concepts/scheduling-algorithms.md) · [Single-writer principle](concepts/single-writer-principle.md) · [UML class diagrams](concepts/uml-class-diagrams.md) · [Design patterns](concepts/design-patterns.md) · [SOLID](concepts/solid-principles.md) · [Thread-safety basics](concepts/thread-safety-basics.md)

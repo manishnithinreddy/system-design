@@ -193,4 +193,5 @@ The same idea makes time testable: inject a `TimeSource` instead of calling `Sys
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — interface design, extension with new algorithms, injected clock.
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — pricing and allocation strategies (Open/Closed), small focused classes (SRP), injected `Clock` and strategies (Dependency Inversion).
 - [LLD: Design an LRU Cache](../interviews/lru-cache/README.md) — small `Cache<K,V>` interface (Interface Segregation), LRU/LFU as interchangeable implementations (Liskov, Open/Closed), injected `Clock` and eviction listener (Dependency Inversion).
+- [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — `ElevatorSelectionStrategy` (Open/Closed, Dependency Inversion), `ElevatorListener` observers, small focused classes (SRP).
 - Related: [design-patterns](design-patterns.md).

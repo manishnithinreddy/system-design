@@ -163,3 +163,4 @@ The test runs in microseconds, never flakes, and can check edge cases (exactly o
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — injectable clock, deterministic tests for every algorithm.
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — injected `java.time.Clock` for entry/exit timestamps and deterministic fee tests (see also [java-time-api](java-time-api.md)).
 - [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — injected `Clock` for TTL expiry so tests can advance time instead of sleeping.
+- [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — discrete time: the simulation advances by `tick()` (one floor per tick) instead of reading the wall clock, so tests are deterministic.

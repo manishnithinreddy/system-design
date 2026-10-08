@@ -148,3 +148,4 @@ Don't mix `BigInt` and `Number` in arithmetic — it throws `TypeError`. `perfor
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — JavaScript implementation, why it has no locks.
+- [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — JS version: the event loop is already a single writer, so commands and `tick()` need no locks (see [async-await-and-timers](async-await-and-timers.md)).

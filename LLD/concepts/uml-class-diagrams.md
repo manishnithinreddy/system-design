@@ -195,4 +195,5 @@ classDiagram
 
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — class diagram of lot, floors, spots, strategies and observers.
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — limiter interface and implementations.
+- [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — class diagram of `ElevatorSystem`, `Elevator`, selection strategies, commands and listeners.
 - Related: [oop-modeling](oop-modeling.md), [design-patterns](design-patterns.md).
