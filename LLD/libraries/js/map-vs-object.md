@@ -141,3 +141,4 @@ Rate-limit state needs to outlive the request and be keyed by a value, so it's a
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — JavaScript per-key registry and eviction.
+- [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — LRU on top of `Map` insertion order (`delete` + `set` to mark as newest, `map.keys().next().value` for the oldest); see [lru-with-map](lru-with-map.md).

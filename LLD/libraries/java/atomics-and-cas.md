@@ -168,3 +168,4 @@ For counters this is harmless — 5 is 5. It bites in lock-free **data structure
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — `AtomicLong` / CAS variant of the token bucket and fixed window counter.
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — atomic spot claim with `AtomicBoolean.compareAndSet(false, true)` so two entry gates never get the same spot; free-spot counters for display boards.
+- [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — hit/miss/eviction counters for cache stats (`AtomicLong` / `LongAdder`) read without taking the cache lock.

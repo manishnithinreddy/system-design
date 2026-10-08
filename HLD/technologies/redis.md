@@ -179,4 +179,6 @@ Key insight: **local cache and Redis stack**. A Caffeine cache (a popular Java l
 
 - [URL shortener](../interviews/url-shortener/README.md) — **cache for redirects** (short code → long URL, the read-heavy hot path) and an **atomic counter** (`INCR`/`INCRBY`) for generating IDs or counting clicks.
 - [Notification system](../interviews/notification-system/README.md) — **idempotency/dedup keys** (`SET NX` with TTL), **per-user and per-provider rate limiting** (token buckets), the **WebSocket connection registry** (user → gateway), and caching user preferences.
+- [Chat system](../interviews/chat-system/README.md): the **session/presence registry** (userId → gateway with a heartbeat-refreshed TTL), last-seen, Pub/Sub channels for routing messages to the right gateway, per-conversation sequence counters (`INCR`) and client-message-ID dedup keys.
+- [LLD: Design an LRU Cache](../../LLD/interviews/lru-cache/README.md) — what's inside an in-process cache: the LRU/LFU data structures that Redis approximates with sampling, and when a local L1 cache sits in front of Redis.
 - Related concepts: [caching strategies](../concepts/caching-strategies.md), [ID generation](../concepts/id-generation.md), [consistent hashing](../concepts/consistent-hashing.md), [sharding and replication](../concepts/sharding-and-replication.md).

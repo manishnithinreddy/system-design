@@ -154,4 +154,5 @@ Also: **APNs/FCM vs WebSocket.** Push goes through the OS vendor and works when 
 ## 9. Used in
 
 - [Notification system](../interviews/notification-system/README.md): the **channel workers** that call APNs/FCM, SMS gateways and SES/SendGrid; device-token storage; per-provider rate limits; delivery status via webhooks; multi-provider failover.
+- [Chat system](../interviews/chat-system/README.md): **push notifications (APNs/FCM) for offline recipients**: wake the app so it reconnects and syncs since its last seq; with E2EE the push carries no readable content.
 - Related: [message queues](message-queues.md), [WebSockets and SSE](websockets-and-sse.md), [retries, backoff and DLQ](../concepts/retries-backoff-and-dlq.md), [idempotency and delivery semantics](../concepts/idempotency-and-delivery-semantics.md), [fan-out](../concepts/fan-out.md), [rate limiter (LLD)](../../LLD/interviews/rate-limiter/README.md).

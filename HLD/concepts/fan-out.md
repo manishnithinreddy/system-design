@@ -156,4 +156,5 @@ The relay may publish a row twice (crash after publish, before marking), so it i
 ## 9. Used in
 
 - [Notification system](../interviews/notification-system/README.md): **broadcasts to millions** (batch expansion, chunking, throttling to provider limits, bulk vs critical lanes), fan-out on read for in-app announcements, and the transactional outbox for event-triggered notifications.
+- [Chat system](../interviews/chat-system/README.md): **group chat delivery**: fan-out on write to each member's inbox/gateway for small groups vs per-conversation topics / fan-out on read for large groups and channels, plus presence fan-out avoided via subscribe-on-view.
 - Related: [message queues](../technologies/message-queues.md), [Kafka](../technologies/kafka.md) (hot partitions), [push/email/SMS providers](../technologies/push-email-sms-providers.md), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [back-of-the-envelope](back-of-the-envelope.md), [rate limiter (LLD)](../../LLD/interviews/rate-limiter/README.md).

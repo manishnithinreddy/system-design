@@ -156,4 +156,5 @@ Same lesson as get-then-put on [ConcurrentHashMap](concurrent-hashmap.md), and t
 ## 9. Used in
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — per-size free-spot pools, nearest-first allocation, observer list for display boards.
+- [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — why there is no "concurrent LinkedHashMap" in the JDK, and the options instead: one lock, lock striping, or Caffeine.
 - Related: [concurrent-hashmap](concurrent-hashmap.md), [atomics-and-cas](atomics-and-cas.md), [locks-and-synchronized](locks-and-synchronized.md), [thread-safety-basics](../../concepts/thread-safety-basics.md).

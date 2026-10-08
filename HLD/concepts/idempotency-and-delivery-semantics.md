@@ -152,4 +152,5 @@ Also: **HTTP method idempotency.** `PUT` and `DELETE` are idempotent by spec, `P
 ## 9. Used in
 
 - [Notification system](../interviews/notification-system/README.md): **idempotency keys on the Notification API**, per-channel dedup in workers to survive queue redelivery, idempotent handling of provider delivery webhooks, and the "why no exactly-once SMS" discussion.
+- [Chat system](../interviews/chat-system/README.md): **client-generated message IDs** so a resend after a lost ack is stored once, at-least-once delivery to devices with dedup by seq, and the sent ✓ / delivered ✓✓ / read ack states.
 - Related: [Kafka](../technologies/kafka.md) (consumer idempotency, Kafka transactions), [message queues](../technologies/message-queues.md) (visibility timeout, redelivery), [retries, backoff and DLQ](retries-backoff-and-dlq.md), [push/email/SMS providers](../technologies/push-email-sms-providers.md), [Redis](../technologies/redis.md).

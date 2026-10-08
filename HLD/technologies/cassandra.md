@@ -184,4 +184,5 @@ DynamoDB's equivalent: **conditional writes** (`attribute_not_exists(short_code)
 
 - [URL shortener](../interviews/url-shortener/README.md) — the **L5/L6 at-scale store** for short code → long URL mappings (Cassandra or DynamoDB), replacing the single Postgres from the L4 answer.
 - [Notification system](../interviews/notification-system/README.md) — the **notification log / in-app inbox and delivery-status history** at scale (write-heavy, partitioned by user_id, time-ordered).
+- [Chat system](../interviews/chat-system/README.md): the **message store**: partition key `conversation_id`, clustering key message `seq`, so "last 50 messages" and "sync since seq N" are single sequential reads; write-heavy at 1M+ messages/s.
 - Related concepts: [consistent hashing](../concepts/consistent-hashing.md), [CAP and consistency](../concepts/cap-and-consistency.md), [sharding and replication](../concepts/sharding-and-replication.md), [ID generation](../concepts/id-generation.md).

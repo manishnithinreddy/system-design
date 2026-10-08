@@ -86,3 +86,4 @@ Link every technology/concept the first time it is used, e.g. `[Redis](../../tec
 ## Deferred ideas (come back after the main content is complete; do not build yet)
 
 - **Toy playground per problem:** a tiny runnable version (e.g. ~90-line in-memory Node URL shortener with curl commands) so the reader can *experience* the product locally, plus a table of "what the toy can't do → which interview topic fixes it". The user liked the idea but wants it later, to keep the repo focused for now.
+- **Jargon sweep of older files:** files written before the "every technical term gets a short plain explanation" rule may still use terms without explanation. Do one pass over all files and add 1–2 sentence explanations where missing. The user asked to handle this later.

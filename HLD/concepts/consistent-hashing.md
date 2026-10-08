@@ -146,4 +146,5 @@ Also confused with **rendezvous (highest-random-weight) hashing**: for each key,
 ## 9. Used in
 
 - [URL Shortener](../interviews/url-shortener/README.md) — scaling the redirect cache and the URL store beyond one node (L5/L6 deep dives): how short codes map to cache/DB shards, and why `% N` would cause a cache-miss storm when adding nodes.
+- [Chat system](../interviews/chat-system/README.md): assigning each **conversation to an owner** (for sequence numbers) and spreading message partitions across Cassandra's token ring; why hashing users onto gateways is avoided (rebalancing drops connections).
 - Related: [Redis](../technologies/redis.md) (hash slots), [Cassandra](../technologies/cassandra.md) (token ring), [Load balancer](../technologies/load-balancer.md) (ring-hash / Maglev), [Sharding and replication](sharding-and-replication.md), [Caching strategies](caching-strategies.md).

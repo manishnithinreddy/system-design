@@ -146,4 +146,5 @@ They stack: **User → CDN edge → load balancer → app servers → Redis → 
 ## 9. Used in
 
 - [URL shortener](../interviews/url-shortener/README.md) — the **L6 edge redirect caching discussion**: 301 vs 302, CDN caching vs analytics accuracy, and edge compute for redirects.
+- [Chat system](../interviews/chat-system/README.md): **serving chat media** (photos, videos, voice notes) from the edge with short-lived signed URLs; the bytes live in [object storage](object-storage.md) and the message carries only the media reference.
 - Related concepts: [caching strategies](../concepts/caching-strategies.md), [back-of-the-envelope](../concepts/back-of-the-envelope.md).

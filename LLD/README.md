@@ -5,6 +5,7 @@
 |---|---|---|
 | [Rate Limiter](interviews/rate-limiter/README.md) | Algorithms, Strategy/Factory, thread safety, testable time, distributed atomicity | [Java](interviews/rate-limiter/java/) · [JS](interviews/rate-limiter/js/) |
 | [Parking Lot](interviews/parking-lot/README.md) | OOP modelling (enum vs inheritance, record vs class), Strategy/Observer/State, money, concurrent spot claiming, DB-level atomicity | [Java](interviews/parking-lot/java/) · [JS](interviews/parking-lot/js/) |
+| [LRU Cache](interviews/lru-cache/README.md) | HashMap + doubly linked list, O(1), thread safety where reads are writes, lock striping, TTL, LFU, stampede protection, Caffeine | [Java](interviews/lru-cache/java/) · [JS](interviews/lru-cache/js/) |
 
 ## Libraries — Java
 | | Use it for |
@@ -20,6 +21,10 @@
 | [Records & immutability](libraries/java/records-and-immutability.md) | Value objects; record vs class |
 | [BigDecimal & money](libraries/java/bigdecimal-and-money.md) | Exact money arithmetic and rounding |
 | [java.time API](libraries/java/java-time-api.md) | Instant vs LocalDateTime, Duration vs Period, DST |
+| [LinkedHashMap](libraries/java/linkedhashmap.md) | A ready-made LRU: access order + removeEldestEntry |
+| [Caffeine & Guava Cache](libraries/java/caffeine-and-guava-cache.md) | Production in-process caches |
+| [CompletableFuture](libraries/java/completablefuture.md) | Async results; sharing one in-flight load (single-flight) |
+| [References & GC](libraries/java/references-and-gc.md) | Weak/soft references, heap and GC cost of caches |
 
 ## Libraries — JavaScript
 | | Use it for |
@@ -29,6 +34,7 @@
 | [Express middleware](libraries/js/express-middleware.md) | Plugging cross-cutting logic into HTTP handling |
 | [Money & numbers in JS](libraries/js/money-and-numbers-in-js.md) | Floating point traps, integer paise, BigInt, formatting |
 | [Classes & private fields](libraries/js/classes-and-private-fields.md) | `#private`, `Object.freeze`, enums in JS |
+| [LRU with Map](libraries/js/lru-with-map.md) | Map insertion order as a 20-line LRU |
 
 ## Concepts
-[OOP modelling](concepts/oop-modeling.md) · [UML class diagrams](concepts/uml-class-diagrams.md) · [Design patterns](concepts/design-patterns.md) · [SOLID](concepts/solid-principles.md) · [Thread-safety basics](concepts/thread-safety-basics.md)
+[OOP modelling](concepts/oop-modeling.md) · [Hash map & linked list](concepts/hashmap-and-linked-list.md) · [Cache eviction policies](concepts/cache-eviction-policies.md) · [Big-O complexity](concepts/big-o-complexity.md) · [UML class diagrams](concepts/uml-class-diagrams.md) · [Design patterns](concepts/design-patterns.md) · [SOLID](concepts/solid-principles.md) · [Thread-safety basics](concepts/thread-safety-basics.md)

@@ -247,4 +247,5 @@ Also confused: **Decorator vs Proxy** — same shape; Decorator adds behavior, P
 
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — Strategy for algorithms, Factory for creation, Decorator for metrics.
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — Strategy for pricing and spot allocation, Factory for building strategies from config, Observer for display boards, State for the ticket lifecycle (ACTIVE → PAID → EXITED), Facade for `ParkingLot`; Singleton warning (don't make `ParkingLot` a global singleton — create one and inject it).
+- [LLD: Design an LRU Cache](../interviews/lru-cache/README.md) — Decorator: `SynchronizedCache` wraps any `Cache<K,V>` to add locking without changing it; Strategy: the eviction policy (LRU vs LFU) behind one `Cache` interface.
 - Related: [SOLID principles](solid-principles.md) — Strategy and Decorator are how Open/Closed is usually achieved.

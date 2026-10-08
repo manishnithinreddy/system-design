@@ -174,3 +174,4 @@ In **Java 21**, a virtual thread that blocks **while inside a `synchronized` blo
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — per-bucket `synchronized` / `ReentrantLock`, lock granularity discussion.
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — per-floor locks as an alternative to lock-free spot claims; lock granularity (whole lot vs per floor vs per spot).
+- [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — `SynchronizedCache` (one lock; even `get` must lock because it reorders the list) vs `StripedCache` (N segments, each with its own lock) for lock striping.

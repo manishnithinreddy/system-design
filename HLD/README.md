@@ -5,6 +5,7 @@
 |---|---|
 | [URL Shortener](interviews/url-shortener/README.md) | Read-heavy design, caching, ID generation, KV storage, async analytics, multi-region consistency |
 | [Notification System](interviews/notification-system/README.md) | Async pipelines, queues, priorities, retries/backoff/DLQ, idempotency, fan-out, third-party providers, cost |
+| [Chat System](interviews/chat-system/README.md) | Stateful connection fleets, ordering with sequence numbers, offline sync, group fan-out, presence, media, E2EE consequences |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -19,6 +20,8 @@
 | [Message queues (SQS / RabbitMQ)](technologies/message-queues.md) | Hand work to background workers with acks, retries and dead-letter queues |
 | [Push / email / SMS providers](technologies/push-email-sms-providers.md) | Actually delivering messages to phones and inboxes (APNs, FCM, Twilio, SES) |
 | [WebSockets & SSE](technologies/websockets-and-sse.md) | Pushing data from server to an open app/browser in real time |
+| [Pub/sub](technologies/pub-sub.md) | Broadcasting events to whoever is subscribed (Redis Pub/Sub, Kafka, NATS) |
+| [Object storage (S3)](technologies/object-storage.md) | Storing and serving files/blobs cheaply and durably |
 
 ## Concepts (ideas)
 | | Question it answers |
@@ -32,3 +35,6 @@
 | [Idempotency & delivery semantics](concepts/idempotency-and-delivery-semantics.md) | How do retries not cause duplicates? What does "exactly once" really mean? |
 | [Retries, backoff & DLQ](concepts/retries-backoff-and-dlq.md) | When and how to retry without making an outage worse? |
 | [Fan-out](concepts/fan-out.md) | How does one event become millions of deliveries? (and the outbox pattern) |
+| [Message ordering & sequencing](concepts/message-ordering-and-sequencing.md) | How do all devices see messages in the same order when clocks disagree? |
+| [Presence & heartbeats](concepts/presence-and-heartbeats.md) | How do we know who's online, cheaply? |
+| [End-to-end encryption](concepts/end-to-end-encryption.md) | What can (and can't) the server do when it can't read messages? |
