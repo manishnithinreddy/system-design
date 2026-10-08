@@ -164,4 +164,5 @@ MinHash signatures are larger than SimHash (100 × 4 bytes = 400 bytes vs 8 byte
 ## 9. Used in
 
 - [Web Crawler](../interviews/web-crawler/README.md): **seen-URL check** before fetching and **exact + SimHash content dedup** after fetching (see the [L4](../interviews/web-crawler/L4-mid.md), [L5](../interviews/web-crawler/L5-senior.md) and [L6](../interviews/web-crawler/L6-staff.md) answers).
+- [Video streaming](../interviews/video-streaming/README.md): hashing uploaded originals so exact re-uploads reuse existing renditions.
 - Related: [Bloom filters](bloom-filters.md) (compact seen-URL set), [URL frontier and politeness](url-frontier-and-politeness.md) (URL normalisation, recrawl by change rate), [object storage](../technologies/object-storage.md) (storing page bodies by content hash), [DNS](../technologies/dns.md).
