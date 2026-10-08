@@ -138,4 +138,5 @@ Rule of thumb: **new variants often → open interface; new operations often →
 
 - [LLD: Design Splitwise](../../interviews/splitwise/README.md) — `SplitSpec` (Equal / Exact / Percent / Shares) as a sealed interface of records; the `Splitter` switches exhaustively over it. Ledger entry kinds (expense / settlement / reversal) are a natural second sealed hierarchy.
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../../interviews/kv-store/README.md) — the `CommandProcessor` dispatches text commands with a `switch` on the command name; a natural refactor is to parse them into a sealed interface of records (`Set`, `Get`, `Begin`, …) so a new command can't be added without the compiler forcing every `switch` to handle it.
+- [Task Scheduler](../../interviews/task-scheduler/README.md): `Schedule` is a sealed interface with `Once`, `FixedRate`, `FixedDelay` and `Cron` variants, each computing its own next run time.
 - Related: [records-and-immutability](records-and-immutability.md), [enums-and-enummap](enums-and-enummap.md), [design-patterns](../../concepts/design-patterns.md), [solid-principles](../../concepts/solid-principles.md).

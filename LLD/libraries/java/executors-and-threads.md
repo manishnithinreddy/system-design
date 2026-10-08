@@ -162,4 +162,5 @@ The elevator design picks the second: requests from many threads go into a `Link
 ## 9. Used in
 
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — single simulation thread vs thread-per-elevator; scheduled tick; clean shutdown.
+- [Task Scheduler](../../interviews/task-scheduler/README.md): one **dispatcher thread** hands due tasks to a **worker pool**, and `shutdown(timeout)` drains running tasks before `shutdownNow`.
 - Related: [scheduled-executor-service](scheduled-executor-service.md), [blocking-queues-and-producer-consumer](blocking-queues-and-producer-consumer.md), [locks-and-synchronized](locks-and-synchronized.md), [completablefuture](completablefuture.md), [thread-safety-basics](../../concepts/thread-safety-basics.md).

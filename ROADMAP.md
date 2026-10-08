@@ -17,12 +17,12 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 5 | [Ride-Sharing](HLD/interviews/ride-sharing/README.md) | Geospatial indexing, leases, sagas, stream processing | [Splitwise](LLD/interviews/splitwise/README.md) | Exact money, sealed types, ledgers, greedy algorithms |
 | 6 | [API Gateway](HLD/interviews/api-gateway/README.md) | Request path, auth, resilience, control/data plane | [Movie Booking](LLD/interviews/movie-booking/README.md) | Holds with TTL, optimistic vs pessimistic locking, deadlocks |
 | 7 | [Distributed KV Store](HLD/interviews/distributed-kv-store/README.md) | Quorums, sloppy quorum, vector clocks, Merkle repair, gossip, LSM trees, Raft | [KV Store with transactions](LLD/interviews/kv-store/README.md) | Undo-log transactions, TTL, write-ahead log, crash recovery |
+| 8 | [Web Crawler](HLD/interviews/web-crawler/README.md) | Politeness (per-host queues + heap), URL/content dedup (Bloom, SimHash), traps, recrawl, crawl budget | [Task Scheduler](LLD/interviews/task-scheduler/README.md) | Heap + dispatcher wake-up, fixed-rate/delay, cron + DST, retries + dead letters, misfires |
 
 ## 🔜 Next (in order)
 
 | # | HLD | New ideas it brings | LLD | New ideas it brings |
 |---|---|---|---|---|
-| 8 | **Web Crawler** | Massive BFS, politeness, URL frontier, dedup (Bloom, fingerprints), robots.txt | **Task Scheduler** (cron-like) | Delay queues, priority queues, worker pools, retries, time handling |
 | 9 | **Search Autocomplete / Typeahead** | Tries, inverted indexes, top-k, Elasticsearch, offline vs online pipelines | **Logging Framework** | Chain of Responsibility, async appenders, back-pressure, levels |
 | 10 | **Video Streaming** (YouTube / Netflix) | Upload pipelines, transcoding DAGs, adaptive bitrate, CDN economics | **Vending Machine** | State pattern done properly, inventory, change-making |
 | 11 | **Metrics & Monitoring System** (Prometheus-like) | Time-series storage, compression, downsampling, alerting at scale | **Thread Pool / Connection Pool** | Building concurrency primitives yourself: queues, workers, shutdown, leaks |

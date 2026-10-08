@@ -171,4 +171,5 @@ Everything in Node shares one thread. A synchronous loop that computes for 2 sec
 ## 9. Used in
 
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — JS version: tick-driven simulation, `setInterval` only in the runner, deterministic tests.
+- [Task Scheduler](../../interviews/task-scheduler/README.md): **one `setTimeout` re-armed to the earliest due task**, with delays capped below 2³¹ − 1 ms because larger ones fire immediately.
 - Related: [event-loop-and-concurrency](event-loop-and-concurrency.md), [time-and-clock](../java/time-and-clock.md), [single-writer-principle](../../concepts/single-writer-principle.md).

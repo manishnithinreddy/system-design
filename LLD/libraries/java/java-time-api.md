@@ -161,4 +161,5 @@ Instant.parse("2026-10-07T18:00:00Z");                     // ISO-8601 for APIs 
 ## 9. Used in
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — ticket entry time, parked duration, hourly rounding, daily cap, injected `Clock` for tests.
+- [Task Scheduler](../../interviews/task-scheduler/README.md): **cron next-fire times in a `ZoneId`** across DST: the skipped 02:30 on 2025-03-09 and the repeated 01:30 on 2025-11-02 in America/New_York, with tests pinning the exact instants.
 - Related: [time-and-clock](time-and-clock.md), [bigdecimal-and-money](bigdecimal-and-money.md).

@@ -152,4 +152,5 @@ System.out.println(minHeap.poll()); // 2 — only poll()/peek() respect the orde
 
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — up/down stop sets per elevator, `ceiling`/`floor` to implement LOOK.
 - [LLD: Design Splitwise](../../interviews/splitwise/README.md) — "simplify debts" with two max-heap `PriorityQueue`s (largest creditor ↔ largest debtor), ties broken by user id (see [greedy-algorithms](../../concepts/greedy-algorithms.md)).
+- [Task Scheduler](../../interviews/task-scheduler/README.md): the **min-heap of tasks ordered by next run time** (`PriorityQueue` with a sequence-number tiebreak so equal times run first-in-first-out), plus lazy cancellation.
 - Related: [concurrent-collections](concurrent-collections.md), [scheduling-algorithms](../../concepts/scheduling-algorithms.md), [sorted-collections-in-js](../js/sorted-collections-in-js.md), [big-o-complexity](../../concepts/big-o-complexity.md).

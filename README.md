@@ -38,6 +38,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | HLD | [Ride-Sharing (Uber)](HLD/interviews/ride-sharing/README.md) | [Product intro](HLD/interviews/ride-sharing/00-understand-the-product.md) · [L4](HLD/interviews/ride-sharing/L4-mid.md) · [L5](HLD/interviews/ride-sharing/L5-senior.md) · [L6](HLD/interviews/ride-sharing/L6-staff.md) |
 | HLD | [API Gateway](HLD/interviews/api-gateway/README.md) | [Product intro](HLD/interviews/api-gateway/00-understand-the-product.md) · [L4](HLD/interviews/api-gateway/L4-mid.md) · [L5](HLD/interviews/api-gateway/L5-senior.md) · [L6](HLD/interviews/api-gateway/L6-staff.md) |
 | HLD | [Distributed KV Store](HLD/interviews/distributed-kv-store/README.md) | [Product intro](HLD/interviews/distributed-kv-store/00-understand-the-product.md) · [L4](HLD/interviews/distributed-kv-store/L4-mid.md) · [L5](HLD/interviews/distributed-kv-store/L5-senior.md) · [L6](HLD/interviews/distributed-kv-store/L6-staff.md) |
+| HLD | [Web Crawler](HLD/interviews/web-crawler/README.md) | [Product intro](HLD/interviews/web-crawler/00-understand-the-product.md) · [L4](HLD/interviews/web-crawler/L4-mid.md) · [L5](HLD/interviews/web-crawler/L5-senior.md) · [L6](HLD/interviews/web-crawler/L6-staff.md) |
 | LLD | [Rate Limiter](LLD/interviews/rate-limiter/README.md) | [Product intro](LLD/interviews/rate-limiter/00-understand-the-product.md) · [L4](LLD/interviews/rate-limiter/L4-mid.md) · [L5](LLD/interviews/rate-limiter/L5-senior.md) · [L6](LLD/interviews/rate-limiter/L6-staff.md) |
 | LLD | [Parking Lot](LLD/interviews/parking-lot/README.md) | [Product intro](LLD/interviews/parking-lot/00-understand-the-product.md) · [L4](LLD/interviews/parking-lot/L4-mid.md) · [L5](LLD/interviews/parking-lot/L5-senior.md) · [L6](LLD/interviews/parking-lot/L6-staff.md) |
 | LLD | [LRU Cache](LLD/interviews/lru-cache/README.md) | [Product intro](LLD/interviews/lru-cache/00-understand-the-product.md) · [L4](LLD/interviews/lru-cache/L4-mid.md) · [L5](LLD/interviews/lru-cache/L5-senior.md) · [L6](LLD/interviews/lru-cache/L6-staff.md) |
@@ -45,6 +46,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | LLD | [Splitwise](LLD/interviews/splitwise/README.md) | [Product intro](LLD/interviews/splitwise/00-understand-the-product.md) · [L4](LLD/interviews/splitwise/L4-mid.md) · [L5](LLD/interviews/splitwise/L5-senior.md) · [L6](LLD/interviews/splitwise/L6-staff.md) |
 | LLD | [Movie Ticket Booking (BookMyShow)](LLD/interviews/movie-booking/README.md) | [Product intro](LLD/interviews/movie-booking/00-understand-the-product.md) · [L4](LLD/interviews/movie-booking/L4-mid.md) · [L5](LLD/interviews/movie-booking/L5-senior.md) · [L6](LLD/interviews/movie-booking/L6-staff.md) |
 | LLD | [KV Store with Transactions (mini Redis)](LLD/interviews/kv-store/README.md) | [Product intro](LLD/interviews/kv-store/00-understand-the-product.md) · [L4](LLD/interviews/kv-store/L4-mid.md) · [L5](LLD/interviews/kv-store/L5-senior.md) · [L6](LLD/interviews/kv-store/L6-staff.md) |
+| LLD | [Task Scheduler (cron-like)](LLD/interviews/task-scheduler/README.md) | [Product intro](LLD/interviews/task-scheduler/00-understand-the-product.md) · [L4](LLD/interviews/task-scheduler/L4-mid.md) · [L5](LLD/interviews/task-scheduler/L5-senior.md) · [L6](LLD/interviews/task-scheduler/L6-staff.md) |
 
 Indexes: [HLD](HLD/README.md) · [LLD](LLD/README.md)
 
@@ -73,4 +75,6 @@ LLD/interviews/movie-booking/java/run.sh                # Java 21+, tests + demo
 cd LLD/interviews/movie-booking/js && node --test       # Node 22+, tests
 LLD/interviews/kv-store/java/run.sh                     # Java 21+, tests + demo
 cd LLD/interviews/kv-store/js && node --test            # Node 22+, tests
+LLD/interviews/task-scheduler/java/run.sh               # Java 21+, tests + demo
+cd LLD/interviews/task-scheduler/js && node --test      # Node 22+, tests
 ```

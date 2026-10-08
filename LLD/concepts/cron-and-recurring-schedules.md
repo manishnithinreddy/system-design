@@ -118,7 +118,7 @@ public class Dst {
 // in UTC: 2025-11-02T05:30:00Z and 2025-11-02T06:30:00Z              (two real instants, 1 h apart)
 ```
 
-So `java.time` already picks a sensible default (gap → shift forward, overlap → first occurrence); your scheduler must make sure it fires **once** in the overlap and doesn't then compute "next 01:30" as the second one an hour later. Classic Vixie cron's man page describes similar special handling for clock changes of less than 3 hours: fixed-time jobs in a skipped interval run right after the jump, and jobs in a repeated interval are not run twice. Simplest policy of all: **run system jobs in UTC**, and use local zones only for user-facing schedules.
+So `java.time` already picks a default (gap → shift forward by the gap length, so 03:30; overlap → first occurrence). Some schedulers instead fire a skipped job once **as soon as the gap ends** (03:00); the [Task Scheduler](../interviews/task-scheduler/README.md) code does that. Either is fine if it's documented. Your scheduler must make sure it fires **once** in the overlap and doesn't then compute "next 01:30" as the second one an hour later. Classic Vixie cron's man page describes similar special handling for clock changes of less than 3 hours: fixed-time jobs in a skipped interval run right after the jump, and jobs in a repeated interval are not run twice. Simplest policy of all: **run system jobs in UTC**, and use local zones only for user-facing schedules.
 
 ### 3.5 Misfires: what if the scheduler was down?
 
@@ -212,7 +212,7 @@ This is the **thundering herd**: many clients waking at the same moment and stam
 
 ## 8. Interview cheat-sheet
 
-> "Each recurring job stores a cron expression plus an IANA time zone, and after every run I compute next_run_at by jumping field by field from now in that zone, then convert to UTC for the delay queue. Unix cron has 5 fields and ORs day-of-month with day-of-week when both are set; Quartz and Spring add seconds, so I'd validate one dialect. DST needs explicit rules: in New York on 9 March 2025 02:30 doesn't exist, so I run at 03:30, and on 2 November 01:30 happens twice, so I run only the first. After downtime the misfire policy is per job: catch up all for windowed jobs, fire once for sync jobs, skip for stale notifications, and runs are idempotent. Overlap is Forbid by default, only one replica runs via a lease, and I add jitter so thousands of midnight jobs don't stampede."
+> "Each recurring job stores a cron expression plus an IANA time zone, and after every run I compute next_run_at by jumping field by field from now in that zone, then convert to UTC for the delay queue. Unix cron has 5 fields and ORs day-of-month with day-of-week when both are set; Quartz and Spring add seconds, so I'd validate one dialect. DST needs explicit rules: in New York on 9 March 2025 02:30 doesn't exist, so I run it once as soon as the gap ends (03:00), and on 2 November 01:30 happens twice, so I run only the first. After downtime the misfire policy is per job: catch up all for windowed jobs, fire once for sync jobs, skip for stale notifications, and runs are idempotent. Overlap is Forbid by default, only one replica runs via a lease, and I add jitter so thousands of midnight jobs don't stampede."
 
 ---
 
