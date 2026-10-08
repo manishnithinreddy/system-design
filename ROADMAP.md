@@ -83,6 +83,14 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U14 | **Video compression** | I/P/B frames and motion vectors | Later |
 | U15 | **Shazam's audio fingerprints** | How is a song recognised in 3 seconds? | Later |
 | U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
+| U17 | **Adaptive bitrate in the player** | Why does your video drop to 360p, and how does it decide to climb back? | Now (reader request) |
+| U18 | **Erasure coding** | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | With #13 |
+| U19 | **UPI under the hood** | What happens between "Pay" and "₹ debited" in about 2 seconds? | With #14 |
+| U20 | **Anycast** | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Later |
+| U21 | **Password hashing (bcrypt / Argon2)** | How do you make cracking stolen passwords deliberately slow? | Later |
+| U22 | **QR codes and Reed–Solomon** | How does a QR code still scan with a corner torn off? | Later |
+| U23 | **Maglev hashing** | How do load balancers spread connections evenly and survive a server dying? | Later |
+| U24 | **Signal's double ratchet** | How does stealing today's key not reveal yesterday's messages? | Later |
 
 ## 🗺️ Learning path pages
 
