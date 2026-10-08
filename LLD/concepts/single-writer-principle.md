@@ -131,4 +131,5 @@ Also: **single-thread *executor*** is a tool for implementing a single writer; i
 
 - [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — `ElevatorSystem` receives `HallCall` / `CarCall` / `SetMaintenance` on any thread and applies them only inside `tick()` on the simulation thread.
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../interviews/kv-store/README.md) — commands execute one at a time on a single thread, exactly like Redis, so the data map, the count index and the undo stack need no locks.
+- [Logging Framework](../interviews/logging-framework/README.md): the async appender's **one background thread** is the only writer to the real appender, so events stay in order and the file/console needs no extra locking.
 - Related: [thread-safety-basics](thread-safety-basics.md), [blocking-queues-and-producer-consumer](../libraries/java/blocking-queues-and-producer-consumer.md), [executors-and-threads](../libraries/java/executors-and-threads.md), [state-machines](state-machines.md), [HLD message ordering](../../HLD/concepts/message-ordering-and-sequencing.md).

@@ -11,6 +11,7 @@
 | [API Gateway](interviews/api-gateway/README.md) | Request-path engineering: routing, edge auth, rate limiting, resilience, control vs data plane, safe config, observability, platform ownership |
 | [Distributed KV Store](interviews/distributed-kv-store/README.md) | Database internals: partitioning, quorums, conflicts, repair, gossip, LSM storage, Raft, AP vs CP |
 | [Web Crawler](interviews/web-crawler/README.md) | Politeness-driven scheduling (per-host queues + heap), URL/content dedup (Bloom filters, SimHash), spider traps, recrawl freshness, partition by host, crawl budget |
+| [Search Autocomplete](interviews/search-autocomplete/README.md) | Offline build vs in-memory serving, tries with top-k, replicate vs shard, trending via streams, Count-Min Sketch, safety and privacy of suggestions |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -29,6 +30,7 @@
 | [Object storage (S3)](technologies/object-storage.md) | Storing and serving files/blobs cheaply and durably |
 | [Graph databases & adjacency lists](technologies/graph-databases.md) | Storing who-follows-whom; when a real graph DB is worth it |
 | [Stream processing (Flink, Kafka Streams)](technologies/stream-processing.md) | Continuous computations over event streams: windows, state, late events |
+| [Elasticsearch](technologies/elasticsearch.md) | Full-text and search-as-you-type over documents; shards, refresh, suggesters |
 | [DNS](technologies/dns.md) | Turning names into IPs; TTLs, GeoDNS, why DNS failover is slow, DNS as a crawler bottleneck |
 | [Service mesh & Envoy](technologies/service-mesh-and-envoy.md) | Programmable proxies for routing, mTLS, retries and telemetry |
 
@@ -62,6 +64,9 @@
 | [LSM trees & storage engines](concepts/lsm-trees-and-storage-engines.md) | How do databases write fast and read efficiently from disk? |
 | [URL frontier & politeness](concepts/url-frontier-and-politeness.md) | How does a crawler fetch important pages first without hammering any one site? |
 | [Content fingerprinting & dedup](concepts/content-fingerprinting-and-dedup.md) | How do you spot identical and near-identical pages (hashes, SimHash, MinHash)? |
+| [Tries & prefix search](concepts/tries-and-prefix-search.md) | How do you find everything starting with a prefix, fast? |
+| [Inverted index](concepts/inverted-index.md) | How do search engines find documents containing words? |
+| [Top-k & heavy hitters](concepts/top-k-and-heavy-hitters.md) | How do you find the most frequent items, even in an endless stream? |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |

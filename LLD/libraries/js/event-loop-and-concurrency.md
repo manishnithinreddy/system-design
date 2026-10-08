@@ -150,3 +150,4 @@ Don't mix `BigInt` and `Number` in arithmetic — it throws `TypeError`. `perfor
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — JavaScript implementation, why it has no locks.
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — JS version: the event loop is already a single writer, so commands and `tick()` need no locks (see [async-await-and-timers](async-await-and-timers.md)).
 - [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — JS version: `holdSeats` checks and claims all seats synchronously (no `await` in between), so all-or-nothing holds need no locks; the race returns if payment is awaited mid-operation.
+- [Logging Framework](../../interviews/logging-framework/README.md): why a Node logger has no "block" policy (blocking would freeze the only thread), so its buffered appender batches and drops instead, waiting for the stream's `'drain'` event.
