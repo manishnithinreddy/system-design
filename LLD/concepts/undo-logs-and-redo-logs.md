@@ -155,4 +155,5 @@ See [ledgers-and-event-sourcing](ledgers-and-event-sourcing.md): a ledger is a r
 ## 9. Used in
 
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../interviews/kv-store/README.md) — stack of undo logs for nested `BEGIN/ROLLBACK/COMMIT`, merge-on-nested-commit rule, AOF as the redo log, copy-on-`BEGIN` model as test oracle.
+- [Text Editor](../interviews/text-editor/README.md): the same idea at UI level: each command stores enough to reverse itself; undo and redo stacks with redo cleared by a new edit.
 - Related: [transactions-and-isolation](transactions-and-isolation.md), [durability-wal-and-snapshots](durability-wal-and-snapshots.md), [ledgers-and-event-sourcing](ledgers-and-event-sourcing.md), [HLD: PostgreSQL](../../HLD/technologies/postgresql.md), [HLD: Redis](../../HLD/technologies/redis.md).

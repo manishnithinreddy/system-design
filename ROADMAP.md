@@ -21,12 +21,12 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 9 | [Search Autocomplete](HLD/interviews/search-autocomplete/README.md) | Offline build + in-memory serving, tries with top-k, trending streams, Count-Min Sketch, suggestion safety | [Logging Framework](LLD/interviews/logging-framework/README.md) | Logger hierarchy, Strategy/Chain of Responsibility, async appender + back-pressure, MDC |
 | 10 | [Video Streaming](HLD/interviews/video-streaming/README.md) | Resumable uploads, chunked transcoding DAG, ABR segments, CDN + tiering, live, cost model | [Vending Machine](LLD/interviews/vending-machine/README.md) | State pattern, paise, bounded change-making DP, refunds, idempotent UPI |
 | 11 | [Metrics & Monitoring](HLD/interviews/metrics-monitoring/README.md) | Time-series storage, compression, cardinality, downsampling, SLO alerting | [Thread Pool / Connection Pool](LLD/interviews/thread-pool/README.md) | Pools from scratch, rejection policies, sizing, fair borrowing, leak detection |
+| 12 | [Collaborative Editor](HLD/interviews/collaborative-editor/README.md) | OT vs CRDTs, one sequencer per doc, op log + snapshots, presence | [Text Editor](LLD/interviews/text-editor/README.md) | Command undo/redo, coalescing, gap buffer / piece table / rope |
 
 ## 🔜 Next (in order)
 
 | # | HLD | New ideas it brings | LLD | New ideas it brings |
 |---|---|---|---|---|
-| 12 | **Collaborative Editor** (Google Docs) | Operational transforms vs CRDTs, real-time sync, presence | **Text Editor with Undo/Redo** | Command + Memento, gap buffers / ropes |
 | 13 | **File Storage & Sync** (Dropbox / Drive) | Chunking, content-addressed dedup, sync conflicts, metadata vs blobs | **File System** (in-memory) | Composite pattern, path resolution, permissions |
 | 14 | **Payment System** | Double-entry ledgers at scale, PSP integration, reconciliation, exactly-once money | **ATM / Digital Wallet** | State machines with money, idempotent transfers, auditing |
 | 15 | **Distributed Message Queue** (Kafka internals) | Log segments, partitions, replication (ISR), consumer groups, retention | **Pub-Sub Broker** (in-memory) | Observer at scale, back-pressure, delivery guarantees in code |
@@ -67,11 +67,11 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 
 | # | Topic | Hook | Slot |
 |---|---|---|---|
-| U1 | **epoll** | How does one thread handle 100k connections? | Now (first batch) |
-| U2 | **B-tree** | How does a database find one row among a billion in ~3 disk reads? | Now (first batch) |
-| U3 | **HyperLogLog** | How do you count a billion unique users in 12 KB? | Now (first batch) |
-| U4 | **Git's object store** | How does Git keep your whole history so cheaply? | With #12 |
-| U5 | **Postgres MVCC** | How do readers and writers not block each other? | With #12 |
+| U1 | ✅ [**epoll**](under-the-hood/epoll.md) | How does one thread handle 100k connections? | Done |
+| U2 | ✅ [**B-tree**](under-the-hood/b-tree.md) | How does a database find one row among a billion in ~3 disk reads? | Done |
+| U3 | ✅ [**HyperLogLog**](under-the-hood/hyperloglog.md) | How do you count a billion unique users in 12 KB? | Done |
+| U4 | ✅ [**Git's object store**](under-the-hood/git-object-store.md) | How does Git keep your whole history so cheaply? | Done |
+| U5 | ✅ [**Postgres MVCC**](under-the-hood/postgres-mvcc.md) | How do readers and writers not block each other? | Done |
 | U6 | **rsync's rolling hash** | How do you send only the bytes that changed? | With #13 |
 | U7 | **Content-defined chunking** | How do Dropbox-style systems dedupe files that shift? | With #13 |
 | U8 | **Double-entry ledgers in databases** | How do payment systems make money impossible to lose? | With #14 |

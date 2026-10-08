@@ -14,6 +14,7 @@
 | [Search Autocomplete](interviews/search-autocomplete/README.md) | Offline build vs in-memory serving, tries with top-k, replicate vs shard, trending via streams, Count-Min Sketch, safety and privacy of suggestions |
 | [Video Streaming](interviews/video-streaming/README.md) | Resumable uploads, chunked parallel transcoding, bitrate ladders, segments + manifests, CDN at Tbps, storage tiering, live streaming, cost model |
 | [Metrics & Monitoring](interviews/metrics-monitoring/README.md) | Time-series storage, Gorilla compression, cardinality limits, downsampling, alerting at scale, SLO burn rates, monitoring that survives outages |
+| [Collaborative Editor](interviews/collaborative-editor/README.md) | Operational transformation vs CRDTs, one sequencer per document, local-first latency, op log + snapshots, presence, failover with fencing |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -75,6 +76,8 @@
 | [Resumable & chunked uploads](concepts/resumable-and-chunked-uploads.md) | How do big uploads survive bad networks? |
 | [Time-series compression & downsampling](concepts/time-series-compression-and-downsampling.md) | How do metrics take ~1.4 bytes per point, and stay queryable for a year? |
 | [Alerting & SLOs](concepts/alerting-and-slos.md) | How do you page less and catch more? Error budgets and burn rates |
+| [Operational transformation & CRDTs](concepts/operational-transformation-and-crdts.md) | How do concurrent edits to the same text converge? |
+| [Real-time collaboration & presence](concepts/real-time-collaboration-and-presence.md) | Sessions per document, op logs, cursors, reconnects |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |

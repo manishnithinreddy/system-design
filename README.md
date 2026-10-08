@@ -26,7 +26,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 **Side tracks** (optional, understanding-first):
 - 🗺️ **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in reading order, from "split the data" to consensus and repair.
 - 📚 **Case studies** (`case-studies/`): how real companies built it, with sources. [WhatsApp vs Telegram](case-studies/whatsapp-vs-telegram.md) · [Discord: trillions of messages](case-studies/discord-message-storage.md) · [Uber: monolith to H3, microservices and M3](case-studies/uber-from-monolith-to-h3-and-microservices.md) · [Video platforms: upload, transcode, store, stream](case-studies/video-upload-transcode-and-storage.md).
-- 🔍 **[Under the Hood](under-the-hood/README.md)**: curiosity-driven deep dives into one clever invention each. First: [how one thread handles 100,000 connections (epoll)](under-the-hood/epoll.md).
+- 🔍 **[Under the Hood](under-the-hood/README.md)**: curiosity-driven deep dives into one clever invention each. [epoll](under-the-hood/epoll.md) · [B-tree](under-the-hood/b-tree.md) · [HyperLogLog](under-the-hood/hyperloglog.md) · [Git's object store](under-the-hood/git-object-store.md) · [Postgres MVCC](under-the-hood/postgres-mvcc.md).
 - 🔬 **See it work** (`see-it-work/`): small runnable simulations of distributed mechanisms. [Hash ring + quorums + hinted handoff](see-it-work/hash-ring-quorum/README.md) (`java HashRing.java`) · [Raft leader election](see-it-work/raft-leader-election/README.md) (`java RaftElection.java`) · [Chat sequencer + gap detection](see-it-work/chat-sequencer-sync/README.md) (`java ChatSync.java`).
 
 ## Interviews
@@ -44,6 +44,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | HLD | [Search Autocomplete](HLD/interviews/search-autocomplete/README.md) | [Product intro](HLD/interviews/search-autocomplete/00-understand-the-product.md) · [L4](HLD/interviews/search-autocomplete/L4-mid.md) · [L5](HLD/interviews/search-autocomplete/L5-senior.md) · [L6](HLD/interviews/search-autocomplete/L6-staff.md) |
 | HLD | [Video Streaming (YouTube / Netflix)](HLD/interviews/video-streaming/README.md) | [Product intro](HLD/interviews/video-streaming/00-understand-the-product.md) · [L4](HLD/interviews/video-streaming/L4-mid.md) · [L5](HLD/interviews/video-streaming/L5-senior.md) · [L6](HLD/interviews/video-streaming/L6-staff.md) |
 | HLD | [Metrics & Monitoring (Prometheus-like)](HLD/interviews/metrics-monitoring/README.md) | [Product intro](HLD/interviews/metrics-monitoring/00-understand-the-product.md) · [L4](HLD/interviews/metrics-monitoring/L4-mid.md) · [L5](HLD/interviews/metrics-monitoring/L5-senior.md) · [L6](HLD/interviews/metrics-monitoring/L6-staff.md) |
+| HLD | [Collaborative Editor (Google Docs)](HLD/interviews/collaborative-editor/README.md) | [Product intro](HLD/interviews/collaborative-editor/00-understand-the-product.md) · [L4](HLD/interviews/collaborative-editor/L4-mid.md) · [L5](HLD/interviews/collaborative-editor/L5-senior.md) · [L6](HLD/interviews/collaborative-editor/L6-staff.md) |
 | LLD | [Rate Limiter](LLD/interviews/rate-limiter/README.md) | [Product intro](LLD/interviews/rate-limiter/00-understand-the-product.md) · [L4](LLD/interviews/rate-limiter/L4-mid.md) · [L5](LLD/interviews/rate-limiter/L5-senior.md) · [L6](LLD/interviews/rate-limiter/L6-staff.md) |
 | LLD | [Parking Lot](LLD/interviews/parking-lot/README.md) | [Product intro](LLD/interviews/parking-lot/00-understand-the-product.md) · [L4](LLD/interviews/parking-lot/L4-mid.md) · [L5](LLD/interviews/parking-lot/L5-senior.md) · [L6](LLD/interviews/parking-lot/L6-staff.md) |
 | LLD | [LRU Cache](LLD/interviews/lru-cache/README.md) | [Product intro](LLD/interviews/lru-cache/00-understand-the-product.md) · [L4](LLD/interviews/lru-cache/L4-mid.md) · [L5](LLD/interviews/lru-cache/L5-senior.md) · [L6](LLD/interviews/lru-cache/L6-staff.md) |
@@ -55,6 +56,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | LLD | [Logging Framework](LLD/interviews/logging-framework/README.md) | [Product intro](LLD/interviews/logging-framework/00-understand-the-product.md) · [L4](LLD/interviews/logging-framework/L4-mid.md) · [L5](LLD/interviews/logging-framework/L5-senior.md) · [L6](LLD/interviews/logging-framework/L6-staff.md) |
 | LLD | [Vending Machine](LLD/interviews/vending-machine/README.md) | [Product intro](LLD/interviews/vending-machine/00-understand-the-product.md) · [L4](LLD/interviews/vending-machine/L4-mid.md) · [L5](LLD/interviews/vending-machine/L5-senior.md) · [L6](LLD/interviews/vending-machine/L6-staff.md) |
 | LLD | [Thread Pool / Connection Pool](LLD/interviews/thread-pool/README.md) | [Product intro](LLD/interviews/thread-pool/00-understand-the-product.md) · [L4](LLD/interviews/thread-pool/L4-mid.md) · [L5](LLD/interviews/thread-pool/L5-senior.md) · [L6](LLD/interviews/thread-pool/L6-staff.md) |
+| LLD | [Text Editor with Undo/Redo](LLD/interviews/text-editor/README.md) | [Product intro](LLD/interviews/text-editor/00-understand-the-product.md) · [L4](LLD/interviews/text-editor/L4-mid.md) · [L5](LLD/interviews/text-editor/L5-senior.md) · [L6](LLD/interviews/text-editor/L6-staff.md) |
 
 Indexes: [HLD](HLD/README.md) · [LLD](LLD/README.md)
 
@@ -91,4 +93,6 @@ LLD/interviews/vending-machine/java/run.sh              # Java 21+, tests + demo
 cd LLD/interviews/vending-machine/js && node --test     # Node 22+, tests
 LLD/interviews/thread-pool/java/run.sh                  # Java 21+, tests + demo
 cd LLD/interviews/thread-pool/js && node --test         # Node 22+, tests
+LLD/interviews/text-editor/java/run.sh                  # Java 21+, tests + demo
+cd LLD/interviews/text-editor/js && node --test         # Node 22+, tests
 ```
