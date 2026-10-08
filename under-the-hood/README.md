@@ -23,8 +23,10 @@ Each page follows the same shape: the hook question → life before it → the c
 | [HyperLogLog](hyperloglog.md) | How do you count a billion unique users in 12 KB? |
 | [Git's object store](git-object-store.md) | How does Git keep your entire history so cheaply? |
 | [Postgres MVCC](postgres-mvcc.md) | How do readers and writers not block each other? |
+| [rsync's rolling hash](rsync-rolling-hash.md) | How does rsync send only the bytes that changed? |
+| [Content-defined chunking](content-defined-chunking.md) | How do sync and backup tools dedupe files when one inserted byte shifts everything? |
 
-More are planned (rsync, content-defined chunking, Kafka's speed tricks, the Kubernetes scheduler, TLS 1.3, containers, JVM garbage collectors, video compression, Shazam, route planning): see the [roadmap](../ROADMAP.md).
+More are planned (Kafka's speed tricks, the Kubernetes scheduler, TLS 1.3, containers, JVM garbage collectors, video compression, Shazam, route planning): see the [roadmap](../ROADMAP.md).
 
 Runnable demos live in [`code/`](code/).
 
