@@ -169,4 +169,5 @@ For a deeper look at the queue side (ack, visibility timeout, DLQ, priority queu
 - [Search autocomplete](../interviews/search-autocomplete/README.md): the **query-event stream**, partitioned by query, feeding both the daily batch counts (via object storage) and the minutes-fresh trending job.
 - [LLD: Logging Framework](../../LLD/interviews/logging-framework/README.md): the **buffer between node log agents and log storage** in the fleet logging pipeline, so a slow search cluster doesn't make agents drop logs.
 - [Video streaming](../interviews/video-streaming/README.md): the **player heartbeat stream** feeding view counts, continue-watching positions and quality-of-experience metrics.
+- [Metrics & monitoring](../interviews/metrics-monitoring/README.md): an optional **buffer between distributors and ingesters**, so ingester restarts replay instead of dropping samples.
 - Related concepts: [back-of-the-envelope](../concepts/back-of-the-envelope.md) (sizing events/s and storage), [CAP and consistency](../concepts/cap-and-consistency.md), [sharding and replication](../concepts/sharding-and-replication.md) (partitions are shards).

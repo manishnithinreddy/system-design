@@ -156,4 +156,5 @@ Also not to be confused with [presence and heartbeats](presence-and-heartbeats.m
 ## 9. Used in
 
 - [Distributed key-value store](../interviews/distributed-kv-store/README.md): **cluster membership and failure detection**: gossip spreads ring ownership and heartbeat state, phi accrual decides when a replica is treated as down (which triggers sloppy quorum / hinted handoff).
+- [Metrics & monitoring](../interviews/metrics-monitoring/README.md): a clustered Alertmanager **gossips which notifications were sent**, so a page goes out once even when an instance dies.
 - Related: [Consistent hashing](consistent-hashing.md) (the ring the gossip describes), [hinted handoff and sloppy quorum](hinted-handoff-and-sloppy-quorum.md), [consensus and Raft](consensus-and-raft.md), [presence and heartbeats](presence-and-heartbeats.md), [service discovery](service-discovery.md), [Cassandra](../technologies/cassandra.md), [ZooKeeper / etcd](../technologies/zookeeper-etcd.md).

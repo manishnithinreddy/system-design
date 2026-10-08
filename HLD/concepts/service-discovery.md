@@ -152,4 +152,5 @@ Also confused with **[load balancing](../technologies/load-balancer.md)**: disco
 ## 9. Used in
 
 - [API gateway](../interviews/api-gateway/README.md): **routing to backend services found via service discovery**: the control plane watches the registry and pushes endpoint lists to gateway nodes; staleness handling with timeouts, retries and outlier ejection.
+- [Metrics & monitoring](../interviews/metrics-monitoring/README.md): scrapers discover the 50,000 targets from Kubernetes instead of static lists.
 - Related: [load balancer](../technologies/load-balancer.md), [service mesh and Envoy](../technologies/service-mesh-and-envoy.md) (EDS), [ZooKeeper / etcd](../technologies/zookeeper-etcd.md), [presence and heartbeats](presence-and-heartbeats.md), [resilience patterns](resilience-patterns.md), [CAP and consistency](cap-and-consistency.md).

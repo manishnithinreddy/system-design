@@ -154,4 +154,5 @@ Also confused with **rendezvous (highest-random-weight) hashing**: for each key,
 - [Web crawler](../interviews/web-crawler/README.md): **assigning hosts to crawler workers** (`hash(host)`, not hash(URL)) so each host's politeness state and URL-seen check live on one worker; within a region in the multi-region design.
 - 🔬 [See it work: hash ring + quorums](../../see-it-work/hash-ring-quorum/README.md): a runnable ring showing key spread with 1, 8 and 128 vnodes per node and how many keys move when a node joins.
 - [Search autocomplete](../interviews/search-autocomplete/README.md): spreading `prefix → top-k` entries across shards by hash of the full prefix, so hot letters don't overload one shard.
+- [Metrics & monitoring](../interviews/metrics-monitoring/README.md): assigning series to ingesters and rule groups to rulers, so adding a node moves only a share of the work.
 - Related: [Redis](../technologies/redis.md) (hash slots), [Cassandra](../technologies/cassandra.md) (token ring), [Load balancer](../technologies/load-balancer.md) (ring-hash / Maglev), [Sharding and replication](sharding-and-replication.md), [Caching strategies](caching-strategies.md).

@@ -46,7 +46,7 @@ How a real system works, from public engineering blogs, docs and talks, with sou
 |---|---|---|---|
 | C1 | ✅ [**WhatsApp vs Telegram**](case-studies/whatsapp-vs-telegram.md) | Same product, opposite choices: E2EE + delete-after-delivery vs cloud storage + multi-DC; large media; multi-device | Done |
 | C2 | ✅ [**Discord: storing trillions of messages**](case-studies/discord-message-storage.md) | Real Cassandra → ScyllaDB migration, hot partitions, request coalescing in practice | Done |
-| C3 | **Uber: from monolith to H3 and microservices** | Geospatial indexing at scale, service sprawl and how they tamed it | After #11 |
+| C3 | ✅ [**Uber: from monolith to H3 and microservices**](case-studies/uber-from-monolith-to-h3-and-microservices.md) | Geospatial indexing at scale, service sprawl and how they tamed it, M3 metrics | Done |
 | C4 | **Netflix: Open Connect and chaos engineering** | Running your own CDN inside ISPs; designing for failure on purpose | After #13 |
 | C5 | **Amazon: from the Dynamo paper to DynamoDB** | How a research design became a managed service, and what changed | After #15 |
 | C6 | ✅ [**Video platforms: upload, transcode, store every quality, stream**](case-studies/video-upload-transcode-and-storage.md) (YouTube, Netflix, others) | Resumable chunked uploads, transcoding into a bitrate ladder, where each rendition lives (object storage, CDN, ISP caches), adaptive streaming | Done (reader request) |

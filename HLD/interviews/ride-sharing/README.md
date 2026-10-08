@@ -36,6 +36,8 @@ What makes this one different: the core data (**driver locations**) changes ever
 
 **Related LLD:** [Elevator system](../../../LLD/interviews/elevator-system/README.md) (dispatching with a cost function; state machines), [Parking lot](../../../LLD/interviews/parking-lot/L6-staff.md) (atomic claiming with `SKIP LOCKED`).
 
+**Case study:** [Uber: from monolith to H3 and microservices](../../../case-studies/uber-from-monolith-to-h3-and-microservices.md): what Uber actually built (Ringpop, H3, Schemaless, Cadence).
+
 ## The core insight
 
 1. **Live locations are ephemeral: keep the latest in memory, indexed by cell.** They're rebuilt from the next update within seconds; durability isn't needed for the index.

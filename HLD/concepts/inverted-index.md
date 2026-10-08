@@ -251,4 +251,5 @@ flowchart LR
 ## 9. Used in
 
 - [Search Autocomplete](../interviews/search-autocomplete/README.md): the alternative to a trie when suggestions must match words anywhere in a title, and the structure behind the search results page the suggestions lead to.
+- [Metrics & monitoring](../interviews/metrics-monitoring/README.md): each time-series block's **label index** (label value → series IDs) that makes `{service="checkout"}` fast.
 - Related: [tries and prefix search](tries-and-prefix-search.md), [Elasticsearch](../technologies/elasticsearch.md), [top-k and heavy hitters](top-k-and-heavy-hitters.md), [LSM trees and storage engines](lsm-trees-and-storage-engines.md) (the same immutable-segment-plus-merge idea), [observability](observability.md) (log search).
