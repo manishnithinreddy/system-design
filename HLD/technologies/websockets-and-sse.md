@@ -153,4 +153,5 @@ The `: ping` line is an SSE comment, used as a heartbeat. Ordering subtlety: sub
 
 - [Notification system](../interviews/notification-system/README.md): **in-app channel**: gateway tier holding WebSocket/SSE connections, Redis connection registry to route a notification to the right gateway, inbox in the DB with sync on reconnect.
 - [Chat system](../interviews/chat-system/README.md): the **persistent WebSocket from every phone to the chat gateway fleet** (two-way: messages, acks, typing, presence pings), gateway draining on deploy, reconnect with jittered backoff followed by sync since last seq.
+- [Ride-sharing](../interviews/ride-sharing/README.md): **live trip tracking**: the rider app holds a WebSocket and receives the driver's position every few seconds plus trip state changes (driver assigned, arriving, started); drivers receive ride offers over their own connection.
 - Related: [Redis](redis.md) (registry, Pub/Sub), [load balancer](load-balancer.md) (idle timeouts, L4 vs L7), [push/email/SMS providers](push-email-sms-providers.md), [consistent hashing](../concepts/consistent-hashing.md), [fan-out](../concepts/fan-out.md).

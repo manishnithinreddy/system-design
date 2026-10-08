@@ -148,4 +148,5 @@ Rule of thumb: **choose by Big-O, tune by measuring.**
 ## 9. Used in
 
 - [LLD: Design an LRU Cache](../interviews/lru-cache/README.md) — per-operation complexity of LRU (HashMap + DLL), LFU (frequency buckets), and the `LinkedHashMap` version.
+- [LLD: Design Splitwise](../interviews/splitwise/README.md) — balances in O(entries) (or O(1) with a projection), debt simplification in O(n log n) with heaps, and why the exact minimum number of transfers is NP-hard (see [greedy-algorithms](greedy-algorithms.md)).
 - Related: [hashmap-and-linked-list](hashmap-and-linked-list.md), [cache-eviction-policies](cache-eviction-policies.md), [HLD back-of-the-envelope](../../HLD/concepts/back-of-the-envelope.md) (estimating memory from per-entry size).

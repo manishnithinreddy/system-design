@@ -157,4 +157,5 @@ DNS LB is good for coarse, global routing (pick a region) but bad for fast failo
 - [Notification system](../interviews/notification-system/README.md) — in front of the **stateless Notification API** and the **WebSocket/SSE gateway tier** (idle timeouts, long-lived connections, connection draining on deploy).
 - [Chat system](../interviews/chat-system/README.md): in front of the **chat gateway fleet holding millions of long-lived WebSockets** (L4 vs L7, idle timeouts vs heartbeat interval, connection draining and reconnect storms on deploy).
 - [News feed](../interviews/news-feed/README.md): in front of the **stateless post and feed services**, which scale horizontally with the read-heavy feed traffic.
+- [Ride-sharing](../interviews/ride-sharing/README.md): in front of the **stateless API services** and the **WebSocket gateways** that hold rider/driver connections; also the location-ingest tier receiving ~250k pings/s from driver apps.
 - Related concepts: [consistent hashing](../concepts/consistent-hashing.md) (when routing must be key-aware), [back-of-the-envelope](../concepts/back-of-the-envelope.md) (how many servers behind the LB).

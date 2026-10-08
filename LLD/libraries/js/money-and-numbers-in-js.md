@@ -156,4 +156,5 @@ Dividing by 100 **only at the display edge** is fine: the result is formatted, n
 ## 9. Used in
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — JS pricing in integer paise, `Math.ceil` billable hours, formatted receipts.
+- [LLD: Design Splitwise](../../interviews/splitwise/README.md) — JS version: all amounts as integer paise, largest remainder split so parts sum exactly to the total (see [splitting-money-and-rounding](../../concepts/splitting-money-and-rounding.md)).
 - Related: [bigdecimal-and-money](../java/bigdecimal-and-money.md), [classes-and-private-fields](classes-and-private-fields.md).

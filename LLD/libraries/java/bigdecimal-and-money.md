@@ -120,6 +120,17 @@ Normalising the scale in the compact constructor means record `equals` works (`2
 
 Both are external dependencies, so the interview solution uses a tiny `Money` record or plain `BigDecimal`; mention these as "what I'd use in prod".
 
+### `long` minor units vs `BigDecimal` — how to pick
+
+| Question | If yes → |
+|---|---|
+| Is the maths only add / subtract / multiply by integers / split by integer weights? | `long` minor units |
+| Do you multiply by rates with many decimals (interest 7.125%, FX 83.4172)? | `BigDecimal`, convert to minor units at the end |
+| Is it a hot path or a huge in-memory structure (ledgers, counters)? | `long` (no allocation, 8 bytes) |
+| Does the currency have no fixed minor unit, or you need sub-paisa precision? | `BigDecimal` |
+
+Splitwise is the first case: expenses, settlements and balances are sums, and every split (equal, percent as basis points, shares) is integer weights, so a `Money(long paise)` record plus the largest remainder method keeps everything exact (see [splitting-money-and-rounding](../../concepts/splitting-money-and-rounding.md)). Guard against overflow with `Math.addExact` / `Math.multiplyExact` — a `long` of paise holds up to about 9.2 × 10^16 rupees, so overflow only happens with bugs or huge weight multiplications.
+
 ## 4. When to use it
 
 - Any fee, price, balance, tax, or discount — e.g. parking fee = hourly rate × billable hours, capped at a daily maximum.
@@ -165,4 +176,5 @@ Both are external dependencies, so the interview solution uses a tiny `Money` re
 ## 9. Used in
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — `PricingStrategy` computes fees with `BigDecimal` (hourly rates, grace period, daily cap); JS version uses integer paise.
+- [LLD: Design Splitwise](../../interviews/splitwise/README.md) — money as `long` paise in a small `Money` record (not `BigDecimal`): only sums and integer-weight splits, so integer maths is exact and fast; leftover paise allocated with the largest remainder method (see [splitting-money-and-rounding](../../concepts/splitting-money-and-rounding.md)).
 - Related: [records-and-immutability](records-and-immutability.md), [java-time-api](java-time-api.md).

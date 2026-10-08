@@ -164,4 +164,5 @@ So the system is **CP for writes of new codes, AP for reads** — which is exact
 ## 9. Used in
 
 - [URL Shortener](../interviews/url-shortener/README.md) — consistency requirements: eventually consistent redirects and analytics vs strongly consistent short-code / custom-alias uniqueness; choice of store (Postgres vs Cassandra/DynamoDB) and quorum settings.
+- [Ride-sharing](../interviews/ride-sharing/README.md): **strong consistency for driver assignment and payments** (one driver per trip, no double charge) vs **eventual consistency for locations, ETAs and surge** (a few seconds stale is fine).
 - Related: [Sharding and replication](sharding-and-replication.md) (replication lag, leaderless quorums), [ID generation](id-generation.md) (coordination-free uniqueness), [ZooKeeper / etcd](../technologies/zookeeper-etcd.md) (CP coordination), [Cassandra](../technologies/cassandra.md) (tunable consistency, LWT), [PostgreSQL](../technologies/postgresql.md) (unique constraints, sync replication), [Caching strategies](caching-strategies.md) (cache as an eventually consistent copy).

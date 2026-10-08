@@ -131,3 +131,4 @@ This is exactly how the per-key registry in the rate limiter is built.
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — per-key limiter registry, idle-key eviction.
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — ticket registry keyed by ticket id, active-vehicle index (one active ticket per plate via `putIfAbsent`).
 - [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — `ConcurrentHashMap<K, CompletableFuture<V>>` for the single-flight loading cache (one load per key, no stampede); why a raw CHM is not a cache (no eviction).
+- [LLD: Design Splitwise](../../interviews/splitwise/README.md) — group registry and idempotency-key map (`putIfAbsent`/`computeIfAbsent` so a retried `addExpense` is stored once); per-group lock objects created with `computeIfAbsent`.

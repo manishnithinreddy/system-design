@@ -7,6 +7,7 @@
 | [Notification System](interviews/notification-system/README.md) | Async pipelines, queues, priorities, retries/backoff/DLQ, idempotency, fan-out, third-party providers, cost |
 | [Chat System](interviews/chat-system/README.md) | Stateful connection fleets, ordering with sequence numbers, offline sync, group fan-out, presence, media, E2EE consequences |
 | [News Feed](interviews/news-feed/README.md) | Hybrid fan-out (celebrity problem), precomputed feed caches, read-time filtering, ranking pipelines, counters, cursor pagination |
+| [Ride-Sharing (Uber)](interviews/ride-sharing/README.md) | Geospatial indexing of moving objects, exclusive assignment with leases, trip state machines, surge via stream processing, payment sagas, city cells |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -24,6 +25,7 @@
 | [Pub/sub](technologies/pub-sub.md) | Broadcasting events to whoever is subscribed (Redis Pub/Sub, Kafka, NATS) |
 | [Object storage (S3)](technologies/object-storage.md) | Storing and serving files/blobs cheaply and durably |
 | [Graph databases & adjacency lists](technologies/graph-databases.md) | Storing who-follows-whom; when a real graph DB is worth it |
+| [Stream processing (Flink, Kafka Streams)](technologies/stream-processing.md) | Continuous computations over event streams: windows, state, late events |
 
 ## Concepts (ideas)
 | | Question it answers |
@@ -44,3 +46,6 @@
 | [Pagination](concepts/pagination.md) | Why cursors beat page numbers on live data |
 | [Counters at scale](concepts/counters-at-scale.md) | How do you count millions of likes without a hot row? |
 | [Bloom filters](concepts/bloom-filters.md) | "Definitely not / probably yes" membership in tiny memory |
+| [Geospatial indexing](concepts/geospatial-indexing.md) | How do you find what's near a point, fast? (geohash, H3, quadtrees) |
+| [Distributed locks & leases](concepts/distributed-locks-and-leases.md) | How do you make "only one" happen across many servers? |
+| [Sagas & distributed transactions](concepts/sagas-and-distributed-transactions.md) | How do multi-service workflows (like payments) stay consistent? |

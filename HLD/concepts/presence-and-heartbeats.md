@@ -167,4 +167,5 @@ In chat designs, presence and the session registry are often the **same Redis ke
 ## 9. Used in
 
 - [Chat system](../interviews/chat-system/README.md): **online / last seen** via heartbeats and TTL keys in Redis, the user → gateway session registry, subscribe-on-view to avoid presence fan-out, debounce, privacy settings and multi-device presence.
+- [Ride-sharing](../interviews/ride-sharing/README.md): **driver online/offline**: the driver app's location pings double as heartbeats; a TTL key per driver expires when pings stop, so a driver whose app died drops out of matching within seconds.
 - Related: [Redis](../technologies/redis.md) (TTL keys, keyspace events), [WebSockets and SSE](../technologies/websockets-and-sse.md) (ping/pong, LB idle timeouts), [pub/sub](../technologies/pub-sub.md), [fan-out](fan-out.md), [ZooKeeper / etcd](../technologies/zookeeper-etcd.md) (leases), [load balancer](../technologies/load-balancer.md), [back-of-the-envelope](back-of-the-envelope.md).

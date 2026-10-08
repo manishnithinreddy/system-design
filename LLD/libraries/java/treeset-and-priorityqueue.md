@@ -151,4 +151,5 @@ System.out.println(minHeap.poll()); // 2 — only poll()/peek() respect the orde
 ## 9. Used in
 
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — up/down stop sets per elevator, `ceiling`/`floor` to implement LOOK.
+- [LLD: Design Splitwise](../../interviews/splitwise/README.md) — "simplify debts" with two max-heap `PriorityQueue`s (largest creditor ↔ largest debtor), ties broken by user id (see [greedy-algorithms](../../concepts/greedy-algorithms.md)).
 - Related: [concurrent-collections](concurrent-collections.md), [scheduling-algorithms](../../concepts/scheduling-algorithms.md), [sorted-collections-in-js](../js/sorted-collections-in-js.md), [big-o-complexity](../../concepts/big-o-complexity.md).

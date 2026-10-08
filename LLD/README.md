@@ -7,6 +7,7 @@
 | [Parking Lot](interviews/parking-lot/README.md) | OOP modelling (enum vs inheritance, record vs class), Strategy/Observer/State, money, concurrent spot claiming, DB-level atomicity | [Java](interviews/parking-lot/java/) · [JS](interviews/parking-lot/js/) |
 | [LRU Cache](interviews/lru-cache/README.md) | HashMap + doubly linked list, O(1), thread safety where reads are writes, lock striping, TTL, LFU, stampede protection, Caffeine | [Java](interviews/lru-cache/java/) · [JS](interviews/lru-cache/js/) |
 | [Elevator System](interviews/elevator-system/README.md) | LOOK scheduling with sorted sets, dispatch cost functions, Command + single-writer concurrency, state machines, maintenance/degraded modes | [Java](interviews/elevator-system/java/) · [JS](interviews/elevator-system/js/) |
+| [Splitwise](interviews/splitwise/README.md) | Exact money and largest-remainder splits, sealed variants, append-only ledger, greedy debt simplification, idempotency | [Java](interviews/splitwise/java/) · [JS](interviews/splitwise/js/) |
 
 ## Libraries — Java
 | | Use it for |
@@ -29,6 +30,8 @@
 | [TreeSet & PriorityQueue](libraries/java/treeset-and-priorityqueue.md) | Sorted sets with "next above X" queries vs heaps |
 | [Blocking queues & producer-consumer](libraries/java/blocking-queues-and-producer-consumer.md) | Handing work between threads safely |
 | [Executors & threads](libraries/java/executors-and-threads.md) | Thread pools, virtual threads, shutdown |
+| [Streams & collectors](libraries/java/streams-and-collectors.md) | groupingBy, toMap, summing: aggregations without loops |
+| [Sealed interfaces & pattern matching](libraries/java/sealed-interfaces-and-pattern-matching.md) | Closed sets of variants with compiler-checked switches |
 
 ## Libraries — JavaScript
 | | Use it for |
@@ -43,4 +46,4 @@
 | [Async/await & timers](libraries/js/async-await-and-timers.md) | Promises, timers, and keeping logic testable |
 
 ## Concepts
-[OOP modelling](concepts/oop-modeling.md) · [Hash map & linked list](concepts/hashmap-and-linked-list.md) · [Cache eviction policies](concepts/cache-eviction-policies.md) · [Big-O complexity](concepts/big-o-complexity.md) · [State machines](concepts/state-machines.md) · [Scheduling algorithms](concepts/scheduling-algorithms.md) · [Single-writer principle](concepts/single-writer-principle.md) · [UML class diagrams](concepts/uml-class-diagrams.md) · [Design patterns](concepts/design-patterns.md) · [SOLID](concepts/solid-principles.md) · [Thread-safety basics](concepts/thread-safety-basics.md)
+[OOP modelling](concepts/oop-modeling.md) · [Hash map & linked list](concepts/hashmap-and-linked-list.md) · [Cache eviction policies](concepts/cache-eviction-policies.md) · [Big-O complexity](concepts/big-o-complexity.md) · [State machines](concepts/state-machines.md) · [Scheduling algorithms](concepts/scheduling-algorithms.md) · [Single-writer principle](concepts/single-writer-principle.md) · [Splitting money & rounding](concepts/splitting-money-and-rounding.md) · [Ledgers & event sourcing](concepts/ledgers-and-event-sourcing.md) · [Greedy algorithms](concepts/greedy-algorithms.md) · [UML class diagrams](concepts/uml-class-diagrams.md) · [Design patterns](concepts/design-patterns.md) · [SOLID](concepts/solid-principles.md) · [Thread-safety basics](concepts/thread-safety-basics.md)

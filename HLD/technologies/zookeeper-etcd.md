@@ -163,4 +163,5 @@ The famous Kleppmann vs antirez debate over Redlock is the deep version of this 
 ## 9. Used in
 
 - [URL shortener](../interviews/url-shortener/README.md) — **ID range allocation**: app servers claim unique blocks of IDs from ZooKeeper/etcd, then generate short codes locally without collisions.
+- [Ride-sharing](../interviews/ride-sharing/README.md): **coordination for the matching/location tiers**: which node owns which city/region shard, leader election for single-owner matchers, and the reference point for correct-under-failover locks ([distributed locks and leases](../concepts/distributed-locks-and-leases.md)).
 - Related concepts: [ID generation](../concepts/id-generation.md), [CAP and consistency](../concepts/cap-and-consistency.md), [sharding and replication](../concepts/sharding-and-replication.md).

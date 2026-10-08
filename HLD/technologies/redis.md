@@ -114,6 +114,22 @@ Note this is *not* classic consistent hashing (see [consistent hashing](../conce
 - **Lua scripts** (`EVAL`): run several commands as one atomic unit on the server. Example: a rate limiter "read count, if < limit then INCR and set TTL" in one script, no race between the read and the write.
 - `MULTI/EXEC` transactions batch commands atomically but can't branch on intermediate results — that's what Lua is for.
 
+### 3.8 GEO commands: "who is near me?"
+
+Redis can store positions and answer radius searches. Under the hood a GEO key is just a **sorted set**: each member's latitude/longitude is encoded as a 52-bit **geohash** (a number where nearby places share leading bits, see [geospatial indexing](../concepts/geospatial-indexing.md)) and used as the score, so a nearby search is a few range scans over the rider's cell and its neighbours.
+
+```
+GEOADD drivers:blr 77.5946 12.9716 driver:42                 # longitude first! overwrites the old position
+GEOSEARCH drivers:blr FROMLONLAT 77.60 12.97 BYRADIUS 2 km ASC COUNT 20 WITHDIST
+GEODIST drivers:blr driver:42 driver:77 km                   # straight-line distance
+ZREM drivers:blr driver:42                                   # driver goes offline (it's a ZSET, so ZREM works)
+```
+
+- `GEOADD` is O(log N); one node takes ~100k updates/s, so 1M drivers pinging every 4 s (250k/s) needs a few shards, e.g. **one key per city**.
+- `GEOSEARCH` (Redis 6.2+, replaces `GEORADIUS`) supports `BYRADIUS` or `BYBOX`, sorted by distance, with a `COUNT` limit.
+- **No per-member TTL**: a driver whose app crashed stays in the set. Pair it with a `driver:42:alive` key with a short TTL (or store last-ping time) and filter / clean up stale members.
+- Distances are straight-line; rank final candidates by road ETA elsewhere.
+
 ---
 
 ## 4. When to use it
@@ -182,4 +198,5 @@ Key insight: **local cache and Redis stack**. A Caffeine cache (a popular Java l
 - [Chat system](../interviews/chat-system/README.md): the **session/presence registry** (userId → gateway with a heartbeat-refreshed TTL), last-seen, Pub/Sub channels for routing messages to the right gateway, per-conversation sequence counters (`INCR`) and client-message-ID dedup keys.
 - [LLD: Design an LRU Cache](../../LLD/interviews/lru-cache/README.md) — what's inside an in-process cache: the LRU/LFU data structures that Redis approximates with sampling, and when a local L1 cache sits in front of Redis.
 - [News feed](../interviews/news-feed/README.md): the **per-user feed cache** (list/sorted set of ~500–800 post IDs written by fan-out on write), the **post object cache** used to hydrate feed items, like/view **counters** (`INCR`, HyperLogLog), and per-user **seen-post Bloom filters** (RedisBloom). See [counters at scale](../concepts/counters-at-scale.md) and [Bloom filters](../concepts/bloom-filters.md).
+- [Ride-sharing](../interviews/ride-sharing/README.md): the **live driver location index** (`GEOADD` on every ~4 s ping, `GEOSEARCH` for nearby available drivers, one key per city), driver online TTL keys, offer locks/leases (`SET NX PX`), and the per-cell **surge multipliers** written by the stream job. See [geospatial indexing](../concepts/geospatial-indexing.md) and [distributed locks and leases](../concepts/distributed-locks-and-leases.md).
 - Related concepts: [caching strategies](../concepts/caching-strategies.md), [ID generation](../concepts/id-generation.md), [consistent hashing](../concepts/consistent-hashing.md), [sharding and replication](../concepts/sharding-and-replication.md).

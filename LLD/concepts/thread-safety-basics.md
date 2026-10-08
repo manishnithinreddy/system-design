@@ -184,4 +184,5 @@ Also: **thread-safe vs concurrent** — `Collections.synchronizedMap` is thread-
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — concurrent entry gates, atomic spot claim, check-then-act races on free spots.
 - [LLD: Design an LRU Cache](../interviews/lru-cache/README.md) — why even reads need the lock in an LRU (`get` mutates the recency list), lock striping with `StripedCache`, and check-then-act on cache misses (single-flight loading).
 - [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — thread safety by ownership: many caller threads, one simulation thread, no locks on elevator state (see [single-writer-principle](single-writer-principle.md)).
+- [LLD: Design Splitwise](../interviews/splitwise/README.md) — per-group locking around ledger appends, check-then-act on idempotency keys (a retried `addExpense` must not be applied twice).
 - Related: [design-patterns](design-patterns.md), [solid-principles](solid-principles.md).

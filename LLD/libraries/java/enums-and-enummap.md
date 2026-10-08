@@ -165,4 +165,5 @@ Enum strategies are great when the set of algorithms is **fixed and stateless**.
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — `VehicleType` / `SpotSize` with fit rules, per-size availability, ticket status lifecycle.
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — `Direction` (UP / DOWN / IDLE) and `ElevatorStatus` (IDLE / MOVING / DOORS_OPEN / MAINTENANCE) with exhaustive switches (see [state-machines](../../concepts/state-machines.md)).
+- [LLD: Design Splitwise](../../interviews/splitwise/README.md) — why split types are a sealed interface of records rather than an enum (each variant carries different per-expense data); see [sealed-interfaces-and-pattern-matching](sealed-interfaces-and-pattern-matching.md).
 - Related: [records-and-immutability](records-and-immutability.md), [design-patterns](../../concepts/design-patterns.md).
