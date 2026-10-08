@@ -25,6 +25,7 @@ Each page follows the same shape: the hook question → life before it → the c
 | [Postgres MVCC](postgres-mvcc.md) | How do readers and writers not block each other? |
 | [rsync's rolling hash](rsync-rolling-hash.md) | How does rsync send only the bytes that changed? |
 | [Content-defined chunking](content-defined-chunking.md) | How do sync and backup tools dedupe files when one inserted byte shifts everything? |
+| [Adaptive bitrate in the player](adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does the player decide to climb back up? |
 
 More are planned (Kafka's speed tricks, the Kubernetes scheduler, TLS 1.3, containers, JVM garbage collectors, video compression, Shazam, route planning): see the [roadmap](../ROADMAP.md).
 

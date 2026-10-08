@@ -267,4 +267,5 @@ See [back-of-the-envelope](back-of-the-envelope.md) for the method.
 
 - [Video Streaming](../interviews/video-streaming/README.md): the playback path, choosing segment length and the bitrate ladder, CDN offload and the requests/bandwidth estimates.
 - [Case study: video upload, transcode and storage](../../case-studies/video-upload-transcode-and-storage.md): how real services produce and serve their renditions.
+- 🔍 [Under the Hood: the player's decision logic](../../under-the-hood/adaptive-bitrate-player.md): naive vs EWMA vs min(fast, slow EWMA) vs buffer-based, simulated on a trace with a tunnel and bursts, with real stall and switch counts.
 - Related: [video transcoding pipeline](video-transcoding-pipeline.md), [resumable and chunked uploads](resumable-and-chunked-uploads.md), [CDN](../technologies/cdn.md), [object storage](../technologies/object-storage.md), [caching strategies](caching-strategies.md), [back-of-the-envelope](back-of-the-envelope.md).

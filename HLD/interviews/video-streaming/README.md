@@ -38,6 +38,8 @@ This interview teaches how to handle **huge files and huge bandwidth**: uploads 
 
 **Technologies:** [CDN](../../technologies/cdn.md) · [Object storage (S3)](../../technologies/object-storage.md) · [Message queues](../../technologies/message-queues.md) · [Kafka](../../technologies/kafka.md) · [PostgreSQL](../../technologies/postgresql.md)
 
+**Under the Hood:** [Why your video drops to 360p, and how the player climbs back](../../../under-the-hood/adaptive-bitrate-player.md) (with a runnable simulator comparing player strategies)
+
 **Related LLD:** [Vending Machine](../../../LLD/interviews/vending-machine/README.md): the same "explicit states and transitions" thinking as a video's UPLOADING → PROCESSING → READY lifecycle, at the scale of one machine.
 
 ## The core insight

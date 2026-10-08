@@ -72,8 +72,8 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U3 | ✅ [**HyperLogLog**](under-the-hood/hyperloglog.md) | How do you count a billion unique users in 12 KB? | Done |
 | U4 | ✅ [**Git's object store**](under-the-hood/git-object-store.md) | How does Git keep your whole history so cheaply? | Done |
 | U5 | ✅ [**Postgres MVCC**](under-the-hood/postgres-mvcc.md) | How do readers and writers not block each other? | Done |
-| U6 | **rsync's rolling hash** | How do you send only the bytes that changed? | With #13 |
-| U7 | **Content-defined chunking** | How do Dropbox-style systems dedupe files that shift? | With #13 |
+| U6 | ✅ [**rsync's rolling hash**](under-the-hood/rsync-rolling-hash.md) | How do you send only the bytes that changed? | Done |
+| U7 | ✅ [**Content-defined chunking**](under-the-hood/content-defined-chunking.md) | How do Dropbox-style systems dedupe files that shift? | Done |
 | U8 | **Double-entry ledgers in databases** | How do payment systems make money impossible to lose? | With #14 |
 | U9 | **Kafka's speed tricks** | Sequential I/O, page cache, zero-copy: how millions of messages/s fit on one disk | With #15 |
 | U10 | **Kubernetes scheduler** | How does Kubernetes pick a node for your pod? | With #16 |
@@ -83,7 +83,7 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U14 | **Video compression** | I/P/B frames and motion vectors | Later |
 | U15 | **Shazam's audio fingerprints** | How is a song recognised in 3 seconds? | Later |
 | U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
-| U17 | **Adaptive bitrate in the player** | Why does your video drop to 360p, and how does it decide to climb back? | Now (reader request) |
+| U17 | ✅ [**Adaptive bitrate in the player**](under-the-hood/adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does it decide to climb back? | Done |
 | U18 | **Erasure coding** | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | With #13 |
 | U19 | **UPI under the hood** | What happens between "Pay" and "₹ debited" in about 2 seconds? | With #14 |
 | U20 | **Anycast** | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Later |
