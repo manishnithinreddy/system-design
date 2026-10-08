@@ -156,4 +156,5 @@ See [CAP and consistency](../concepts/cap-and-consistency.md) for why these trad
 ## 9. Used in
 
 - [URL shortener](../interviews/url-shortener/README.md) — the **L4 answer's database**: a single Postgres with a `UNIQUE` short code, replicas for reads, cache in front.
+- [Notification system](../interviews/notification-system/README.md) — stores **user preferences, contact info, templates and device tokens**; can also hold the **transactional outbox** and a low-volume job table using `SKIP LOCKED`.
 - Related concepts: [sharding and replication](../concepts/sharding-and-replication.md), [CAP and consistency](../concepts/cap-and-consistency.md), [back-of-the-envelope](../concepts/back-of-the-envelope.md), [ID generation](../concepts/id-generation.md).

@@ -178,4 +178,5 @@ Key insight: **local cache and Redis stack**. A Caffeine cache of the top 10k ho
 ## 9. Used in
 
 - [URL shortener](../interviews/url-shortener/README.md) — **cache for redirects** (short code → long URL, the read-heavy hot path) and an **atomic counter** (`INCR`/`INCRBY`) for generating IDs or counting clicks.
+- [Notification system](../interviews/notification-system/README.md) — **idempotency/dedup keys** (`SET NX` with TTL), **per-user and per-provider rate limiting** (token buckets), the **WebSocket connection registry** (user → gateway), and caching user preferences.
 - Related concepts: [caching strategies](../concepts/caching-strategies.md), [ID generation](../concepts/id-generation.md), [consistent hashing](../concepts/consistent-hashing.md), [sharding and replication](../concepts/sharding-and-replication.md).

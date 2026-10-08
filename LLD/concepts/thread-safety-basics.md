@@ -181,4 +181,5 @@ Also: **thread-safe vs concurrent** — `Collections.synchronizedMap` is thread-
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — per-bucket synchronization, registry races, eviction safety.
+- [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — concurrent entry gates, atomic spot claim, check-then-act races on free spots.
 - Related: [design-patterns](design-patterns.md), [solid-principles](solid-principles.md).

@@ -167,3 +167,4 @@ For counters this is harmless — 5 is 5. It bites in lock-free **data structure
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — `AtomicLong` / CAS variant of the token bucket and fixed window counter.
+- [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — atomic spot claim with `AtomicBoolean.compareAndSet(false, true)` so two entry gates never get the same spot; free-spot counters for display boards.

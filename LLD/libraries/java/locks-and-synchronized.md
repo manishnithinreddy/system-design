@@ -173,3 +173,4 @@ In **Java 21**, a virtual thread that blocks **while inside a `synchronized` blo
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — per-bucket `synchronized` / `ReentrantLock`, lock granularity discussion.
+- [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — per-floor locks as an alternative to lock-free spot claims; lock granularity (whole lot vs per floor vs per spot).

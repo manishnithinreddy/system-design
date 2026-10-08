@@ -183,4 +183,5 @@ That conclusion ("writes are trivial, reads need a cache, storage is moderate") 
 ## 9. Used in
 
 - [URL Shortener](../interviews/url-shortener/README.md) — the estimates section (QPS, 5-year storage, cache sizing, key-space length for the short code). The worked example above is the same one.
+- [Notification system](../interviews/notification-system/README.md) — the estimates section: notifications/day → peak QPS per channel, broadcast duration under provider rate limits, SMS vs email vs push cost, inbox storage.
 - Related: [ID generation](id-generation.md) (key space), [Caching strategies](caching-strategies.md) (cache sizing), [Sharding and replication](sharding-and-replication.md) (when storage/QPS forces a split), [Redis](../technologies/redis.md).

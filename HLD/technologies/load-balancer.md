@@ -154,4 +154,5 @@ DNS LB is good for coarse, global routing (pick a region) but bad for fast failo
 ## 9. Used in
 
 - [URL shortener](../interviews/url-shortener/README.md) — sits **in front of the stateless app servers** that handle create and redirect requests; lets the redirect tier scale horizontally.
+- [Notification system](../interviews/notification-system/README.md) — in front of the **stateless Notification API** and the **WebSocket/SSE gateway tier** (idle timeouts, long-lived connections, connection draining on deploy).
 - Related concepts: [consistent hashing](../concepts/consistent-hashing.md) (when routing must be key-aware), [back-of-the-envelope](../concepts/back-of-the-envelope.md) (how many servers behind the LB).

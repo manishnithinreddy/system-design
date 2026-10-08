@@ -129,3 +129,4 @@ This is exactly how the per-key registry in the rate limiter is built.
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — per-key limiter registry, idle-key eviction.
+- [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — ticket registry keyed by ticket id, active-vehicle index (one active ticket per plate via `putIfAbsent`).

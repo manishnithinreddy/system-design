@@ -161,3 +161,4 @@ The test runs in microseconds, never flakes, and can check edge cases (exactly o
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — injectable clock, deterministic tests for every algorithm.
+- [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — injected `java.time.Clock` for entry/exit timestamps and deterministic fee tests (see also [java-time-api](java-time-api.md)).

@@ -134,6 +134,8 @@ Monitor **consumer lag** (latest offset − committed offset) — it's the key o
 
 Mental model: a **queue** is a to-do list — finished items are crossed out. A **log** is a newspaper archive — everyone reads it at their own pace and old issues stay on the shelf.
 
+For a deeper look at the queue side (ack, visibility timeout, DLQ, priority queues, DB-table queues), see [Message queues](message-queues.md).
+
 ---
 
 ## 7. Common mistakes / misuse
@@ -158,4 +160,5 @@ Mental model: a **queue** is a to-do list — finished items are crossed out. A 
 ## 9. Used in
 
 - [URL shortener](../interviews/url-shortener/README.md) — the **click analytics pipeline**: redirect servers publish click events to Kafka; consumers aggregate stats off the critical path.
+- [Notification system](../interviews/notification-system/README.md) — the **event bus** that upstream services publish to (e.g. "order shipped", "payment failed") and that the notification pipeline consumes; also a candidate for delivery-status/analytics event streams. Compare with per-message [message queues](message-queues.md) used for the channel workers.
 - Related concepts: [back-of-the-envelope](../concepts/back-of-the-envelope.md) (sizing events/s and storage), [CAP and consistency](../concepts/cap-and-consistency.md), [sharding and replication](../concepts/sharding-and-replication.md) (partitions are shards).

@@ -144,6 +144,65 @@ public abstract class WindowedLimiter implements RateLimiter {
 - **Use when:** several classes share the exact same algorithm outline and differ only in steps.
 - **Over-engineering when:** the "shared" flow is two lines, or subclasses start overriding to skip steps. Inheritance couples subclasses to the base; composition (inject a Strategy for the varying step) is usually more flexible. Also note: making a check-then-record template thread-safe needs the lock around the whole template method, not in each step (see [thread-safety-basics](thread-safety-basics.md)).
 
+### Observer — notify subscribers when something changes
+
+A **subject** keeps a list of **listeners** and calls them on every change, without knowing what they do. Parking lot: a floor publishes "free spots changed" and display boards, a metrics exporter, or a mobile-app push service subscribe. Same idea as a Kafka topic or a k8s watch, inside one process.
+
+```java
+public interface AvailabilityListener {
+    void onAvailabilityChanged(int floor, SpotSize size, int freeCount);
+}
+
+public final class ParkingFloor {
+    private final int number;
+    private final java.util.List<AvailabilityListener> listeners =
+            new java.util.concurrent.CopyOnWriteArrayList<>();   // subscribe rarely, notify often
+    public ParkingFloor(int number) { this.number = number; }
+
+    public void addListener(AvailabilityListener l) { listeners.add(l); }
+    void publish(SpotSize size, int free) {
+        for (AvailabilityListener l : listeners) l.onAvailabilityChanged(number, size, free);
+    }
+}
+
+public final class DisplayBoard implements AvailabilityListener {
+    @Override public void onAvailabilityChanged(int floor, SpotSize size, int free) {
+        System.out.printf("Floor %d: %d %s spots free%n", floor, free, size);
+    }
+}
+```
+
+`CopyOnWriteArrayList` is explained in [concurrent-collections](../libraries/java/concurrent-collections.md).
+
+- **Use when:** one change has several independent reactions that may grow (boards, metrics, notifications) and the subject shouldn't depend on them.
+- **Over-engineering / risky when:** there's exactly one consumer — just call it. Watch for: listeners running **synchronously on the caller's thread** (a slow board slows down `park()`; hand off to an executor or queue if it can block), exceptions from one listener stopping the rest (catch per listener), memory leaks from listeners never removed, and hard-to-follow control flow when listeners trigger further events. Across services, use a message broker instead.
+
+### State — behaviour depends on a lifecycle state
+
+An object moves through states (ticket: `ACTIVE → PAID → EXITED`) and the allowed operations differ per state. Instead of `if (status == ...)` in every method, each state decides what's legal and what comes next. In Java a small lifecycle fits neatly in an enum (see [enums-and-enummap](../libraries/java/enums-and-enummap.md)):
+
+```java
+public enum TicketStatus {
+    ACTIVE { @Override TicketStatus pay()  { return PAID; } },
+    PAID   { @Override TicketStatus exit() { return EXITED; } },
+    EXITED;
+
+    TicketStatus pay()  { throw new IllegalStateException("cannot pay in state " + this); }
+    TicketStatus exit() { throw new IllegalStateException("cannot exit in state " + this); }
+}
+
+// status = status.pay();   // ACTIVE -> PAID; calling pay() again throws
+```
+
+The full Gang-of-Four form uses a `State` interface with one class per state, holding behaviour and data for that state — worth it when each state has substantial, different logic (a vending machine: `Idle`, `HasMoney`, `Dispensing`).
+
+- **Use when:** there are 3+ states, transitions have rules, and invalid transitions must be impossible ("exit without paying").
+- **Over-engineering when:** two states and one transition — a `boolean` or a single `if` is clearer. Also don't spread one lifecycle across a class per state if the states share almost all behaviour; an enum transition table is enough. In concurrent code, the transition itself must be atomic (e.g. `AtomicReference<TicketStatus>.compareAndSet(ACTIVE, PAID)`) or two exit gates could both "exit" the same ticket.
+
+### Facade — one simple entry point over a subsystem
+
+`ParkingLot.park(vehicle)` / `unpark(ticketId)` hide floors, spots, allocation, pricing and notifications behind two methods. Callers (gates) can't reach in and break invariants, and locking lives in one place. **Over-engineering when** it becomes a god class doing the work itself instead of delegating — a facade coordinates, it doesn't compute (see [oop-modeling](oop-modeling.md)).
+
 ## 4. When to use it
 
 - Name a pattern when it genuinely shapes the design, and say **why** it's needed here ("algorithms are chosen per-endpoint from config, so Strategy + Factory").
@@ -187,4 +246,5 @@ Also confused: **Decorator vs Proxy** — same shape; Decorator adds behavior, P
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — Strategy for algorithms, Factory for creation, Decorator for metrics.
+- [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — Strategy for pricing and spot allocation, Factory for building strategies from config, Observer for display boards, State for the ticket lifecycle (ACTIVE → PAID → EXITED), Facade for `ParkingLot`; Singleton warning (don't make `ParkingLot` a global singleton — create one and inject it).
 - Related: [SOLID principles](solid-principles.md) — Strategy and Decorator are how Open/Closed is usually achieved.

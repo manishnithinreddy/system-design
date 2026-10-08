@@ -191,4 +191,5 @@ The same idea makes time testable: inject a `TimeSource` instead of calling `Sys
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — interface design, extension with new algorithms, injected clock.
+- [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — pricing and allocation strategies (Open/Closed), small focused classes (SRP), injected `Clock` and strategies (Dependency Inversion).
 - Related: [design-patterns](design-patterns.md).

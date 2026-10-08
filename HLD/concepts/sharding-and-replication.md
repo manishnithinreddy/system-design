@@ -170,4 +170,5 @@ Also: **partitioning** in Postgres (table partitions on *one* server) is not the
 ## 9. Used in
 
 - [URL Shortener](../interviews/url-shortener/README.md) — storage deep dive: replicas for the 100:1 read load, read-your-writes after creating a link, when (and whether) to shard the URL table, and short code as the shard key.
+- [Notification system](../interviews/notification-system/README.md) — sharding the **inbox / notification log by user_id**, and replicating the preferences DB for the read-heavy send path.
 - Related: [PostgreSQL](../technologies/postgresql.md) (streaming replication, partitioning, Citus), [Cassandra](../technologies/cassandra.md) (leaderless, RF, token ring), [Consistent hashing](consistent-hashing.md), [CAP and consistency](cap-and-consistency.md), [ZooKeeper / etcd](../technologies/zookeeper-etcd.md) (leader election, shard maps).

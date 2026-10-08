@@ -169,4 +169,5 @@ Each outer layer removes load from inner layers but is harder to invalidate. For
 ## 9. Used in
 
 - [URL Shortener](../interviews/url-shortener/README.md) — the read path: Redis cache-aside for short-code lookups, cache sizing via 80/20, negative caching for unknown codes, hot-link stampedes, and 301 vs 302 (browser/CDN caching).
+- [Notification system](../interviews/notification-system/README.md) — caching **user preferences, contact info and rendered templates** on the send path so each notification doesn't hit the DB.
 - Related: [Redis](../technologies/redis.md), [CDN](../technologies/cdn.md), [Kafka](../technologies/kafka.md) (event-driven invalidation), [Back-of-the-envelope](back-of-the-envelope.md) (cache sizing), [Consistent hashing](consistent-hashing.md) (when the cache outgrows one node).
