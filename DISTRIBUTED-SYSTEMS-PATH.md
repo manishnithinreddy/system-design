@@ -84,7 +84,7 @@ flowchart TB
 
 **The key idea:** majority agreement gives one truth, but the minority side of a network split must stop. That's the price of strong consistency.
 
-**See it in a design:** multi-Raft ranges in [Distributed KV Store L6 §2](HLD/interviews/distributed-kv-store/L6-staff.md#2-the-cp-alternative-multi-raft-ranges); driver leases in [Ride-Sharing](HLD/interviews/ride-sharing/README.md). Coming next in the roadmap: Raft leader election as a runnable simulation (side track S2).
+**See it in a design:** multi-Raft ranges in [Distributed KV Store L6 §2](HLD/interviews/distributed-kv-store/L6-staff.md#2-the-cp-alternative-multi-raft-ranges); driver leases in [Ride-Sharing](HLD/interviews/ride-sharing/README.md). **Run it:** [Raft leader election](see-it-work/raft-leader-election/README.md): freeze a leader, partition the cluster, watch terms decide who's in charge.
 
 ---
 

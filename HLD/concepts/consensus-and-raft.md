@@ -154,4 +154,5 @@ Also confused: **consensus vs two-phase commit (2PC)**. Consensus replicates *on
 ## 9. Used in
 
 - [Distributed key-value store](../interviews/distributed-kv-store/README.md): the **strongly consistent alternative design**: Raft per partition (multi-Raft, as in etcd / TiKV / CockroachDB), contrasted with the Dynamo-style leaderless design.
+- 🔬 [See it work: Raft leader election](../../see-it-work/raft-leader-election/README.md): a runnable simulation of terms, votes and randomized timeouts, a frozen leader stepping down, a partition with a powerless minority leader, and split votes when timeouts aren't random.
 - Related: [ZooKeeper / etcd](../technologies/zookeeper-etcd.md), [CAP and consistency](cap-and-consistency.md), [sharding and replication](sharding-and-replication.md), [distributed locks and leases](distributed-locks-and-leases.md), [sagas and distributed transactions](sagas-and-distributed-transactions.md), [gossip and failure detection](gossip-and-failure-detection.md), [Kafka](../technologies/kafka.md) (KRaft).

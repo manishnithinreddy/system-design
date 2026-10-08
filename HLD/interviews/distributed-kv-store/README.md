@@ -37,7 +37,7 @@ This is the interview where you build the **database itself**, not use one. It b
 
 **Technologies:** [Cassandra / DynamoDB](../../technologies/cassandra.md) · [ZooKeeper / etcd](../../technologies/zookeeper-etcd.md) · [Redis](../../technologies/redis.md) · [PostgreSQL](../../technologies/postgresql.md)
 
-**See it work:** [Hash ring + quorums + hinted handoff](../../../see-it-work/hash-ring-quorum/README.md): a ~190-line simulation of L4/L5 you can run and break.
+**See it work:** [Hash ring + quorums + hinted handoff](../../../see-it-work/hash-ring-quorum/README.md): a ~190-line simulation of L4/L5 you can run and break. [Raft leader election](../../../see-it-work/raft-leader-election/README.md): the CP side from L6, with a partitioned leader.
 
 **Case study:** [Discord: Cassandra → ScyllaDB in production](../../../case-studies/discord-message-storage.md): hot partitions, tombstones, GC pauses and request coalescing at 177 nodes.
 
