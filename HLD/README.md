@@ -9,6 +9,7 @@
 | [News Feed](interviews/news-feed/README.md) | Hybrid fan-out (celebrity problem), precomputed feed caches, read-time filtering, ranking pipelines, counters, cursor pagination |
 | [Ride-Sharing (Uber)](interviews/ride-sharing/README.md) | Geospatial indexing of moving objects, exclusive assignment with leases, trip state machines, surge via stream processing, payment sagas, city cells |
 | [API Gateway](interviews/api-gateway/README.md) | Request-path engineering: routing, edge auth, rate limiting, resilience, control vs data plane, safe config, observability, platform ownership |
+| [Distributed KV Store](interviews/distributed-kv-store/README.md) | Database internals: partitioning, quorums, conflicts, repair, gossip, LSM storage, Raft, AP vs CP |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -56,3 +57,9 @@
 | [TLS & mTLS](concepts/tls-and-mtls.md) | Encryption and identity on the wire |
 | [Observability](concepts/observability.md) | Metrics, logs and traces: knowing what your system is doing |
 | [Resilience patterns](concepts/resilience-patterns.md) | Timeouts, circuit breakers, bulkheads, load shedding |
+| [LSM trees & storage engines](concepts/lsm-trees-and-storage-engines.md) | How do databases write fast and read efficiently from disk? |
+| [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
+| [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
+| [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |
+| [Hinted handoff & sloppy quorum](concepts/hinted-handoff-and-sloppy-quorum.md) | How do writes succeed when replicas are down, and what does it cost? |
+| [Consensus & Raft](concepts/consensus-and-raft.md) | How do machines agree on one order of operations despite failures? |

@@ -142,3 +142,4 @@ Rate-limit state needs to outlive the request and be keyed by a value, so it's a
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — JavaScript per-key registry and eviction.
 - [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — LRU on top of `Map` insertion order (`delete` + `set` to mark as newest, `map.keys().next().value` for the oldest); see [lru-with-map](lru-with-map.md).
+- [LLD: Design an In-Memory Key-Value Store with Transactions](../../interviews/kv-store/README.md) — JS store as `Map<string, {value, expiresAt}>` plus a value → count `Map` for O(1) `COUNT`; user-supplied keys like `__proto__` are safe in a `Map`.

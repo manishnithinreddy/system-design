@@ -11,6 +11,10 @@ This repo is a personal system-design interview prep library. Every session that
 - Prefer analogies to infra work the reader already knows (load balancers, k8s, configs, metrics, on-call) when they help.
 - If something teaches a useful lesson, include it — nothing is "out of scope" if it builds understanding.
 
+## What to build next
+
+The reader asked Claude to choose the problems. **[ROADMAP.md](ROADMAP.md) is the plan of record**: continue with the first unfinished row (HLD + LLD pair), then move it to "Done" and update the indexes. Only deviate if the reader asks.
+
 ## Folder layout
 
 ```

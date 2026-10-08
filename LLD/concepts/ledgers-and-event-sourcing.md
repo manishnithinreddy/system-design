@@ -151,4 +151,5 @@ The switch syntax is explained in [sealed-interfaces-and-pattern-matching](../li
 ## 9. Used in
 
 - [LLD: Design Splitwise](../interviews/splitwise/README.md) — per-group append-only `Ledger` (expenses, settlements, reversal entries for edits/deletes); balances derived as paid − owed and always summing to 0.
+- [LLD: Design an In-Memory Key-Value Store with Transactions](../interviews/kv-store/README.md) — the append-only file (AOF) is a redo log: state is rebuilt on startup by replaying committed batches, and compaction rewrites it as a snapshot of the current state (see [durability-wal-and-snapshots](durability-wal-and-snapshots.md)).
 - Related: [splitting-money-and-rounding](splitting-money-and-rounding.md), [state-machines](state-machines.md), [single-writer-principle](single-writer-principle.md), [records-and-immutability](../libraries/java/records-and-immutability.md), [HLD: Kafka](../../HLD/technologies/kafka.md).

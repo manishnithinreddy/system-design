@@ -195,4 +195,5 @@ BF.MEXISTS seen:42 post:981 post:777   → 1 0
 ## 9. Used in
 
 - [News feed](../interviews/news-feed/README.md): **"seen" filtering** during candidate generation so the feed doesn't repeat posts (per-user Bloom filter, time-rotated, in Redis).
+- [Distributed key-value store](../interviews/distributed-kv-store/README.md): **per-SSTable Bloom filters** on the storage-engine read path, so a point read skips files that can't contain the key ([LSM trees and storage engines](lsm-trees-and-storage-engines.md)).
 - Related: [Cassandra](../technologies/cassandra.md) (Bloom filter per SSTable), [Redis](../technologies/redis.md) (RedisBloom), [counters at scale](counters-at-scale.md) (HyperLogLog), [caching strategies](caching-strategies.md) (cache penetration), [feed ranking](feed-ranking.md).

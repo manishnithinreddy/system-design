@@ -172,4 +172,5 @@ The non-zero exit code on failure fails the job. Add `--test-reporter=junit --te
 ## 9. Used in
 
 - [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — JS version: tests for all-or-nothing holds, lazy expiry with an injected clock, idempotent confirm.
+- [LLD: Design an In-Memory Key-Value Store with Transactions](../../interviews/kv-store/README.md) — JS version: tests for nested `BEGIN/ROLLBACK/COMMIT`, TTL with an injected clock, AOF replay ignoring a torn trailing batch, and a property test against a copy-the-whole-map model.
 - Related: [async-await-and-timers](async-await-and-timers.md), [classes-and-private-fields](classes-and-private-fields.md), [event-loop-and-concurrency](event-loop-and-concurrency.md).
