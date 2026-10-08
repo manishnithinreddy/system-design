@@ -184,4 +184,5 @@ A **livelock** is when threads aren't blocked but keep reacting to each other an
 
 - [LLD: Design a Movie Ticket Booking System](../interviews/movie-booking/README.md) — why per-seat locks need a global order, why `CasSeatInventory` claims seats in sorted order and can't deadlock, and DB row locks taken in `ORDER BY seat_id` at L6.
 - [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — avoiding the problem entirely with a single simulation thread.
+- [In-memory File System](../interviews/file-system/README.md): why moving directories with per-node locks needs a global lock order (or one tree-wide read/write lock, as the solution uses).
 - Related: [thread-safety-basics](thread-safety-basics.md), [optimistic-vs-pessimistic-locking](optimistic-vs-pessimistic-locking.md), [locks-and-synchronized](../libraries/java/locks-and-synchronized.md), [single-writer-principle](single-writer-principle.md).

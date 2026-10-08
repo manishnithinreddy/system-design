@@ -22,12 +22,12 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 10 | [Video Streaming](HLD/interviews/video-streaming/README.md) | Resumable uploads, chunked transcoding DAG, ABR segments, CDN + tiering, live, cost model | [Vending Machine](LLD/interviews/vending-machine/README.md) | State pattern, paise, bounded change-making DP, refunds, idempotent UPI |
 | 11 | [Metrics & Monitoring](HLD/interviews/metrics-monitoring/README.md) | Time-series storage, compression, cardinality, downsampling, SLO alerting | [Thread Pool / Connection Pool](LLD/interviews/thread-pool/README.md) | Pools from scratch, rejection policies, sizing, fair borrowing, leak detection |
 | 12 | [Collaborative Editor](HLD/interviews/collaborative-editor/README.md) | OT vs CRDTs, one sequencer per doc, op log + snapshots, presence | [Text Editor](LLD/interviews/text-editor/README.md) | Command undo/redo, coalescing, gap buffer / piece table / rope |
+| 13 | [File Storage & Sync](HLD/interviews/file-storage-sync/README.md) | Metadata vs blocks, dedup, journal + cursor, conflicts, erasure coding | [In-memory File System](LLD/interviews/file-system/README.md) | Composite, path resolution, symlinks, permissions, locking |
 
 ## 🔜 Next (in order)
 
 | # | HLD | New ideas it brings | LLD | New ideas it brings |
 |---|---|---|---|---|
-| 13 | **File Storage & Sync** (Dropbox / Drive) | Chunking, content-addressed dedup, sync conflicts, metadata vs blobs | **File System** (in-memory) | Composite pattern, path resolution, permissions |
 | 14 | **Payment System** | Double-entry ledgers at scale, PSP integration, reconciliation, exactly-once money | **ATM / Digital Wallet** | State machines with money, idempotent transfers, auditing |
 | 15 | **Distributed Message Queue** (Kafka internals) | Log segments, partitions, replication (ISR), consumer groups, retention | **Pub-Sub Broker** (in-memory) | Observer at scale, back-pressure, delivery guarantees in code |
 | 16 | **Distributed Job Scheduler** | Leader election, exactly-once execution, sharding schedules, time zones | **Chess** | Rich OOP modelling, rules engines, move validation, undo |

@@ -140,4 +140,5 @@ Rule of thumb: **new variants often → open interface; new operations often →
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../../interviews/kv-store/README.md) — the `CommandProcessor` dispatches text commands with a `switch` on the command name; a natural refactor is to parse them into a sealed interface of records (`Set`, `Get`, `Begin`, …) so a new command can't be added without the compiler forcing every `switch` to handle it.
 - [Task Scheduler](../../interviews/task-scheduler/README.md): `Schedule` is a sealed interface with `Once`, `FixedRate`, `FixedDelay` and `Cron` variants, each computing its own next run time.
 - [Vending Machine](../../interviews/vending-machine/README.md): `Payment` as a sealed type (Cash, UPI), handled with an exhaustive switch.
+- [In-memory File System](../../interviews/file-system/README.md): a sealed `Node` hierarchy (Directory, File, SymLink) handled with pattern-matching switches.
 - Related: [records-and-immutability](records-and-immutability.md), [enums-and-enummap](enums-and-enummap.md), [design-patterns](../../concepts/design-patterns.md), [solid-principles](../../concepts/solid-principles.md).

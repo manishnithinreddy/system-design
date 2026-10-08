@@ -149,4 +149,5 @@ Also: **version number / ETag** (a single counter checked with compare-and-set) 
 ## 9. Used in
 
 - [Distributed key-value store](../interviews/distributed-kv-store/README.md): **conflict detection and resolution**: LWW timestamps as the simple choice vs vector clocks with siblings, the `get → (values, context)` / `put(key, value, context)` API, and CRDTs as a follow-up.
+- [File storage & sync](../interviews/file-storage-sync/README.md): base / local / remote comparison instead of timestamps; unresolvable edits become conflicted copies.
 - Related: [CAP and consistency](cap-and-consistency.md), [sharding and replication](sharding-and-replication.md) (multi-leader and leaderless conflicts), [hinted handoff and sloppy quorum](hinted-handoff-and-sloppy-quorum.md), [Merkle trees and anti-entropy](merkle-trees-and-anti-entropy.md), [consensus and Raft](consensus-and-raft.md), [message ordering and sequencing](message-ordering-and-sequencing.md), [counters at scale](counters-at-scale.md), [Cassandra](../technologies/cassandra.md).

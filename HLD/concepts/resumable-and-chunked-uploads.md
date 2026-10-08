@@ -211,4 +211,5 @@ multipart:     lose at most the parts in flight, e.g. 3 parallel × 6.7 s ≈ 20
 - [Video Streaming](../interviews/video-streaming/README.md): the creator upload path, from pre-signed multipart upload to the event that starts transcoding.
 - [Case study: video upload, transcode and storage](../../case-studies/video-upload-transcode-and-storage.md): how real platforms accept large uploads.
 - [WhatsApp vs Telegram](../../case-studies/whatsapp-vs-telegram.md): Telegram's 512 KB file parts.
+- [File storage & sync](../interviews/file-storage-sync/README.md): uploading only the **missing blocks** of a file in parallel, each retried independently, committing the new version once all are present.
 - Related: [object storage](../technologies/object-storage.md), [CDN](../technologies/cdn.md), [idempotency](idempotency-and-delivery-semantics.md), [retries, backoff and DLQ](retries-backoff-and-dlq.md), [content fingerprinting and dedup](content-fingerprinting-and-dedup.md), [file I/O and fsync](../../LLD/libraries/java/file-io-and-fsync.md), [adaptive bitrate streaming](adaptive-bitrate-streaming.md).

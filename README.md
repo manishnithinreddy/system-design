@@ -45,6 +45,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | HLD | [Video Streaming (YouTube / Netflix)](HLD/interviews/video-streaming/README.md) | [Product intro](HLD/interviews/video-streaming/00-understand-the-product.md) · [L4](HLD/interviews/video-streaming/L4-mid.md) · [L5](HLD/interviews/video-streaming/L5-senior.md) · [L6](HLD/interviews/video-streaming/L6-staff.md) |
 | HLD | [Metrics & Monitoring (Prometheus-like)](HLD/interviews/metrics-monitoring/README.md) | [Product intro](HLD/interviews/metrics-monitoring/00-understand-the-product.md) · [L4](HLD/interviews/metrics-monitoring/L4-mid.md) · [L5](HLD/interviews/metrics-monitoring/L5-senior.md) · [L6](HLD/interviews/metrics-monitoring/L6-staff.md) |
 | HLD | [Collaborative Editor (Google Docs)](HLD/interviews/collaborative-editor/README.md) | [Product intro](HLD/interviews/collaborative-editor/00-understand-the-product.md) · [L4](HLD/interviews/collaborative-editor/L4-mid.md) · [L5](HLD/interviews/collaborative-editor/L5-senior.md) · [L6](HLD/interviews/collaborative-editor/L6-staff.md) |
+| HLD | [File Storage & Sync (Dropbox / Drive)](HLD/interviews/file-storage-sync/README.md) | [Product intro](HLD/interviews/file-storage-sync/00-understand-the-product.md) · [L4](HLD/interviews/file-storage-sync/L4-mid.md) · [L5](HLD/interviews/file-storage-sync/L5-senior.md) · [L6](HLD/interviews/file-storage-sync/L6-staff.md) |
 | LLD | [Rate Limiter](LLD/interviews/rate-limiter/README.md) | [Product intro](LLD/interviews/rate-limiter/00-understand-the-product.md) · [L4](LLD/interviews/rate-limiter/L4-mid.md) · [L5](LLD/interviews/rate-limiter/L5-senior.md) · [L6](LLD/interviews/rate-limiter/L6-staff.md) |
 | LLD | [Parking Lot](LLD/interviews/parking-lot/README.md) | [Product intro](LLD/interviews/parking-lot/00-understand-the-product.md) · [L4](LLD/interviews/parking-lot/L4-mid.md) · [L5](LLD/interviews/parking-lot/L5-senior.md) · [L6](LLD/interviews/parking-lot/L6-staff.md) |
 | LLD | [LRU Cache](LLD/interviews/lru-cache/README.md) | [Product intro](LLD/interviews/lru-cache/00-understand-the-product.md) · [L4](LLD/interviews/lru-cache/L4-mid.md) · [L5](LLD/interviews/lru-cache/L5-senior.md) · [L6](LLD/interviews/lru-cache/L6-staff.md) |
@@ -57,6 +58,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | LLD | [Vending Machine](LLD/interviews/vending-machine/README.md) | [Product intro](LLD/interviews/vending-machine/00-understand-the-product.md) · [L4](LLD/interviews/vending-machine/L4-mid.md) · [L5](LLD/interviews/vending-machine/L5-senior.md) · [L6](LLD/interviews/vending-machine/L6-staff.md) |
 | LLD | [Thread Pool / Connection Pool](LLD/interviews/thread-pool/README.md) | [Product intro](LLD/interviews/thread-pool/00-understand-the-product.md) · [L4](LLD/interviews/thread-pool/L4-mid.md) · [L5](LLD/interviews/thread-pool/L5-senior.md) · [L6](LLD/interviews/thread-pool/L6-staff.md) |
 | LLD | [Text Editor with Undo/Redo](LLD/interviews/text-editor/README.md) | [Product intro](LLD/interviews/text-editor/00-understand-the-product.md) · [L4](LLD/interviews/text-editor/L4-mid.md) · [L5](LLD/interviews/text-editor/L5-senior.md) · [L6](LLD/interviews/text-editor/L6-staff.md) |
+| LLD | [In-memory File System](LLD/interviews/file-system/README.md) | [Product intro](LLD/interviews/file-system/00-understand-the-product.md) · [L4](LLD/interviews/file-system/L4-mid.md) · [L5](LLD/interviews/file-system/L5-senior.md) · [L6](LLD/interviews/file-system/L6-staff.md) |
 
 Indexes: [HLD](HLD/README.md) · [LLD](LLD/README.md)
 
@@ -95,4 +97,6 @@ LLD/interviews/thread-pool/java/run.sh                  # Java 21+, tests + demo
 cd LLD/interviews/thread-pool/js && node --test         # Node 22+, tests
 LLD/interviews/text-editor/java/run.sh                  # Java 21+, tests + demo
 cd LLD/interviews/text-editor/js && node --test         # Node 22+, tests
+LLD/interviews/file-system/java/run.sh                  # Java 21+, tests + demo
+cd LLD/interviews/file-system/js && node --test         # Node 22+, tests
 ```
