@@ -157,4 +157,5 @@ Also: **SLO vs SLA** (internal target vs contract), **average vs percentile**.
 
 - [API gateway](../interviews/api-gateway/README.md): **observability at the edge**: access logs, RED metrics per route/backend, starting and propagating traces (`traceparent`), sampling, cardinality of per-API-key metrics, and gateway SLOs.
 - [Web crawler](../interviews/web-crawler/README.md): crawler health metrics: pages/s by status, frontier size per priority, **top hosts by frontier size** as a trap detector, DNS cache hit rate, waste rate and freshness of pages users actually see.
+- [Search autocomplete](../interviews/search-autocomplete/README.md): serving metrics (p99, empty-result rate, cache hit rate) as guardrails next to product metrics (acceptance rate, keystrokes saved), plus alerts on unusual trending volume.
 - Related: [back-of-the-envelope](back-of-the-envelope.md) (log and trace volume sizing), [service mesh and Envoy](../technologies/service-mesh-and-envoy.md) (per-hop telemetry), [resilience patterns](resilience-patterns.md) (what to alert on when breakers open or load is shed), [Kafka](../technologies/kafka.md) (shipping logs and events).

@@ -149,4 +149,5 @@ They stack: **User → CDN edge → load balancer → app servers → Redis → 
 - [Chat system](../interviews/chat-system/README.md): **serving chat media** (photos, videos, voice notes) from the edge with short-lived signed URLs; the bytes live in [object storage](object-storage.md) and the message carries only the media reference.
 - [News feed](../interviews/news-feed/README.md): **serving post photos and videos** (the bulk of feed bandwidth) from the edge; the feed API returns only media URLs.
 - [API gateway](../interviews/api-gateway/README.md): the **edge layer in front of the gateway**: TLS termination close to users, caching of cacheable public GET responses, and absorbing DDoS traffic before it reaches the gateway fleet ([TLS and mTLS](../concepts/tls-and-mtls.md)).
+- [Search autocomplete](../interviews/search-autocomplete/README.md): caching suggestion responses for **short prefixes** (the most requested and identical for everyone) and pushing the head of the index to the edge.
 - Related concepts: [caching strategies](../concepts/caching-strategies.md), [back-of-the-envelope](../concepts/back-of-the-envelope.md).
