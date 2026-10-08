@@ -16,6 +16,7 @@ LLD/                         Low-level design (classes + code)
 └── concepts/                design patterns, SOLID, thread safety
 case-studies/                How real companies built it (sources cited, no code)
 see-it-work/                 Small runnable pieces of HLD mechanisms
+under-the-hood/              How clever inventions work (epoll, B-trees, HyperLogLog, ...)
 ```
 
 ## Roadmap
@@ -25,6 +26,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 **Side tracks** (optional, understanding-first):
 - 🗺️ **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in reading order, from "split the data" to consensus and repair.
 - 📚 **Case studies** (`case-studies/`): how real companies built it, with sources. [WhatsApp vs Telegram](case-studies/whatsapp-vs-telegram.md) · [Discord: trillions of messages](case-studies/discord-message-storage.md) · [Uber: monolith to H3, microservices and M3](case-studies/uber-from-monolith-to-h3-and-microservices.md) · [Video platforms: upload, transcode, store, stream](case-studies/video-upload-transcode-and-storage.md).
+- 🔍 **[Under the Hood](under-the-hood/README.md)**: curiosity-driven deep dives into one clever invention each. First: [how one thread handles 100,000 connections (epoll)](under-the-hood/epoll.md).
 - 🔬 **See it work** (`see-it-work/`): small runnable simulations of distributed mechanisms. [Hash ring + quorums + hinted handoff](see-it-work/hash-ring-quorum/README.md) (`java HashRing.java`) · [Raft leader election](see-it-work/raft-leader-election/README.md) (`java RaftElection.java`).
 
 ## Interviews

@@ -20,6 +20,8 @@ The reader asked Claude to choose the problems. **[ROADMAP.md](ROADMAP.md) is th
 - **Case studies** live in `case-studies/<name>.md`: how a real company built a system, from public sources. **Cite sources inline with years; mark anything unverified as such.** Explanations and diagrams only, no code. Link to the related interview and concept files.
 - **See it work** pieces live in `see-it-work/<name>/` (README.md + small Java or Node code). Understanding first: the README explains the mechanism step by step, shows sample output, and lists "things to try" (kill a node, partition the network). Keep code small and readable (≈50–150 lines); no external dependencies.
 
+- **Under the Hood** pages live in `under-the-hood/<topic>.md`: curiosity-driven deep dives into one specific invention ("How does one thread handle 100k connections?"). Different from concepts (which answer "what is it and when do I use it in a design"). Sections: 1) the hook question, 2) life before it (what was broken, who invented the fix, when), 3) the clever idea in 1–2 sentences, 4) step by step with a Mermaid diagram and real numbers, 5) where the reader has used it without knowing, 6) limits and trade-offs, 7) try it (a command, or a tiny runnable demo only if it really helps; run it and quote real output), 8) where it shows up (links to interviews/concepts), 9) sources with years. ~150–250 lines. Cadence: 1–2 per roadmap pair, chosen to match it.
+
 ## Folder layout
 
 ```

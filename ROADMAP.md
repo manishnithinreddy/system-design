@@ -62,13 +62,31 @@ The most instructive *distributed* mechanism from an HLD interview, as a small s
 | S4 | **Saga with compensations**: book → pay → fail → undo | Ride-sharing / payments | After #14 |
 | S5 | **Fan-out worker with retries, backoff and a DLQ** | Notification system | After #16 |
 
+### 🔍 Under the Hood: how clever things actually work
+Curiosity-driven deep dives into one specific invention: the problem before it, the clever idea, how it works step by step, where you've used it without knowing. 1–2 per core pair, picked to match it.
+
+| # | Topic | Hook | Slot |
+|---|---|---|---|
+| U1 | **epoll** | How does one thread handle 100k connections? | Now (first batch) |
+| U2 | **B-tree** | How does a database find one row among a billion in ~3 disk reads? | Now (first batch) |
+| U3 | **HyperLogLog** | How do you count a billion unique users in 12 KB? | Now (first batch) |
+| U4 | **Git's object store** | How does Git keep your whole history so cheaply? | With #12 |
+| U5 | **Postgres MVCC** | How do readers and writers not block each other? | With #12 |
+| U6 | **rsync's rolling hash** | How do you send only the bytes that changed? | With #13 |
+| U7 | **Content-defined chunking** | How do Dropbox-style systems dedupe files that shift? | With #13 |
+| U8 | **Double-entry ledgers in databases** | How do payment systems make money impossible to lose? | With #14 |
+| U9 | **Kafka's speed tricks** | Sequential I/O, page cache, zero-copy: how millions of messages/s fit on one disk | With #15 |
+| U10 | **Kubernetes scheduler** | How does Kubernetes pick a node for your pod? | With #16 |
+| U11 | **TLS 1.3 / QUIC** | How is an encrypted connection set up in one round trip? | Later |
+| U12 | **Containers: namespaces & cgroups** | What is a container, really? | Later |
+| U13 | **JVM garbage collectors** | How does ZGC pause for under a millisecond? | Later |
+| U14 | **Video compression** | I/P/B frames and motion vectors | Later |
+| U15 | **Shazam's audio fingerprints** | How is a song recognised in 3 seconds? | Later |
+| U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
+
 ## 🗺️ Learning path pages
 
 - **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in the order to read them, with why each comes next.
-
-## 💬 To discuss
-
-- **A new section** the reader has in mind (raised during pair #10). To be discussed before building.
 
 ## 🧹 Planned clean-ups
 
