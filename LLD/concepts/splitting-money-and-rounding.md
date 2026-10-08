@@ -136,4 +136,5 @@ If ties are broken by `HashMap` iteration order, the same expense can produce di
 ## 9. Used in
 
 - [LLD: Design Splitwise](../interviews/splitwise/README.md) — the `Splitter` turns `Equal` / `Exact` / `Percent` / `Shares` into per-user paise with the largest remainder method, ties broken by user id.
+- [Vending Machine](../interviews/vending-machine/README.md): all money in **integer paise**, with a conservation test (coins in = coins out + box delta + revenue).
 - Related: [bigdecimal-and-money](../libraries/java/bigdecimal-and-money.md), [money-and-numbers-in-js](../libraries/js/money-and-numbers-in-js.md), [sealed-interfaces-and-pattern-matching](../libraries/java/sealed-interfaces-and-pattern-matching.md), [ledgers-and-event-sourcing](ledgers-and-event-sourcing.md).

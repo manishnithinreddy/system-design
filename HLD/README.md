@@ -12,6 +12,7 @@
 | [Distributed KV Store](interviews/distributed-kv-store/README.md) | Database internals: partitioning, quorums, conflicts, repair, gossip, LSM storage, Raft, AP vs CP |
 | [Web Crawler](interviews/web-crawler/README.md) | Politeness-driven scheduling (per-host queues + heap), URL/content dedup (Bloom filters, SimHash), spider traps, recrawl freshness, partition by host, crawl budget |
 | [Search Autocomplete](interviews/search-autocomplete/README.md) | Offline build vs in-memory serving, tries with top-k, replicate vs shard, trending via streams, Count-Min Sketch, safety and privacy of suggestions |
+| [Video Streaming](interviews/video-streaming/README.md) | Resumable uploads, chunked parallel transcoding, bitrate ladders, segments + manifests, CDN at Tbps, storage tiering, live streaming, cost model |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -67,6 +68,9 @@
 | [Tries & prefix search](concepts/tries-and-prefix-search.md) | How do you find everything starting with a prefix, fast? |
 | [Inverted index](concepts/inverted-index.md) | How do search engines find documents containing words? |
 | [Top-k & heavy hitters](concepts/top-k-and-heavy-hitters.md) | How do you find the most frequent items, even in an endless stream? |
+| [Adaptive bitrate streaming](concepts/adaptive-bitrate-streaming.md) | How does video keep playing when your connection changes? (HLS, DASH) |
+| [Video transcoding pipeline](concepts/video-transcoding-pipeline.md) | How does one upload become many qualities, fast? |
+| [Resumable & chunked uploads](concepts/resumable-and-chunked-uploads.md) | How do big uploads survive bad networks? |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |

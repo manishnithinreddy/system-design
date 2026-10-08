@@ -138,4 +138,5 @@ The fix there is **dynamic programming** (solve every smaller amount once, build
 ## 9. Used in
 
 - [LLD: Design Splitwise](../interviews/splitwise/README.md) — "simplify debts" with two priority queues (largest creditor ↔ largest debtor), ≤ n − 1 transfers, and the NP-hard discussion.
+- [Vending Machine](../interviews/vending-machine/README.md): greedy change-making **fails with limited coins** (₹6 from one ₹5 and three ₹2), so the machine uses bounded dynamic programming ([coin change](coin-change-and-dynamic-programming.md)).
 - Related: [treeset-and-priorityqueue](../libraries/java/treeset-and-priorityqueue.md), [big-o-complexity](big-o-complexity.md), [scheduling-algorithms](scheduling-algorithms.md), [ledgers-and-event-sourcing](ledgers-and-event-sourcing.md).

@@ -168,4 +168,5 @@ Enum strategies are great when the set of algorithms is **fixed and stateless**.
 - [LLD: Design Splitwise](../../interviews/splitwise/README.md) — why split types are a sealed interface of records rather than an enum (each variant carries different per-expense data); see [sealed-interfaces-and-pattern-matching](sealed-interfaces-and-pattern-matching.md).
 - [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — `SeatType` (REGULAR / PREMIUM / RECLINER) used as the key of each show's price table (`Map<SeatType, Long>` in paise).
 - [Logging Framework](../../interviews/logging-framework/README.md): `Level` as an ordered enum (TRACE < DEBUG < INFO < WARN < ERROR < OFF), compared by severity for thresholds.
+- [Vending Machine](../../interviews/vending-machine/README.md): `Denomination` enum with paise values, and `EnumMap` coin counts in the cash box and change results.
 - Related: [records-and-immutability](records-and-immutability.md), [design-patterns](../../concepts/design-patterns.md).
