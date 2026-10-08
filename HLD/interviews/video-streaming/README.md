@@ -8,7 +8,7 @@ This interview teaches how to handle **huge files and huge bandwidth**: uploads 
 
 > 👉 **Start with [00-understand-the-product.md](00-understand-the-product.md).** It explains renditions, segments, manifests and adaptive streaming, with "Stats for nerds" and DevTools experiments you can do right now.
 >
-> 📚 **Then the case study [Video platforms: upload, transcode, store, stream](../../../case-studies/video-upload-transcode-and-storage.md)** for what YouTube, Netflix and Meta actually built (with sources).
+> 📚 **Then the case studies [Video platforms: upload, transcode, store, stream](../../../case-studies/video-upload-transcode-and-storage.md)** (what YouTube, Netflix and Meta actually built) and **[Netflix: Open Connect and chaos engineering](../../../case-studies/netflix-open-connect-and-chaos-engineering.md)** (caches inside ISPs, steering, breaking production on purpose).
 
 | File | Who it's for | What "good" looks like |
 |---|---|---|
