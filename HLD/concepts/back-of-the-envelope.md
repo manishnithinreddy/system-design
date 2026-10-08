@@ -42,21 +42,25 @@ Shortcut: **1 million requests/day ≈ 12 requests/sec** (10^6 / 86,400 ≈ 11.6
 
 Classic numbers (originally from Jeff Dean / Peter Norvig, rounded; hardware has improved but the *ratios* are what matter):
 
-| Operation | Approx. latency | Mental model |
+| Operation | Approx. latency | What it means (plain words) |
 |---|---|---|
-| L1 cache reference | 0.5 ns | free |
-| Branch mispredict | 5 ns | |
-| L2 cache reference | 7 ns | |
-| Main memory (RAM) reference | 100 ns | |
-| Compress 1 KB (Snappy/LZ4) | ~2–3 µs | |
-| Send 1 KB over 1 Gbps network | 10 µs | |
-| Random read 4 KB from SSD | ~100–150 µs | |
-| Read 1 MB sequentially from RAM | ~250 µs | |
-| Round trip inside one datacenter | ~500 µs | **0.5 ms** — a Redis GET |
-| Read 1 MB sequentially from SSD | ~1 ms | |
-| HDD disk seek | ~10 ms | |
-| Read 1 MB sequentially from HDD | ~20 ms | |
-| Round trip California → Europe → California | ~150 ms | cross-region call |
+| L1 cache reference | 0.5 ns | CPU reads data from its own tiniest, fastest memory. Basically free |
+| Branch mispredict | 5 ns | CPU guessed which way an `if` would go, guessed wrong, and has to redo some work |
+| L2 cache reference | 7 ns | CPU reads from its second, bigger, slightly slower cache |
+| Main memory (RAM) reference | 100 ns | Data wasn't in any CPU cache, so fetch it from RAM. ~200× slower than L1 |
+| Compress 1 KB (Snappy/LZ4) | ~2–3 µs | Fast compression libraries used by Kafka, Cassandra, etc. |
+| Send 1 KB over 1 Gbps network | 10 µs | Just putting the bytes on the wire, not the full round trip |
+| Random read 4 KB from SSD | ~100–150 µs | Reading one small block from a random place on an SSD |
+| Read 1 MB sequentially from RAM | ~250 µs | Scanning a big chunk of memory in order |
+| Round trip inside one datacenter | ~500 µs | **0.5 ms**: a request to another server in the same DC and back (e.g. a Redis GET) |
+| Read 1 MB sequentially from SSD | ~1 ms | Reading a file in order from SSD |
+| HDD disk seek | ~10 ms | A spinning disk physically moving its head to a new position |
+| Read 1 MB sequentially from HDD | ~20 ms | Reading a file in order from a spinning disk |
+| Round trip California → Europe → California | ~150 ms | A cross-region call. Mostly the speed of light in fibre |
+
+> 💡 **What are L1 / L2 / L3 caches?** Small, very fast memories **built into the CPU chip**, sitting between the CPU and RAM. **L1** is the smallest (tens of KB per core) and fastest, **L2** is bigger and a bit slower (hundreds of KB to a few MB per core), and **L3** is bigger still (tens of MB), shared by all cores. The CPU checks L1 → L2 → L3 → RAM, in that order, and keeps recently used data close. You never manage them directly. They're why reading data **in order** (arrays, sequential files) is so much faster than jumping around. In system design the names are often **borrowed** for software cache layers: "L1" = a cache inside each app server, "L2" = a shared cache like Redis (see [caching strategies](caching-strategies.md)).
+>
+> `ns` = nanosecond (a billionth of a second), `µs` = microsecond (a millionth), `ms` = millisecond (a thousandth). 1 ms = 1,000 µs = 1,000,000 ns.
 
 Lessons to say out loud:
 - **Memory is ~1,000x faster than SSD random reads, which are ~100x faster than HDD seeks.** That's why caches exist.

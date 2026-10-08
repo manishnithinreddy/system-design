@@ -119,6 +119,8 @@ flowchart LR
 | [Redis](../technologies/redis.md) | ~0.5 ms | All app instances | Delete key |
 | DB buffer pool | ms | Everything | Automatic |
 
+> 💡 **Naming you'll hear:** engineers often call the in-process cache the **"L1 cache"** and Redis the **"L2 cache"**. The names are borrowed from the CPU's built-in L1/L2 caches (explained under [latency numbers](back-of-the-envelope.md#32-latency-numbers-every-engineer-should-know)), meaning "closest/fastest layer" and "next layer out". **DB buffer pool** = the database's own RAM cache of recently read disk pages. It's automatic, you just give the DB enough memory.
+
 Each outer layer removes load from inner layers but is harder to invalidate. For a URL shortener: a **301** redirect lets the browser cache forever (cheap, but you lose click analytics and can't change the target); a **302** forces every click through your servers.
 
 ## 4. When to use it

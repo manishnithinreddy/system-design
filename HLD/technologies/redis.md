@@ -151,7 +151,7 @@ Note this is *not* classic consistent hashing (see [consistent hashing](../conce
 | Replication / HA | Yes (replicas, Sentinel, Cluster) | No (client-side sharding only) | n/a | Yes |
 | Pick when | You need structures, counters, HA | Very simple big blob cache, multi-core per node | Tiny, very hot, rarely-changing data (config, top 1k URLs) | Source of truth |
 
-Key insight: **local cache and Redis stack**. A Caffeine cache of the top 10k hot keys in each pod (L1) in front of Redis (L2) in front of the DB is a common pattern. The catch with L1: invalidation — each pod has its own copy, so use short TTLs or immutable data (short URLs never change, which makes them perfect for L1).
+Key insight: **local cache and Redis stack**. A Caffeine cache (a popular Java library for in-memory caching inside your own process) of the top 10k hot keys in each pod (L1) in front of Redis (L2) in front of the DB is a common pattern. "L1" and "L2" are borrowed from CPU caches (see [latency numbers](../concepts/back-of-the-envelope.md#32-latency-numbers-every-engineer-should-know)): **L1** = the smallest, fastest layer closest to the code (memory inside each app server), **L2** = the next layer out (shared Redis), then the database. The catch with L1: invalidation — each pod has its own copy, so use short TTLs or immutable data (short URLs never change, which makes them perfect for L1).
 
 ---
 

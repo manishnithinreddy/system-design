@@ -7,6 +7,7 @@ This repo is a personal system-design interview prep library. Every session that
 - Java developer, ~2 years of experience, currently working on infrastructure.
 - Preparing for HLD (high-level design) and LLD (low-level design) interviews.
 - Explain jargon the first time it appears, or link to the reference file that explains it.
+- **Every technical term gets a short plain-words explanation at first use in each file** (1–2 sentences, inline or as a 💡 note), even when it's linked, and even for "background" terms from hardware, OS or networking (e.g. L1/L2 cache, ns/µs, buffer pool, syscall, TCP handshake). Keep it brief: enough to follow the text. The reader researches deeper on their own.
 - Prefer analogies to infra work the reader already knows (load balancers, k8s, configs, metrics, on-call) when they help.
 - If something teaches a useful lesson, include it — nothing is "out of scope" if it builds understanding.
 
