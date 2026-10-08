@@ -58,7 +58,7 @@ The most instructive *distributed* mechanism from an HLD interview, as a small s
 |---|---|---|---|
 | S1 | ✅ [**Hash ring + quorum reads/writes + hinted handoff**](see-it-work/hash-ring-quorum/README.md), with nodes you can "kill" | Distributed KV store | Done |
 | S2 | ✅ [**Raft leader election**](see-it-work/raft-leader-election/README.md): terms, votes, timeouts, a partitioned leader | Distributed KV store / etcd | Done |
-| S3 | **Chat sequencer + gap detection + offline sync** | Chat system | After #12 |
+| S3 | ✅ [**Chat sequencer + gap detection + offline sync**](see-it-work/chat-sequencer-sync/README.md) | Chat system | Done |
 | S4 | **Saga with compensations**: book → pay → fail → undo | Ride-sharing / payments | After #14 |
 | S5 | **Fan-out worker with retries, backoff and a DLQ** | Notification system | After #16 |
 

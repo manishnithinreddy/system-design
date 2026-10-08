@@ -35,6 +35,8 @@ The URL shortener was read-heavy and stateless; the notification system was an a
 
 **Concepts:** [Message ordering & sequencing](../../concepts/message-ordering-and-sequencing.md) · [Presence & heartbeats](../../concepts/presence-and-heartbeats.md) · [End-to-end encryption](../../concepts/end-to-end-encryption.md) · [Fan-out](../../concepts/fan-out.md) · [Idempotency & delivery semantics](../../concepts/idempotency-and-delivery-semantics.md) · [Consistent hashing](../../concepts/consistent-hashing.md) · [Sharding & replication](../../concepts/sharding-and-replication.md) · [Back-of-the-envelope](../../concepts/back-of-the-envelope.md)
 
+**See it work:** [Chat sequencer, gap detection and offline sync](../../../see-it-work/chat-sequencer-sync/README.md): lose, delay and duplicate messages and watch devices converge.
+
 **Case studies:** [WhatsApp vs Telegram](../../../case-studies/whatsapp-vs-telegram.md) · [Discord: how it stores trillions of messages](../../../case-studies/discord-message-storage.md)
 
 ## The core insight
