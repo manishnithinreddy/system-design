@@ -25,7 +25,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 **Side tracks** (optional, understanding-first):
 - 🗺️ **[Distributed systems learning path](DISTRIBUTED-SYSTEMS-PATH.md)**: the concept files in reading order, from "split the data" to consensus and repair.
 - 📚 **Case studies** (`case-studies/`): how real companies built it, with sources. First up: [WhatsApp vs Telegram](case-studies/whatsapp-vs-telegram.md).
-- 🔬 **See it work** (`see-it-work/`): small runnable simulations of distributed mechanisms (planned, see the roadmap).
+- 🔬 **See it work** (`see-it-work/`): small runnable simulations of distributed mechanisms. First: [hash ring + quorums + hinted handoff](see-it-work/hash-ring-quorum/README.md) (`java HashRing.java`).
 
 ## Interviews
 

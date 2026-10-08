@@ -37,6 +37,8 @@ This is the interview where you build the **database itself**, not use one. It b
 
 **Technologies:** [Cassandra / DynamoDB](../../technologies/cassandra.md) · [ZooKeeper / etcd](../../technologies/zookeeper-etcd.md) · [Redis](../../technologies/redis.md) · [PostgreSQL](../../technologies/postgresql.md)
 
+**See it work:** [Hash ring + quorums + hinted handoff](../../../see-it-work/hash-ring-quorum/README.md): a ~190-line simulation of L4/L5 you can run and break.
+
 **Related LLD:** [In-memory KV store with transactions](../../../LLD/interviews/kv-store/README.md): the single-node engine (WAL, recovery, transactions).
 
 ## The core insight

@@ -150,4 +150,5 @@ Also confused: **hinted handoff vs read repair**. Hinted handoff *pushes* writes
 ## 9. Used in
 
 - [Distributed key-value store](../interviews/distributed-kv-store/README.md): **handling temporary failures**: sloppy quorum + hinted handoff on the write path, why it weakens R + W > N, hint windows, and how it hands over to read repair and anti-entropy.
+- 🔬 [See it work: hash ring + quorums](../../see-it-work/hash-ring-quorum/README.md): a runnable simulation where two home replicas go down, the sloppy quorum keeps writing, a quorum read comes back stale, and handoff fixes it.
 - Related: [gossip and failure detection](gossip-and-failure-detection.md) (deciding a node is down / back), [Merkle trees and anti-entropy](merkle-trees-and-anti-entropy.md), [vector clocks and conflict resolution](vector-clocks-and-conflict-resolution.md), [CAP and consistency](cap-and-consistency.md), [consistent hashing](consistent-hashing.md) (preference lists), [Cassandra](../technologies/cassandra.md), [retries, backoff and DLQ](retries-backoff-and-dlq.md) (queue-and-replay analogy).

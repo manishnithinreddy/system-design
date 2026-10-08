@@ -98,7 +98,7 @@ flowchart TB
 
 **The key idea:** leaderless systems (stage 5) and leader-based systems (stage 4) are the two big families. Leaderless = always writable, but you must clean up afterwards.
 
-**See it in a design:** all of [Distributed KV Store L5](HLD/interviews/distributed-kv-store/L5-senior.md). Runnable version planned as side track S1.
+**See it in a design:** all of [Distributed KV Store L5](HLD/interviews/distributed-kv-store/L5-senior.md). **Run it:** [hash ring + quorums + hinted handoff](see-it-work/hash-ring-quorum/README.md), a small simulation where you kill nodes and watch a sloppy quorum produce a stale read.
 
 ---
 
