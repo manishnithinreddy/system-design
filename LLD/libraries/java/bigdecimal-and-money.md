@@ -177,4 +177,5 @@ Splitwise is the first case: expenses, settlements and balances are sums, and ev
 
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — `PricingStrategy` computes fees with `BigDecimal` (hourly rates, grace period, daily cap); JS version uses integer paise.
 - [LLD: Design Splitwise](../../interviews/splitwise/README.md) — money as `long` paise in a small `Money` record (not `BigDecimal`): only sums and integer-weight splits, so integer maths is exact and fast; leftover paise allocated with the largest remainder method (see [splitting-money-and-rounding](../../concepts/splitting-money-and-rounding.md)).
+- [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — ticket prices and refunds as `long` paise per seat type; refund percentages applied with integer maths and explicit rounding.
 - Related: [records-and-immutability](records-and-immutability.md), [java-time-api](java-time-api.md).

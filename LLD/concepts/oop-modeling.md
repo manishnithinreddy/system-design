@@ -173,4 +173,5 @@ A class should have **one reason to change** (Single Responsibility). If you can
 - [LLD: Design a Rate Limiter](../interviews/rate-limiter/README.md) — limiter interface, config as a value, registry as the entry point.
 - [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — `Elevator`, `ElevatorSystem` facade, hall calls vs car calls as distinct concepts, enums for direction and status.
 - [LLD: Design Splitwise](../interviews/splitwise/README.md) — `User`, `Group`, `Expense`, `Money`, `SplitSpec` and `Ledger`; balances as a derived value, not a stored field (see [ledgers-and-event-sourcing](ledgers-and-event-sourcing.md)).
+- [LLD: Design a Movie Ticket Booking System](../interviews/movie-booking/README.md) — `Movie`, `Screen` (seat layout), `Seat`, `Show` (movie + screen + time + prices), per-show seat state separate from the physical seat, `Hold` and `Booking` as distinct concepts.
 - Related: [uml-class-diagrams](uml-class-diagrams.md), [solid-principles](solid-principles.md), [design-patterns](design-patterns.md).

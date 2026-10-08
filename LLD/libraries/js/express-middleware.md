@@ -191,3 +191,4 @@ Production libraries: **`express-rate-limit`** (simple Express middleware, plugg
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — JavaScript middleware integration.
+- [HLD: Design an API Gateway](../../../HLD/interviews/api-gateway/README.md): the same middleware/filter-chain idea at gateway scale (auth → rate limit → transform → route), as in Express Gateway, Kong plugins or Envoy filters.

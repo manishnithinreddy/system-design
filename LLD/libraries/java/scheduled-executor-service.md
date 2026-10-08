@@ -157,3 +157,4 @@ Lazy refill: on each `tryAcquire`, compute `tokens = min(capacity, tokens + elap
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — idle-key eviction; lazy refill vs background refill.
+- [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — optional sweeper that releases expired seat holds; correctness relies on lazy expiry, the sweeper is only cleanup (see [holds-reservations-and-ttl](../../concepts/holds-reservations-and-ttl.md)).

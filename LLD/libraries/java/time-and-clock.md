@@ -164,3 +164,4 @@ The test runs in microseconds, never flakes, and can check edge cases (exactly o
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — injected `java.time.Clock` for entry/exit timestamps and deterministic fee tests (see also [java-time-api](java-time-api.md)).
 - [LLD: Design an LRU Cache](../../interviews/lru-cache/README.md) — injected `Clock` for TTL expiry so tests can advance time instead of sleeping.
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — discrete time: the simulation advances by `tick()` (one floor per tick) instead of reading the wall clock, so tests are deterministic.
+- [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — injected `Clock` for hold TTLs: lazy expiry checks and the confirm-before-expiry check use the same clock, and tests advance it 10 minutes instead of sleeping (see [holds-reservations-and-ttl](../../concepts/holds-reservations-and-ttl.md)).

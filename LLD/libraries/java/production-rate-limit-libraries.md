@@ -130,3 +130,4 @@ Supplier<String> guarded = RateLimiter.decorateSupplier(rl, () -> callPayments()
 ## 9. Used in
 
 - [LLD: Design a Rate Limiter](../../interviews/rate-limiter/README.md) — "what would you use in production?" follow-up.
+- [HLD: Design an API Gateway](../../../HLD/interviews/api-gateway/README.md): where these libraries sit in a real edge: per-API-key limits on a gateway fleet (local token buckets + Redis global limits), next to Envoy/Kong rate-limit filters.

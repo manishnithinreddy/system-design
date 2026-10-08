@@ -168,4 +168,5 @@ Also confused: **idempotency** (doing it twice has the same effect as once) vs *
 ## 9. Used in
 
 - [Ride-sharing](../interviews/ride-sharing/README.md): **exclusive driver assignment** (conditional update `AVAILABLE → OFFERED` with an offer lease/timeout), trip state transitions guarded by `WHERE state = ...`, and single-owner matching per region at L6.
+- [LLD: Design a Movie Ticket Booking System](../../LLD/interviews/movie-booking/README.md): **seat holds as leases** (a hold row with `expires_at`), claimed with a conditional `UPDATE ... WHERE state = 'AVAILABLE' OR hold expired` instead of a lock service; `SELECT ... FOR UPDATE SKIP LOCKED` at L6.
 - Related: [ZooKeeper / etcd](../technologies/zookeeper-etcd.md), [Redis](../technologies/redis.md) (`SET NX PX`), [PostgreSQL](../technologies/postgresql.md) (row locks, `SKIP LOCKED`), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [CAP and consistency](cap-and-consistency.md), [sagas and distributed transactions](sagas-and-distributed-transactions.md), [Kafka](../technologies/kafka.md) (consumer generations).

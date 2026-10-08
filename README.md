@@ -25,11 +25,13 @@ LLD/                         Low-level design (classes + code)
 | HLD | [Chat System](HLD/interviews/chat-system/README.md) | [Product intro](HLD/interviews/chat-system/00-understand-the-product.md) · [L4](HLD/interviews/chat-system/L4-mid.md) · [L5](HLD/interviews/chat-system/L5-senior.md) · [L6](HLD/interviews/chat-system/L6-staff.md) |
 | HLD | [News Feed](HLD/interviews/news-feed/README.md) | [Product intro](HLD/interviews/news-feed/00-understand-the-product.md) · [L4](HLD/interviews/news-feed/L4-mid.md) · [L5](HLD/interviews/news-feed/L5-senior.md) · [L6](HLD/interviews/news-feed/L6-staff.md) |
 | HLD | [Ride-Sharing (Uber)](HLD/interviews/ride-sharing/README.md) | [Product intro](HLD/interviews/ride-sharing/00-understand-the-product.md) · [L4](HLD/interviews/ride-sharing/L4-mid.md) · [L5](HLD/interviews/ride-sharing/L5-senior.md) · [L6](HLD/interviews/ride-sharing/L6-staff.md) |
+| HLD | [API Gateway](HLD/interviews/api-gateway/README.md) | [Product intro](HLD/interviews/api-gateway/00-understand-the-product.md) · [L4](HLD/interviews/api-gateway/L4-mid.md) · [L5](HLD/interviews/api-gateway/L5-senior.md) · [L6](HLD/interviews/api-gateway/L6-staff.md) |
 | LLD | [Rate Limiter](LLD/interviews/rate-limiter/README.md) | [Product intro](LLD/interviews/rate-limiter/00-understand-the-product.md) · [L4](LLD/interviews/rate-limiter/L4-mid.md) · [L5](LLD/interviews/rate-limiter/L5-senior.md) · [L6](LLD/interviews/rate-limiter/L6-staff.md) |
 | LLD | [Parking Lot](LLD/interviews/parking-lot/README.md) | [Product intro](LLD/interviews/parking-lot/00-understand-the-product.md) · [L4](LLD/interviews/parking-lot/L4-mid.md) · [L5](LLD/interviews/parking-lot/L5-senior.md) · [L6](LLD/interviews/parking-lot/L6-staff.md) |
 | LLD | [LRU Cache](LLD/interviews/lru-cache/README.md) | [Product intro](LLD/interviews/lru-cache/00-understand-the-product.md) · [L4](LLD/interviews/lru-cache/L4-mid.md) · [L5](LLD/interviews/lru-cache/L5-senior.md) · [L6](LLD/interviews/lru-cache/L6-staff.md) |
 | LLD | [Elevator System](LLD/interviews/elevator-system/README.md) | [Product intro](LLD/interviews/elevator-system/00-understand-the-product.md) · [L4](LLD/interviews/elevator-system/L4-mid.md) · [L5](LLD/interviews/elevator-system/L5-senior.md) · [L6](LLD/interviews/elevator-system/L6-staff.md) |
 | LLD | [Splitwise](LLD/interviews/splitwise/README.md) | [Product intro](LLD/interviews/splitwise/00-understand-the-product.md) · [L4](LLD/interviews/splitwise/L4-mid.md) · [L5](LLD/interviews/splitwise/L5-senior.md) · [L6](LLD/interviews/splitwise/L6-staff.md) |
+| LLD | [Movie Ticket Booking (BookMyShow)](LLD/interviews/movie-booking/README.md) | [Product intro](LLD/interviews/movie-booking/00-understand-the-product.md) · [L4](LLD/interviews/movie-booking/L4-mid.md) · [L5](LLD/interviews/movie-booking/L5-senior.md) · [L6](LLD/interviews/movie-booking/L6-staff.md) |
 
 Indexes: [HLD](HLD/README.md) · [LLD](LLD/README.md)
 
@@ -54,4 +56,6 @@ LLD/interviews/elevator-system/java/run.sh              # Java 21+, tests + demo
 cd LLD/interviews/elevator-system/js && node --test     # Node 22+, tests
 LLD/interviews/splitwise/java/run.sh                    # Java 21+, tests + demo
 cd LLD/interviews/splitwise/js && node --test           # Node 22+, tests
+LLD/interviews/movie-booking/java/run.sh                # Java 21+, tests + demo
+cd LLD/interviews/movie-booking/js && node --test       # Node 22+, tests
 ```

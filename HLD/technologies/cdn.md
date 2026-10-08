@@ -148,4 +148,5 @@ They stack: **User → CDN edge → load balancer → app servers → Redis → 
 - [URL shortener](../interviews/url-shortener/README.md) — the **L6 edge redirect caching discussion**: 301 vs 302, CDN caching vs analytics accuracy, and edge compute for redirects.
 - [Chat system](../interviews/chat-system/README.md): **serving chat media** (photos, videos, voice notes) from the edge with short-lived signed URLs; the bytes live in [object storage](object-storage.md) and the message carries only the media reference.
 - [News feed](../interviews/news-feed/README.md): **serving post photos and videos** (the bulk of feed bandwidth) from the edge; the feed API returns only media URLs.
+- [API gateway](../interviews/api-gateway/README.md): the **edge layer in front of the gateway**: TLS termination close to users, caching of cacheable public GET responses, and absorbing DDoS traffic before it reaches the gateway fleet ([TLS and mTLS](../concepts/tls-and-mtls.md)).
 - Related concepts: [caching strategies](../concepts/caching-strategies.md), [back-of-the-envelope](../concepts/back-of-the-envelope.md).

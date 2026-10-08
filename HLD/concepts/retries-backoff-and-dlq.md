@@ -182,4 +182,5 @@ See the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md) for toke
 ## 9. Used in
 
 - [Notification system](../interviews/notification-system/README.md): **channel workers** retrying provider calls with exponential backoff and jitter, per-priority deadlines, circuit breakers with provider failover, and DLQs with redrive.
+- [API gateway](../interviews/api-gateway/README.md): **gateway retries to backends** (idempotent requests only, jittered backoff, retry budgets) and **per-backend circuit breakers**; the synchronous-path extensions (deadlines, bulkheads, load shedding) are in [resilience patterns](resilience-patterns.md).
 - Related: [message queues](../technologies/message-queues.md) (visibility timeout, DLQ config), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [push/email/SMS providers](../technologies/push-email-sms-providers.md), [rate limiter (LLD)](../../LLD/interviews/rate-limiter/README.md).

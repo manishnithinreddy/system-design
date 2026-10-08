@@ -167,4 +167,5 @@ Also: **state machine vs workflow/saga** — a saga coordinates a multi-step pro
 
 - [LLD: Design an Elevator System](../interviews/elevator-system/README.md) — `ElevatorStatus` lifecycle (IDLE / MOVING / DOORS_OPEN / MAINTENANCE).
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — ticket lifecycle `ACTIVE → PAID → EXITED`.
+- [LLD: Design a Movie Ticket Booking System](../interviews/movie-booking/README.md) — per-show seat state `AVAILABLE → HELD(holdId, expiresAt) → BOOKED(bookingId)` (an expired hold counts as AVAILABLE, see [holds-reservations-and-ttl](holds-reservations-and-ttl.md)) and the booking lifecycle `CONFIRMED → CANCELLED` with refunds.
 - Related: [design-patterns](design-patterns.md) (State), [enums-and-enummap](../libraries/java/enums-and-enummap.md), [single-writer-principle](single-writer-principle.md).

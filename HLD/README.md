@@ -8,6 +8,7 @@
 | [Chat System](interviews/chat-system/README.md) | Stateful connection fleets, ordering with sequence numbers, offline sync, group fan-out, presence, media, E2EE consequences |
 | [News Feed](interviews/news-feed/README.md) | Hybrid fan-out (celebrity problem), precomputed feed caches, read-time filtering, ranking pipelines, counters, cursor pagination |
 | [Ride-Sharing (Uber)](interviews/ride-sharing/README.md) | Geospatial indexing of moving objects, exclusive assignment with leases, trip state machines, surge via stream processing, payment sagas, city cells |
+| [API Gateway](interviews/api-gateway/README.md) | Request-path engineering: routing, edge auth, rate limiting, resilience, control vs data plane, safe config, observability, platform ownership |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -26,6 +27,7 @@
 | [Object storage (S3)](technologies/object-storage.md) | Storing and serving files/blobs cheaply and durably |
 | [Graph databases & adjacency lists](technologies/graph-databases.md) | Storing who-follows-whom; when a real graph DB is worth it |
 | [Stream processing (Flink, Kafka Streams)](technologies/stream-processing.md) | Continuous computations over event streams: windows, state, late events |
+| [Service mesh & Envoy](technologies/service-mesh-and-envoy.md) | Programmable proxies for routing, mTLS, retries and telemetry |
 
 ## Concepts (ideas)
 | | Question it answers |
@@ -49,3 +51,8 @@
 | [Geospatial indexing](concepts/geospatial-indexing.md) | How do you find what's near a point, fast? (geohash, H3, quadtrees) |
 | [Distributed locks & leases](concepts/distributed-locks-and-leases.md) | How do you make "only one" happen across many servers? |
 | [Sagas & distributed transactions](concepts/sagas-and-distributed-transactions.md) | How do multi-service workflows (like payments) stay consistent? |
+| [Authentication, OAuth & JWT](concepts/authentication-oauth-jwt.md) | Who is calling, and how do we know without asking every time? |
+| [Service discovery](concepts/service-discovery.md) | How does a caller find healthy instances of a service? |
+| [TLS & mTLS](concepts/tls-and-mtls.md) | Encryption and identity on the wire |
+| [Observability](concepts/observability.md) | Metrics, logs and traces: knowing what your system is doing |
+| [Resilience patterns](concepts/resilience-patterns.md) | Timeouts, circuit breakers, bulkheads, load shedding |

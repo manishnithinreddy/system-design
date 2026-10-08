@@ -193,4 +193,5 @@ const lot = new ParkingLot(floors, new NearestFirstAllocator(), new HourlyPricin
 - [LLD: Design a Parking Lot](../../interviews/parking-lot/README.md) — JS version: `#private` spot state, frozen value objects, frozen enums, injected strategies.
 - [LLD: Design an Elevator System](../../interviews/elevator-system/README.md) — JS version: `#private` stop arrays and status, so callers can only change an elevator through its methods.
 - [LLD: Design Splitwise](../../interviews/splitwise/README.md) — JS version: `#private` ledger entries and idempotency map inside the group/service classes, frozen expense objects.
+- [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — JS version: `#private` per-show seat state and hold map, so seats can only change through `holdSeats` / `confirmBooking` / `releaseHold`; tests with [node-test-runner](node-test-runner.md).
 - Related: [money-and-numbers-in-js](money-and-numbers-in-js.md), [map-vs-object](map-vs-object.md), [event-loop-and-concurrency](event-loop-and-concurrency.md).
