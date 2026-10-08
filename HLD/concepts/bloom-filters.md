@@ -196,4 +196,5 @@ BF.MEXISTS seen:42 post:981 post:777   → 1 0
 
 - [News feed](../interviews/news-feed/README.md): **"seen" filtering** during candidate generation so the feed doesn't repeat posts (per-user Bloom filter, time-rotated, in Redis).
 - [Distributed key-value store](../interviews/distributed-kv-store/README.md): **per-SSTable Bloom filters** on the storage-engine read path, so a point read skips files that can't contain the key ([LSM trees and storage engines](lsm-trees-and-storage-engines.md)).
+- [Web crawler](../interviews/web-crawler/README.md): the **URL-seen set** for ~10B URLs (~12 GB at 1% false positives, sized with the formula above), partitioned by host across crawler workers; a false positive only means a new URL is skipped this time.
 - Related: [Cassandra](../technologies/cassandra.md) (Bloom filter per SSTable), [Redis](../technologies/redis.md) (RedisBloom), [counters at scale](counters-at-scale.md) (HyperLogLog), [caching strategies](caching-strategies.md) (cache penetration), [feed ranking](feed-ranking.md).
