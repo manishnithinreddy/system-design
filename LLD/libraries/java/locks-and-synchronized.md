@@ -4,11 +4,13 @@
 
 `synchronized`, `ReentrantLock`, `ReadWriteLock` and `StampedLock` are Java's ways to make a block of code run **one thread at a time** (or many readers / one writer), so that multi-step updates to shared state can't interleave.
 
+💡 **Thread:** one independent line of execution inside a process; a server runs many at once. **Interleave:** their steps get mixed in an unpredictable order, like two people editing the same file simultaneously.
+
 ## 2. The problem it solves
 
-A token bucket's `tryAcquire` reads `tokens` and `lastRefill`, computes a refill, compares, and writes both fields back. If two threads run that sequence at the same time, they can both see "1 token left" and both let a request through. That's a **race condition** (explained in [thread-safety-basics](../../concepts/thread-safety-basics.md)).
+A token bucket's (a rate-limiter counter that refills over time) `tryAcquire` reads `tokens` and `lastRefill`, computes a refill, compares, and writes both fields back. If two threads run that sequence at the same time, they can both see "1 token left" and both let a request through. That's a **race condition** (the result depends on which thread happens to run first; explained in [thread-safety-basics](../../concepts/thread-safety-basics.md)).
 
-A lock turns the sequence into a **critical section**: only one thread inside at a time, and whatever the previous thread wrote is visible to the next one. Think of it like a deploy lock in CI — only one pipeline may touch prod at once.
+A lock turns the sequence into a **critical section**: only one thread inside at a time, and whatever the previous thread wrote is visible to the next one (without a lock, a thread may keep reading a stale copy cached by its CPU core). Think of it like a deploy lock in CI — only one pipeline may touch prod at once.
 
 ## 3. How it works
 
@@ -38,10 +40,10 @@ final class TokenBucket {
 }
 ```
 
-- Every Java object has a built-in **monitor**. `synchronized` methods lock `this`; `synchronized (obj) { }` locks `obj`.
+- Every Java object has a built-in **monitor** (a hidden lock plus a wait queue). `synchronized` methods lock `this`; `synchronized (obj) { }` locks `obj`.
 - Released automatically when the block exits, even on exception.
-- **Reentrant**: the same thread can enter again without deadlocking itself.
-- Entering/leaving creates a **happens-before** edge: writes before unlock are visible after the next lock.
+- **Reentrant**: the same thread can enter again without deadlocking itself (a *deadlock* is threads waiting on each other forever).
+- Entering/leaving creates a **happens-before** edge (a Java Memory Model guarantee: if A happens-before B, B is guaranteed to see everything A wrote): writes before unlock are visible after the next lock.
 
 ### ReentrantLock
 
@@ -67,14 +69,14 @@ boolean tryAcquire(long nowNanos) throws InterruptedException {
 ```
 
 - `tryLock()` / `tryLock(timeout)` — give up instead of waiting forever.
-- `lockInterruptibly()` — waiting can be cancelled by interrupt.
-- **Fairness** (`new ReentrantLock(true)`) — longest waiter goes next. Prevents starvation but is noticeably slower; default is unfair.
-- `Condition` objects (`lock.newCondition()`) for wait/notify-style coordination.
+- `lockInterruptibly()` — waiting can be cancelled by interrupt (`Thread.interrupt()`, Java's way to ask a thread to stop what it is doing).
+- **Fairness** (`new ReentrantLock(true)`) — longest waiter goes next. Prevents starvation (one thread never getting its turn) but is noticeably slower; default is unfair.
+- `Condition` objects (`lock.newCondition()`) for wait/notify-style coordination (a thread sleeps until another signals "something changed").
 
 ### ReadWriteLock and StampedLock
 
 - `ReentrantReadWriteLock`: many readers at once **or** one writer. Helps only when reads are much more frequent than writes and reads are not trivial.
-- `StampedLock` (Java 8): adds **optimistic reads** — read without locking, then `validate(stamp)` to check no writer intervened; retry with a real read lock if one did. Fast, but **not reentrant** and easy to misuse.
+- `StampedLock` (Java 8): adds **optimistic reads** (assume no writer will interfere) — read without locking, then `validate(stamp)` to check no writer intervened; retry with a real read lock if one did. Fast, but **not reentrant** and easy to misuse.
 
 A rate limiter's `tryAcquire` **always writes** (it consumes a token or updates the window), so read/write locks give no benefit there. They fit "config that's read on every request but changed rarely" — e.g. the rule table mapping endpoint → limit.
 
@@ -105,7 +107,7 @@ public synchronized boolean tryAcquire(String key) {
 }
 ```
 
-With a global lock, 64 request threads on a 16-core box run **one at a time**. Alice's request waits behind Bob's even though they share no state. Throughput is capped at 1 / (time inside the lock), no matter how many cores you add — just like pointing every service at one database connection.
+With a global lock, 64 request threads on a 16-core box run **one at a time**. Alice's request waits behind Bob's even though they share no state. Throughput (requests handled per second) is capped at 1 / (time inside the lock), no matter how many cores you add — just like pointing every service at one database connection.
 
 ```java
 // GOOD: map is concurrent, each bucket locks itself
@@ -115,15 +117,15 @@ public boolean tryAcquire(String key) {
 }
 ```
 
-Now only requests for the **same key** contend, which is rare and exactly the contention you need. See [concurrent-hashmap](concurrent-hashmap.md).
+Now only requests for the **same key** contend (compete for the same lock, i.e. *contention*), which is rare and exactly the contention you need. See [concurrent-hashmap](concurrent-hashmap.md).
 
 ### Virtual threads (Java 21) and pinning
 
-Virtual threads are cheap JVM-managed threads mounted on a small pool of OS **carrier** threads. When a virtual thread blocks (I/O, `lock.lock()`), it unmounts and frees the carrier.
+Virtual threads are cheap JVM-managed threads (you can have millions, unlike normal OS threads) mounted on a small pool of OS **carrier** threads (the real threads that actually run them). When a virtual thread blocks (I/O, `lock.lock()`), it unmounts and frees the carrier.
 
 In **Java 21**, a virtual thread that blocks **while inside a `synchronized` block** cannot unmount — it is **pinned** to its carrier. Enough pinned threads and the carrier pool is exhausted; everything stalls. `ReentrantLock` does not pin. Detect pinning with `-Djdk.tracePinnedThreads=full` (Java 21).
 
-**JDK 24 (JEP 491)** removed this limitation for `synchronized` in most cases. For a short, CPU-only critical section like a token bucket, pinning doesn't matter either way (nothing blocks inside). It matters when you hold a monitor during I/O.
+**JDK 24 (JEP 491, a JDK Enhancement Proposal)** removed this limitation for `synchronized` in most cases. For a short, CPU-only critical section like a token bucket, pinning doesn't matter either way (nothing blocks inside). It matters when you hold a monitor during I/O.
 
 ## 4. When to use it
 
@@ -135,9 +137,9 @@ In **Java 21**, a virtual thread that blocks **while inside a `synchronized` blo
 ## 5. When NOT to use it
 
 - **A single counter** — use an [atomic](atomics-and-cas.md); a lock is heavier than needed.
-- **Around I/O or remote calls** — holding a lock while waiting on the network turns one slow dependency into a whole-service stall.
+- **Around I/O or remote calls** (network or disk work) — holding a lock while waiting on the network turns one slow dependency into a whole-service stall.
 - **One lock for unrelated data** (global lock above) — kills throughput.
-- **Across processes/pods** — a JVM lock means nothing to another pod. Use Redis atomic ops, not a distributed lock, for rate limiting.
+- **Across processes/pods** — a JVM lock means nothing to another pod. Use Redis atomic ops (single commands/scripts Redis runs uninterrupted), not a distributed lock (a lock shared across machines), for rate limiting.
 - **Fair locks "just to be safe"** — fairness costs throughput; use it only for a real starvation problem.
 
 ## 6. Commonly confused with
@@ -156,7 +158,7 @@ In **Java 21**, a virtual thread that blocks **while inside a `synchronized` blo
 
 1. **Forgetting `unlock()` in `finally`.** One exception and the lock is held forever.
 2. **Locking on different objects.** `synchronized` in one method, `lock.lock()` in another, guarding the same fields — they don't exclude each other.
-3. **Locking on a shared/public object** (`synchronized ("key")`, `synchronized (Integer.valueOf(1))`, a boxed value or interned string). Unrelated code may lock the same object.
+3. **Locking on a shared/public object** (`synchronized ("key")`, `synchronized (Integer.valueOf(1))`, a boxed value (a number wrapped in an object) or interned string (string literals the JVM shares between all code)). Unrelated code may lock the same object.
 4. **Lock ordering deadlocks.** Thread 1 locks A then B; thread 2 locks B then A. Always acquire multiple locks in a fixed order.
 5. **Synchronizing only the writer.** Readers without the lock may see stale or half-written values.
 6. **Global lock in an interview answer** for a per-user limiter. Interviewers specifically look for per-key granularity.

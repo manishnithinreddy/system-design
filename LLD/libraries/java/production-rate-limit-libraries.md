@@ -4,9 +4,11 @@
 
 In production you almost never hand-write a rate limiter: you pick a **library** (Guava `RateLimiter`, Bucket4j, Resilience4j) inside the service, or enforce limits at the **infrastructure layer** (Spring Cloud Gateway, Envoy, nginx `limit_req`) before traffic reaches it.
 
+💡 **Rate limiter / token bucket:** a *rate limiter* caps how many requests a caller may make per time window. A *token bucket* is the most common algorithm: a bucket refills with tokens at a steady rate, each request takes one, and an empty bucket means reject. **Envoy / nginx** are proxies (programs that sit in front of services and forward traffic), commonly used as load balancers.
+
 ## 2. The problem it solves
 
-The interview version of a rate limiter is ~150 lines. A production one also needs: correct behavior across many pods, persistence of state, metrics, configuration per route/tenant, burst handling, warm-up, fail-open/fail-closed policy when the backing store is down, and years of edge-case fixes. Writing that yourself is undifferentiated work with a lot of ways to go subtly wrong.
+The interview version of a rate limiter is ~150 lines. A production one also needs: correct behavior across many pods (k8s replicas of the service), persistence of state, metrics, configuration per route/tenant, burst handling (briefly allowing more than the steady rate), warm-up, fail-open/fail-closed policy (allow or block all traffic when the backing store is down), and years of edge-case fixes. Writing that yourself is undifferentiated work with a lot of ways to go subtly wrong.
 
 Libraries and proxies give you a battle-tested implementation; your job becomes picking **where** to enforce and **what** limits to set.
 
@@ -38,9 +40,9 @@ RateLimiter warm = RateLimiter.create(100.0, Duration.ofSeconds(10)); // "Smooth
 ```
 
 - **SmoothBursty**: a token bucket that can save up about one second's worth of unused permits.
-- **SmoothWarmingUp**: after idling, the rate ramps up over the warm-up period — good when the protected thing (a cold cache, a JIT-cold service) needs time.
+- **SmoothWarmingUp**: after idling, the rate ramps up over the warm-up period — good when the protected thing (a cold cache, a JIT-cold service, i.e. a JVM that has not yet compiled its hot code to fast machine code) needs time.
 - `acquire()` **blocks** until a permit is available (client-side throttling); `tryAcquire()` doesn't.
-- One instance = one limit. **No per-key support, no distributed mode.** Still marked `@Beta`. Best for "don't call this downstream more than N/s from this process".
+- One instance = one limit. **No per-key support, no distributed mode.** Still marked `@Beta` (the API may change). Best for "don't call this downstream more than N/s from this process".
 
 ### Bucket4j (token bucket, local or distributed)
 
@@ -58,8 +60,8 @@ if (probe.isConsumed()) {
 }
 ```
 
-- Pure token bucket with multiple bandwidths (e.g. 10/s **and** 1000/hour on one bucket).
-- **Distributed backends**: Redis (Lettuce, Redisson, Jedis), Hazelcast, Infinispan, Apache Ignite, any JCache (JSR-107) provider, and JDBC databases. Buckets are keyed, so per-user limits across pods work out of the box; updates use compare-and-swap or server-side scripts on the store.
+- Pure token bucket with multiple bandwidths (several limits on one bucket, e.g. 10/s **and** 1000/hour).
+- **Distributed backends**: Redis (Lettuce, Redisson, Jedis are Java clients for it), Hazelcast, Infinispan, Apache Ignite (in-memory data grids shared by many JVMs), any JCache (JSR-107, the standard Java caching API) provider, and JDBC databases (JDBC = Java's standard SQL API). Buckets are keyed, so per-user limits across pods work out of the box; updates use compare-and-swap (write only if the value is unchanged since you read it) or server-side scripts on the store.
 - Integrations for Spring Boot, Quarkus and others.
 
 ### Resilience4j `RateLimiter`
@@ -75,13 +77,13 @@ Supplier<String> guarded = RateLimiter.decorateSupplier(rl, () -> callPayments()
 ```
 
 - Fixed-period permits (per-cycle refresh), in-process only.
-- Part of a resilience toolkit with **CircuitBreaker, Retry, Bulkhead, TimeLimiter** — the same decorator style (see [design-patterns](../../concepts/design-patterns.md)) and Micrometer metrics. Best for protecting outbound calls.
+- Part of a resilience toolkit with **CircuitBreaker** (stops calling a failing dependency for a while), **Retry**, **Bulkhead** (caps concurrent calls so one dependency can't use all threads), **TimeLimiter** — the same decorator style (wrapping a function with extra behaviour; see [design-patterns](../../concepts/design-patterns.md)) and Micrometer metrics (a Java metrics facade that feeds Prometheus and similar). Best for protecting outbound calls.
 
 ### Infra layer
 
-- **nginx `limit_req`**: leaky-bucket per key (often `$binary_remote_addr`), configured in `limit_req_zone`, with `burst` and `nodelay`. Per nginx instance; returns 503 by default — set `limit_req_status 429;`.
-- **Envoy**: *local* rate limit filter (token bucket per instance) and *global* rate limit via an external gRPC rate-limit service (backed by Redis). Common in Istio meshes.
-- **Spring Cloud Gateway**: `RequestRateLimiter` filter with `RedisRateLimiter` (token bucket in a Redis Lua script), key chosen by a `KeyResolver` bean (user, API key, IP).
+- **nginx `limit_req`**: leaky-bucket (requests drain at a fixed rate; excess queues or is dropped) per key (often `$binary_remote_addr`), configured in `limit_req_zone`, with `burst` and `nodelay`. Per nginx instance; returns 503 by default — set `limit_req_status 429;` (429 = HTTP "Too Many Requests").
+- **Envoy**: *local* rate limit filter (token bucket per instance) and *global* rate limit via an external gRPC (a binary RPC protocol over HTTP/2) rate-limit service (backed by Redis). Common in Istio meshes (a service mesh: Envoy sidecars next to every pod, managed centrally).
+- **Spring Cloud Gateway**: `RequestRateLimiter` filter with `RedisRateLimiter` (token bucket in a Redis Lua script, a small script Redis runs as one uninterruptible step), key chosen by a `KeyResolver` bean (user, API key, IP).
 - Also: cloud API gateways (AWS API Gateway usage plans, Kong, Cloudflare).
 
 ## 4. When to use it
@@ -97,7 +99,7 @@ Supplier<String> guarded = RateLimiter.decorateSupplier(rl, () -> callPayments()
 - **Guava/Resilience4j for per-user limits across pods** — each pod enforces its own copy; with 10 pods a "100/min" limit becomes ~1000/min. That's a correctness bug, not a tuning issue.
 - **A distributed backend when one instance suffices** — every request now does a network round-trip to Redis; you've added latency and a new failure mode for nothing.
 - **Only edge limits for business rules** — nginx doesn't know tenant plans; pricing-tier limits belong in the app or gateway with auth context.
-- **Only in-app limits for floods** — by the time a request reaches your JVM, it has already cost TLS, parsing and a thread.
+- **Only in-app limits for floods** — by the time a request reaches your JVM, it has already cost TLS (encryption handshake), parsing and a thread.
 - **Pulling in a library in an LLD interview** — the interviewer wants to see you design it. Mention the library as "what I'd use in prod".
 
 ## 6. Commonly confused with
@@ -115,8 +117,8 @@ Supplier<String> guarded = RateLimiter.decorateSupplier(rl, () -> callPayments()
 1. **Per-pod limits mistaken for global limits** — divide the limit by pod count only as a rough hack; autoscaling breaks it.
 2. **Using `acquire()` (blocking) on request threads** — under load every thread waits and the server stops accepting work. Use `tryAcquire` and return 429.
 3. **No fail-open/fail-closed decision** when Redis is down. Usually fail **open** for user-facing traffic (allow, alert) and **closed** for protecting a fragile paid dependency.
-4. **Keying by IP behind a load balancer** without trusting `X-Forwarded-For` correctly — every user shares the LB's IP (see [express-middleware](../js/express-middleware.md)).
-5. **Forgetting the response contract** — no `Retry-After`, clients retry immediately and amplify load.
+4. **Keying by IP behind a load balancer** without trusting `X-Forwarded-For` (the HTTP header in which proxies record the original client IP) correctly — every user shares the LB's IP (see [express-middleware](../js/express-middleware.md)).
+5. **Forgetting the response contract** — no `Retry-After` (a header telling the client how long to wait), clients retry immediately and amplify load.
 6. **Stacking limits without documenting them** (nginx + gateway + app), then nobody knows which one returned 429.
 
 ## 8. Interview cheat-sheet

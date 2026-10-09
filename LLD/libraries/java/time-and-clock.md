@@ -4,13 +4,15 @@
 
 Java has two kinds of time: **wall-clock time** ("what time is it?" — `System.currentTimeMillis`, `Instant.now()`) and **monotonic time** ("how much time passed?" — `System.nanoTime`); rate limiters need the second, and good code takes time from an **injected clock** so tests can control it.
 
+💡 **Monotonic / injected / rate limiter:** *monotonic* means a counter that only moves forward and is immune to clock adjustments. *Injected* means passed in from outside (usually via the constructor) instead of fetched from a global, so tests can swap in a fake. A *rate limiter* caps how many requests a caller can make per time window.
+
 ## 2. The problem it solves
 
 Two separate pains:
 
-1. **Wall clocks jump.** NTP (the daemon that syncs server clocks) can step the clock backwards or forwards; a VM resumed from pause, a leap second, or an operator running `date -s` does the same. If your limiter computes `elapsed = now - lastRefill` with wall time, a backward jump gives a **negative** elapsed (tokens disappear or the math breaks) and a forward jump hands out a burst of free tokens. Anyone who has debugged skewed timestamps in logs across hosts has seen this.
+1. **Wall clocks jump.** NTP (the daemon that syncs server clocks) can step the clock backwards or forwards; a VM resumed from pause, a leap second (an extra second occasionally added to UTC, the global reference time), or an operator running `date -s` does the same. If your limiter (a token bucket: a counter that refills over time and is spent per request) computes `elapsed = now - lastRefill` with wall time, a backward jump gives a **negative** elapsed (tokens disappear or the math breaks) and a forward jump hands out a burst of free tokens. Anyone who has debugged skewed timestamps in logs across hosts has seen this.
 
-2. **Tests that depend on real time are slow and flaky.** "Allow 5 per second" tested with `Thread.sleep(1000)` makes the suite slow, and on a busy CI runner sleeps overshoot and the test fails randomly.
+2. **Tests that depend on real time are slow and flaky.** "Allow 5 per second" tested with `Thread.sleep(1000)` makes the suite slow, and on a busy CI runner (the shared build machine) sleeps overshoot and the test fails randomly. *Flaky* means passing sometimes and failing sometimes with no code change.
 
 Fix: measure intervals with a monotonic clock, and get "now" from an interface you can replace with a fake in tests.
 
@@ -30,7 +32,7 @@ flowchart LR
 
 | | `System.currentTimeMillis()` | `System.nanoTime()` |
 |---|---|---|
-| Meaning | ms since 1970-01-01 UTC | ns since an **arbitrary** origin (often boot) |
+| Meaning | ms (milliseconds) since 1970-01-01 UTC (the Unix epoch, the agreed zero point for timestamps) | ns (nanoseconds, billionths of a second) since an **arbitrary** origin (often boot) |
 | Can go backwards | yes (NTP step, manual change, VM restore) | no (monotonic within one JVM) |
 | Comparable across JVMs/hosts | roughly, if clocks are synced | **no** — the origin is per-process |
 | Use for | timestamps, logs, "expires at 2026-10-07T12:00Z" | durations, timeouts, rate limiting, benchmarks |
@@ -39,12 +41,12 @@ flowchart LR
 Rules for `nanoTime`:
 
 - Only **differences** mean anything: `long elapsed = t1 - t0;`
-- Compare with subtraction, not `<`: `if (t1 - t0 > timeout)`, never `if (t1 > t0 + timeout)` — the raw values may overflow (wrap around) and subtraction handles that correctly.
+- Compare with subtraction, not `<`: `if (t1 - t0 > timeout)`, never `if (t1 > t0 + timeout)` — the raw values may overflow (exceed the `long` maximum and wrap around to negative) and subtraction handles that correctly.
 - Never store it in a DB or send it to another service.
 
 ### java.time.Clock and InstantSource
 
-`java.time.Clock` (Java 8) is an abstract class that provides `instant()`, `millis()`, and a zone. `InstantSource` (Java 17) is the smaller interface with just `instant()` and `millis()` — prefer it when you don't need a time zone.
+`java.time.Clock` (Java 8) is an abstract class that provides `instant()` (a point on the UTC timeline), `millis()`, and a zone (a region's time-zone rules). `InstantSource` (Java 17) is the smaller interface with just `instant()` and `millis()` — prefer it when you don't need a time zone.
 
 ```java
 import java.time.*;
@@ -68,7 +70,7 @@ public interface TimeSource {
 }
 ```
 
-Production code takes it in the constructor (dependency injection by hand, no framework needed):
+Production code takes it in the constructor (dependency injection by hand, no framework like Spring needed):
 
 ```java
 public final class TokenBucketLimiter {
@@ -114,20 +116,20 @@ assert limiter.tryAcquire();
 assert !limiter.tryAcquire();
 ```
 
-The test runs in microseconds, never flakes, and can check edge cases (exactly on a window boundary, 0 ns elapsed, an hour idle) that are impossible to hit reliably with sleeps. Run with `java -ea` so `assert` is enabled.
+The test runs in microseconds (millionths of a second), never flakes, and can check edge cases (exactly on a window boundary, 0 ns elapsed, an hour idle) that are impossible to hit reliably with sleeps. Run with `java -ea` so `assert` is enabled.
 
-`AtomicLong` makes the fake safe if a concurrency test advances time from one thread while workers read it (see [atomics-and-cas](atomics-and-cas.md)).
+`AtomicLong` (a long that can be updated safely by many threads without a lock) makes the fake safe if a concurrency test advances time from one thread while workers read it (see [atomics-and-cas](atomics-and-cas.md)).
 
 ## 4. When to use it
 
-- `nanoTime` (via an injected `TimeSource`): token-bucket refill, sliding-window logs, idle-key detection, timeouts, latency metrics.
+- `nanoTime` (via an injected `TimeSource`): token-bucket refill, sliding-window logs (storing recent request timestamps), idle-key detection, timeouts, latency metrics.
 - `Clock` / `InstantSource`: anything tied to calendar time — expiry timestamps, audit logs, fixed windows aligned to wall-clock minutes, "reset at midnight".
 - Injection in both cases whenever the logic depends on time and you want tests.
 
 ## 5. When NOT to use it
 
 - **`currentTimeMillis` for elapsed time** — breaks on clock steps; a mistake interviewers notice.
-- **`nanoTime` across processes** — the origin differs per JVM; values from two pods can't be compared. Distributed limiters use the shared store's clock (e.g. Redis `TIME` inside a Lua script) or wall time with skew tolerance.
+- **`nanoTime` across processes** — the origin differs per JVM; values from two pods can't be compared. Distributed limiters use the shared store's clock (e.g. Redis `TIME` inside a Lua script, a small script Redis runs as one uninterruptible step) or wall time with skew tolerance (allowing for small clock differences between machines).
 - **`nanoTime` as a timestamp** — it is not a date.
 - **Injecting a clock into code with no time logic** — needless indirection.
 - **`Clock.systemUTC()` called statically deep inside a class** — you've taken the dependency but lost the testability; pass it in.
@@ -137,7 +139,7 @@ The test runs in microseconds, never flakes, and can check edge cases (exactly o
 | | `currentTimeMillis` | `nanoTime` | `Instant.now()` / `Clock` | custom `TimeSource` |
 |---|---|---|---|---|
 | Kind | wall | monotonic | wall | whatever you plug in (usually monotonic) |
-| Mockable | no (static) | no (static) | yes if injected (`Clock.fixed`, `Clock.offset`) | yes (fake) |
+| Mockable (replaceable by a fake in tests) | no (static) | no (static) | yes if injected (`Clock.fixed`, `Clock.offset`) | yes (fake) |
 | Good for rate limiting | no | yes | only for calendar-aligned windows | yes |
 | Cross-host comparable | roughly | no | roughly | no (if backed by nanoTime) |
 
@@ -148,7 +150,7 @@ The test runs in microseconds, never flakes, and can check edge cases (exactly o
 3. **Calling the clock many times in one operation** → inconsistent "now" between the refill math and the window check. Read it once at the top.
 4. **`Thread.sleep` in unit tests** → slow, flaky. Use a fake clock.
 5. **Converting with integer division too early** (`elapsedNanos / 1_000_000_000 * rate`) → truncates to whole seconds, so a 900 ms gap refills nothing. Multiply first or use `double`.
-6. **Assuming `nanoTime` has nanosecond precision** — units are ns, precision is platform-dependent.
+6. **Assuming `nanoTime` has nanosecond precision** — units are ns, precision (how finely it can actually distinguish moments) is platform-dependent.
 
 ## 8. Interview cheat-sheet
 

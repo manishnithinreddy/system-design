@@ -4,9 +4,11 @@
 
 A Java `record` (Java 16+) is a compact way to declare a **transparent, shallowly immutable data carrier**: you list the fields, and the compiler generates the constructor, accessors, `equals`, `hashCode` and `toString` from them.
 
+💡 **Immutable / shallowly immutable / data carrier:** *immutable* means the object cannot change after creation. *Shallowly* means its own fields can't be reassigned, but objects they point to might still change (see below). A *data carrier* is a class that only holds values, with no real behaviour.
+
 ## 2. The problem it solves
 
-A simple value class like "a vehicle with a plate and a type" used to take ~50 lines: private final fields, constructor, getters, `equals`, `hashCode`, `toString`. People forgot to update `equals` when adding a field, or skipped `hashCode`, and `HashSet` lookups quietly broke. Lombok papered over it with annotations.
+A simple value class like "a vehicle with a plate and a type" used to take ~50 lines: private final fields, constructor, getters, `equals`, `hashCode`, `toString`. People forgot to update `equals` when adding a field, or skipped `hashCode` (the number a hash-based collection uses to find an object), and `HashSet` lookups quietly broke. Lombok (a library that generates such boilerplate at compile time) papered over it with annotations.
 
 Records make the intent explicit — "this is just data, compared by value" — in one line:
 
@@ -14,20 +16,22 @@ Records make the intent explicit — "this is just data, compared by value" — 
 public record Vehicle(String licensePlate, VehicleType type) {}
 ```
 
-Immutability matters beyond boilerplate. An immutable `Ticket` can be handed to the display board thread, the payment thread and the audit log **without any locking**, because nobody can change it. It's the same reason infra prefers immutable container images over SSH-ing in to patch a box: what you deployed is what is running.
+Immutability matters beyond boilerplate. An immutable `Ticket` can be handed to the display board thread, the payment thread and the audit log **without any locking** (a lock lets one thread at a time touch shared data), because nobody can change it. It's the same reason infra prefers immutable container images over SSH-ing in to patch a box: what you deployed is what is running.
 
 ## 3. How it works
 
 For `record Ticket(String id, Vehicle vehicle, ParkingSpot spot, Instant entryTime)` the compiler generates:
 
 - `private final` fields for each component; the class is implicitly `final` (no subclassing).
-- A **canonical constructor** taking all components in order.
+- A **canonical constructor** (the full constructor taking every component in order).
 - Accessors named after the component: `ticket.id()`, not `getId()`.
 - `equals`/`hashCode` comparing **all components** (using each component's own `equals`); `toString` like `Ticket[id=T1, ...]`.
 
 Records can have static methods, instance methods, static fields, and implement interfaces. They **cannot** declare extra instance fields or extend a class.
 
 ### Compact constructor — validate and normalise
+
+💡 **Normalise:** convert input to one canonical form (here: strip spaces, uppercase), so equivalent inputs compare equal.
 
 ```java
 import java.time.Instant;
@@ -47,6 +51,8 @@ public record Vehicle(String licensePlate, VehicleType type) {
 Normalising in the constructor means `new Vehicle("ka 01 ab 1234", CAR).equals(new Vehicle("KA01AB1234", CAR))` is `true`.
 
 ### Shallow immutability and defensive copies
+
+💡 **Defensive copy:** copying a mutable object you receive, so later changes by the caller can't reach into yours.
 
 A record's fields are `final`, but `final` only freezes the **reference**, not the object it points to:
 
@@ -97,13 +103,13 @@ public final class ParkingSpot {
 }
 ```
 
-`ParkingSpot` changes over time (free → occupied → free) but is still "spot F2-17". If it were a record with an `occupied` component, freeing it would mean creating a *new* spot object, and every map/set holding the old one would be stale. Entities like this should usually base `equals` on their `id` only, or keep the default identity `equals` (see [oop-modeling](../../concepts/oop-modeling.md)).
+`ParkingSpot` changes over time (free → occupied → free) but is still "spot F2-17". If it were a record with an `occupied` component, freeing it would mean creating a *new* spot object, and every map/set holding the old one would be stale. Entities like this should usually base `equals` on their `id` only, or keep the default identity `equals` (two objects are equal only if they are the very same instance) (see [oop-modeling](../../concepts/oop-modeling.md)).
 
 Note `Ticket` holds a reference to a mutable `ParkingSpot`; the ticket is still a fine value ("which spot") — just don't rely on the spot's *state* being frozen. And because a record can't change, the ticket's lifecycle status (ACTIVE → PAID → EXITED) is tracked *next to* it (e.g. a `Map<String, TicketStatus>` in the lot, or by replacing the record with a copy that has the new status) — or, if the ticket accumulates a lot of changing state, it graduates to being a class.
 
 ## 4. When to use it
 
-- Values: `Vehicle`, `Ticket`, `Receipt`, `Money`, config snapshots (`LimiterConfig`), DTOs/API responses, events published to observers.
+- Values: `Vehicle`, `Ticket`, `Receipt`, `Money`, config snapshots (`LimiterConfig`), DTOs (data transfer objects: plain objects for moving data between layers)/API responses, events published to observers (listeners subscribed to be notified).
 - Map keys and set elements — correct `equals`/`hashCode` for free.
 - Returning multiple values from a method (`record FeeBreakdown(BigDecimal base, BigDecimal discount)`).
 - Immutable snapshots swapped atomically via `AtomicReference` (see [atomics-and-cas](atomics-and-cas.md)).
@@ -111,15 +117,15 @@ Note `Ticket` holds a reference to a mutable `ParkingSpot`; the ticket is still 
 ## 5. When NOT to use it
 
 - **Entities with identity and mutable state** — `ParkingSpot`, `ParkingFloor`, `ParkingLot`, a bank `Account`. A record would make you either expose mutation (breaking the "data carrier" contract) or recreate objects on each change.
-- **JPA/Hibernate entities** — they need a no-arg constructor, mutable fields and proxies; records don't fit.
+- **JPA/Hibernate entities** (JPA is Java's standard database-mapping API, Hibernate its main implementation) — they need a no-arg constructor, mutable fields and proxies (generated stand-in subclasses); records don't fit.
 - **When you need to hide representation** — record accessors expose every component publicly; that's the point ("transparent").
-- **Inheritance hierarchies** — records are final; use a `sealed interface` with record implementations instead.
+- **Inheritance hierarchies** — records are final; use a `sealed interface` (an interface that lists exactly which classes may implement it) with record implementations instead.
 
 ## 6. Commonly confused with
 
 | | `record` | regular `final` class | Lombok `@Value` | `enum` |
 |---|---|---|---|---|
-| Boilerplate | none | all by hand | none (annotation processor) | none |
+| Boilerplate | none | all by hand | none (annotation processor, a compiler plug-in that generates code) | none |
 | Immutable | shallow | if you make it so | shallow | should be |
 | `equals` | all components | identity unless overridden | all fields | identity (one instance each) |
 | Extra instance fields | no | yes | yes | yes |
@@ -150,5 +156,5 @@ Note `Ticket` holds a reference to a mutable `ParkingSpot`; the ticket is still 
 - [LLD: Design Splitwise](../../interviews/splitwise/README.md) — `Money`, `Expense`, split-spec records (`Equal`, `Exact`, `Percent`, `Shares`) and immutable ledger entries; nothing is mutated, edits are reversal entries (see [sealed-interfaces-and-pattern-matching](sealed-interfaces-and-pattern-matching.md)).
 - [LLD: Design a Movie Ticket Booking System](../../interviews/movie-booking/README.md) — `Movie`, `Seat`, `Show`, `Booking` and the seat states `Available` / `Held(holdId, expiresAt)` / `Booked(bookingId)` as immutable records, so a CAS can swap one state object for another.
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../../interviews/kv-store/README.md) — `Entry(value, expiresAtMillis)` as an immutable record, so an undo log can keep the original `Entry` by reference; parsed commands as records.
-- [Logging Framework](../../interviews/logging-framework/README.md): `LogEvent` is an immutable record carrying an MDC **snapshot**, so it can be handed to another thread safely.
+- [Logging Framework](../../interviews/logging-framework/README.md): `LogEvent` is an immutable record carrying an MDC (mapped diagnostic context: per-request key/values like a trace id) **snapshot**, so it can be handed to another thread safely.
 - Related: [enums-and-enummap](enums-and-enummap.md), [bigdecimal-and-money](bigdecimal-and-money.md), [oop-modeling](../../concepts/oop-modeling.md).

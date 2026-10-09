@@ -4,6 +4,8 @@
 
 The most-asked LLD question. Unlike the [rate limiter](../rate-limiter/README.md) (one algorithm, lots of concurrency), this one is mostly about **modelling**: turning a real-world description into clean classes with the right responsibilities, and leaving room for rules that change (pricing, allocation). Concurrency appears too: many gates, one pool of spots.
 
+💡 **Concurrency:** several threads (independent lines of execution) running at the same time and touching the same data, here each gate calling the lot simultaneously. **LLD (low-level design):** designing the classes and code of one component, as opposed to the boxes-and-arrows of a whole system.
+
 ## How to read this folder
 
 > 👉 **Never thought about how a parking facility's software works? Start with [00-understand-the-product.md](00-understand-the-product.md).** It walks through one mall visit, explains the tariff board, and maps every step to a class.
@@ -111,6 +113,8 @@ New to class diagrams? [UML class diagrams](../../concepts/uml-class-diagrams.md
 **Concepts:** [OOP modelling](../../concepts/oop-modeling.md) · [UML class diagrams](../../concepts/uml-class-diagrams.md) · [Design patterns (Strategy, Observer, State, Facade)](../../concepts/design-patterns.md) · [SOLID](../../concepts/solid-principles.md) · [Thread-safety basics](../../concepts/thread-safety-basics.md)
 
 ## The core insight
+
+💡 **Quick vocabulary:** a *record* is an immutable (never changes after creation) data class; an *enum* is a fixed list of named constants; *Strategy* is a swappable rule behind an interface; *Observer* lets subscribers be notified of events; a *facade* is one simple front class hiding the internals; *atomic* means an operation that other threads see as either not started or fully done.
 
 1. **Model data as data, behaviour as behaviour.** Vehicle types differ only in *which spots they fit*, so that's an **enum with a field**, not a `Car extends Vehicle` hierarchy.
 2. **Isolate what changes.** Pricing and allocation rules change all the time, so they sit behind interfaces. `ParkingLot` never changes when the tariff does.

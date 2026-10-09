@@ -6,13 +6,13 @@
 
 ## 2. The problem it solves
 
-The old `java.util.Date` / `Calendar` were mutable, not thread-safe (`SimpleDateFormat` shared between threads corrupts output), 0-based months, and mixed "instant" with "calendar date" in one confusing class.
+The old `java.util.Date` / `Calendar` were mutable (changeable after creation), not thread-safe (unsafe to share between threads) (`SimpleDateFormat` shared between threads corrupts output), 0-based months, and mixed "instant" with "calendar date" in one confusing class.
 
-The more interesting pain is conceptual. "The car entered at 01:30 and left at 03:30" — how long did it park? In India, 2 hours. In New York on 8 March 2026, clocks jump from 02:00 straight to 03:00, so it parked **1 hour**. If you subtract two `LocalDateTime`s you bill 2 hours, overcharging every car in the lot that night. In November the opposite happens and you undercharge. That's a real incident class: "billing bug only on DST weekends", same family as "cron job ran twice when clocks fell back".
+The more interesting pain is conceptual. "The car entered at 01:30 and left at 03:30" — how long did it park? In India, 2 hours. In New York on 8 March 2026, clocks jump from 02:00 straight to 03:00 (DST, daylight-saving time: clocks move an hour twice a year), so it parked **1 hour**. If you subtract two `LocalDateTime`s you bill 2 hours, overcharging every car in the lot that night. In November the opposite happens and you undercharge. That's a real incident class: "billing bug only on DST weekends", same family as "cron job ran twice when clocks fell back". (A *time zone* is a region's rule for converting UTC, the global reference time, to local clock time, including DST changes.)
 
 `java.time` makes you say which kind of time you mean.
 
-This page is about calendar/wall-clock types and amounts. For **measuring elapsed time with `System.nanoTime`** and injecting a time source into code for tests, see [time-and-clock](time-and-clock.md) — not repeated here.
+This page is about calendar/wall-clock types and amounts. For **measuring elapsed time with `System.nanoTime`** (a monotonic timer: it only moves forward and ignores clock adjustments) and injecting a time source into code for tests, see [time-and-clock](time-and-clock.md) — not repeated here.
 
 ## 3. How it works
 
@@ -27,14 +27,14 @@ flowchart LR
 
 | Type | What it is | Parking lot use |
 |---|---|---|
-| `Instant` | nanoseconds since 1970-01-01T00:00Z; no zone, no calendar | `Ticket.entryTime`, exit time, stored in DB |
+| `Instant` | nanoseconds since 1970-01-01T00:00Z (the "Unix epoch", the agreed zero point for timestamps); no zone, no calendar | `Ticket.entryTime`, exit time, stored in DB |
 | `ZonedDateTime` | date + time + zone rules (`Asia/Kolkata`) | printing the receipt, "which calendar day?" for daily caps |
 | `LocalDateTime` | date + time, **no zone** — "01:30 somewhere" | user input before you know the zone; almost never for stored events |
 | `LocalDate` / `LocalTime` | date only / time only | "night rate after 22:00", "daily cap per calendar day" |
 | `Duration` | exact seconds + nanos | how long a car parked |
 | `Period` | years, months, days (calendar units) | monthly passes ("valid for 1 month") |
 
-All are **immutable and thread-safe** — `plus`, `minus`, `with` return new objects (same rule as [BigDecimal](bigdecimal-and-money.md)).
+All are **immutable** (never change after creation) **and thread-safe** — `plus`, `minus`, `with` return new objects (same rule as [BigDecimal](bigdecimal-and-money.md)).
 
 ### The DST bug, shown
 
@@ -50,7 +50,7 @@ Duration.between(in.atZone(ny), out.atZone(ny));            // PT1H  — correct
 Duration.between(in.atZone(ny).toInstant(), out.atZone(ny).toInstant());  // PT1H
 ```
 
-Rule: **record events as `Instant`** and compute durations between `Instant`s. Convert to a zone only to *display* or to apply calendar rules.
+(`PT2H` is ISO-8601 notation for "a period of time: 2 hours".) Rule: **record events as `Instant`** and compute durations between `Instant`s. Convert to a zone only to *display* or to apply calendar rules.
 
 ### Duration vs Period
 
@@ -73,7 +73,7 @@ static long billableHours(Duration parked) {
 // toHours() TRUNCATES: Duration.ofMinutes(119).toHours() == 1  -> undercharge
 ```
 
-Combine with a grace period and the daily cap as **separate, named steps** inside the `PricingStrategy` — easy to test one at a time.
+Combine with a grace period and the daily cap as **separate, named steps** inside the `PricingStrategy` (a pluggable pricing rule behind an interface) — easy to test one at a time. (*Ceiling division* rounds up instead of down.)
 
 ### Crossing midnight: which day does a fee belong to?
 
@@ -86,9 +86,11 @@ LocalDate exitDay  = exit.atZone(lotZone).toLocalDate();   // 2026-10-08
 long calendarDays = java.time.temporal.ChronoUnit.DAYS.between(entryDay, exitDay) + 1;  // touches 2 days
 ```
 
-The zone is a property of the **lot** (configuration), not of the server — pods in a k8s cluster usually run in UTC.
+The zone is a property of the **lot** (configuration), not of the server — pods in a k8s cluster usually run in UTC. (`IST` = India Standard Time, UTC+5:30.)
 
 ### Getting "now": inject a Clock
+
+💡 **`Clock` / injection:** `Clock` is Java's object for "what time is it". *Injecting* means passing it in via the constructor rather than calling the system clock directly, so tests can freeze or advance time (like mocking a dependency).
 
 ```java
 public final class ParkingLot {
@@ -113,7 +115,7 @@ Instant.parse("2026-10-07T18:00:00Z");                     // ISO-8601 for APIs 
 
 ## 4. When to use it
 
-- `Instant` for every event timestamp you store or send (ticket entry/exit, audit logs, Kafka events).
+- `Instant` for every event timestamp you store or send (ticket entry/exit, audit logs, Kafka events, i.e. messages on a Kafka log).
 - `ZonedDateTime` with the lot's `ZoneId` for receipts, night/weekend rates, per-calendar-day caps.
 - `Duration` for parked time and grace periods; `Period` for passes and subscriptions.
 - `Clock` injected for anything that asks "what time is it now?".
@@ -121,7 +123,7 @@ Instant.parse("2026-10-07T18:00:00Z");                     // ISO-8601 for APIs 
 ## 5. When NOT to use it
 
 - **`LocalDateTime` for stored events** — it's ambiguous without a zone; two servers in different zones will disagree, and DST makes some values occur twice or never.
-- **`java.time` for measuring latency or timeouts** — wall clocks can jump (NTP); use monotonic `nanoTime` ([time-and-clock](time-and-clock.md)).
+- **`java.time` for measuring latency or timeouts** — wall clocks can jump (NTP, the protocol that syncs a machine's clock with time servers, can step it backwards); use monotonic `nanoTime` ([time-and-clock](time-and-clock.md)).
 - **`ZoneOffset` (fixed `+05:30`) where you mean a region** — offsets don't know DST rules; use `ZoneId.of("Europe/London")`.
 - **`Period` for "N hours"** — Period has no hours; that's `Duration`.
 
@@ -131,7 +133,7 @@ Instant.parse("2026-10-07T18:00:00Z");                     // ISO-8601 for APIs 
 |---|---|---|---|---|
 | Knows zone/offset | UTC only | no | full zone rules (DST) | fixed offset only |
 | A point on the timeline | yes | **no** | yes | yes |
-| Good for storage | yes | no | ok (store as Instant + zone id) | yes (DB `timestamptz`) |
+| Good for storage | yes | no | ok (store as Instant + zone id) | yes (DB `timestamptz`, Postgres's timezone-aware timestamp type) |
 | Good for display | no | yes, if zone known | yes | yes |
 
 | | `Duration` | `Period` |

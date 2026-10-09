@@ -21,6 +21,8 @@ Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note*
 
 The domain model (vehicle types, strategies, ticket lifecycle) survives. What changes is *where state lives* and *where atomicity comes from*.
 
+💡 **Idempotent:** doing the same request twice has the same effect as doing it once, so retries are safe (like `kubectl apply`). **JVM:** the Java process; its memory is private to it, so two backend instances cannot see each other's data. **Interval booking:** reserving a spot for a start-to-end time window instead of "right now".
+
 ---
 
 ## 2. Atomic spot claiming in a database
@@ -35,6 +37,7 @@ UPDATE spots
 -- 1 row updated → you got it. 0 rows → someone else did; try the next candidate.
 ```
 
+💡 **Optimistic vs pessimistic:** *optimistic* = don't lock, just attempt the change with a condition and retry if someone beat you. *Pessimistic* = lock the row first so nobody can beat you. Optimistic is cheap when conflicts are rare; pessimistic when they are common.
 ```sql
 -- Option B: pick-and-lock the nearest free spot in one statement (pessimistic, no retries).
 WITH candidate AS (
@@ -51,16 +54,16 @@ RETURNING s.spot_id, s.floor, s.number;
 
 **🧑‍💼 Interviewer:** Why `SKIP LOCKED`?
 
-**🧑‍💻 Candidate:** Without it, 10 gates all lock the *same* nearest row and queue behind each other. With it, gate 2 skips the row gate 1 is holding and takes the next. That's exactly the semantics of `pollFirst()` on the concurrent set, implemented by the database. It's also the classic "database table as a work queue" pattern ([message queues](../../../HLD/technologies/message-queues.md)).
+**🧑‍💻 Candidate:** (`FOR UPDATE` locks the selected rows until the transaction ends; `SKIP LOCKED` makes the query ignore rows already locked by others.) Without it, 10 gates all lock the *same* nearest row and queue behind each other. With it, gate 2 skips the row gate 1 is holding and takes the next. That's exactly the semantics of `pollFirst()` on the concurrent set, implemented by the database. It's also the classic "database table as a work queue" pattern ([message queues](../../../HLD/technologies/message-queues.md)).
 
-Plus a **unique constraint** as the final safety net, the DB-level equivalent of L5's CAS in `occupy()`:
+Plus a **unique constraint** (the database refuses a second row with the same value, here even with a partial index that only covers rows matching the `WHERE`) as the final safety net, the DB-level equivalent of L5's CAS (compare-and-set: change a value only if it is still what you expected) in `occupy()`:
 
 ```sql
 CREATE UNIQUE INDEX one_active_ticket_per_plate ON tickets(lot_id, plate) WHERE status <> 'EXITED';
 CREATE UNIQUE INDEX one_ticket_per_spot        ON tickets(spot_id)         WHERE status <> 'EXITED';
 ```
 
-The Java domain code barely changes: `ParkingFloor.claimSpot` becomes a repository call, and `SpotAllocationStrategy` becomes "which `ORDER BY` to use". The **interfaces from L5 survive**, which is the point of having designed them.
+The Java domain code barely changes: `ParkingFloor.claimSpot` becomes a repository call (a class that hides database access behind plain Java methods), and `SpotAllocationStrategy` becomes "which `ORDER BY` to use". The **interfaces from L5 survive**, which is the point of having designed them.
 
 > 📝 **Note:** Being able to say "here's the same atomicity guarantee, now enforced by the database, and here's the constraint that catches bugs" is the bridge between LLD and HLD that staff interviews look for.
 
@@ -68,7 +71,7 @@ The Java domain code barely changes: `ParkingFloor.claimSpot` becomes a reposito
 
 ## 3. Gates that lose network
 
-**🧑‍💻 Candidate:** A barrier that won't open because the Wi-Fi blipped creates a traffic jam into the street. So the gate controller must keep working **offline**. That inverts the design:
+**🧑‍💻 Candidate:** A barrier that won't open because the Wi-Fi blipped creates a traffic jam into the street. So the gate controller (a small computer in the gate machine) must keep working **offline**. That inverts the design:
 
 ```mermaid
 sequenceDiagram
@@ -83,11 +86,11 @@ sequenceDiagram
 ```
 
 Design consequences:
-- **Ticket IDs generated at the gate**, unique without coordination: `lotId-gateId-sequence` (or UUIDv7). Same lesson as [ID generation](../../../HLD/concepts/id-generation.md).
-- **Idempotent sync:** the gate retries events until acknowledged, so the backend must treat `(ticketId, event)` as an idempotency key and ignore duplicates ([idempotency](../../../HLD/concepts/idempotency-and-delivery-semantics.md)).
-- **Spot assignment offline:** the gate can't atomically claim from the central DB, so it either issues tickets *without* a specific spot (driver picks; sensors report occupancy), or holds a small **lease of spots** pre-assigned to it (like the token leases in the [rate limiter L6](../rate-limiter/L6-staff.md#4-hybrid-leased-tokens-option-d)).
+- **Ticket IDs generated at the gate**, unique without coordination: `lotId-gateId-sequence` (or UUIDv7, a random-looking 128-bit ID that starts with a timestamp so IDs sort by creation time). Same lesson as [ID generation](../../../HLD/concepts/id-generation.md).
+- **Idempotent sync:** the gate retries events until acknowledged, so the backend must treat `(ticketId, event)` as an idempotency key (a unique label per operation so repeats can be recognised) and ignore duplicates ([idempotency](../../../HLD/concepts/idempotency-and-delivery-semantics.md)).
+- **Spot assignment offline:** the gate can't atomically claim from the central DB, so it either issues tickets *without* a specific spot (driver picks; sensors report occupancy), or holds a small **lease of spots** (a block of spots handed to this gate for a period, so it can allocate from it without asking anyone) pre-assigned to it (like the token leases in the [rate limiter L6](../rate-limiter/L6-staff.md#4-hybrid-leased-tokens-option-d)).
 - **Exit offline:** the gate keeps a local tariff copy (versioned) to compute fees; payment by card/UPI may still need connectivity. The fallback is a fixed fee or "pay later" by plate.
-- **Accept rare inconsistency, reconcile later:** two gates offline might over-admit near capacity. A nightly reconciliation compares entries/exits/payments per plate.
+- **Accept rare inconsistency, reconcile later:** two gates offline might over-admit near capacity. A nightly reconciliation (a job comparing two sources of truth and flagging differences) compares entries/exits/payments per plate.
 
 **🧑‍💼 Interviewer:** Isn't that a lot of complexity?
 
@@ -102,9 +105,9 @@ Design consequences:
 | Approach | How | Trade-off |
 |---|---|---|
 | **Pool reservation** (recommended) | Reserve *capacity* (e.g. "1 car spot at lot X for interval I"), not a specific spot. Check `reserved + walk-ins ≤ capacity` for every overlapping interval | Flexible, simple; the actual spot is assigned at arrival |
-| **Specific spot** | Interval overlap check per spot: Postgres exclusion constraint `EXCLUDE USING gist (spot_id WITH =, period WITH &&)` | Users can choose "near the lift"; much harder to keep utilisation high |
+| **Specific spot** | Interval overlap check per spot: Postgres exclusion constraint `EXCLUDE USING gist (spot_id WITH =, period WITH &&)` (the database rejects two rows for the same spot whose time ranges overlap) | Users can choose "near the lift"; much harder to keep utilisation high |
 
-No-shows: hold the reservation for 30 minutes past start, then release it and charge per policy. Overbooking (like airlines) is a business decision based on no-show rates, and the design should allow a configurable overbook factor per lot.
+No-shows: hold the reservation for 30 minutes past start, then release it and charge per policy. Overbooking (selling more reservations than capacity, like airlines) is a business decision based on no-show rates, and the design should allow a configurable overbook factor per lot.
 
 ---
 
@@ -128,9 +131,9 @@ No-shows: hold the reservation for 30 minutes past start, then release it and ch
 }
 ```
 
-- **Versioned and immutable:** a ticket records the **tariff version** at entry. If the tariff changes while you're parked, you pay what was on the board when you entered. That's both fair and auditable.
+- **Versioned and immutable** (a published version is never edited; changes create a new version): a ticket records the **tariff version** at entry. If the tariff changes while you're parked, you pay what was on the board when you entered. That's both fair and auditable.
 - **Validated + simulated before publish:** "run last month's 1M real tickets through v15 and show the revenue difference and the 20 biggest changes". This catches "₹8,000 for 2 hours" typos before customers do.
-- **Money stays `BigDecimal` strings in JSON**, never JSON numbers (which parse as `double` in many clients). See [BigDecimal & money](../../libraries/java/bigdecimal-and-money.md).
+- **Money stays `BigDecimal` strings in JSON**, never JSON numbers (which parse as `double`, a binary floating-point type that cannot hold values like 0.1 exactly, in many clients). See [BigDecimal & money](../../libraries/java/bigdecimal-and-money.md).
 - Code-based strategies remain for genuinely new *kinds* of rule; data covers new *values*.
 
 > 📝 **Note:** "Configuration for values, code for new behaviour" is the staff-level resolution of the Strategy pattern's limits.
@@ -145,11 +148,11 @@ No-shows: hold the reservation for 30 minutes past start, then release it and ch
 |---|---|---|
 | Lot operations (gates, tickets, spots) | Yes, **one per lot or per region**, deployable near the lot | Latency and offline needs; failure of one lot's backend shouldn't affect others |
 | Pricing (tariff management + evaluation library) | Tariff *management* is a service; *evaluation* is a **library** embedded in gates/backend | Gates need prices offline; a network call per exit is a liability |
-| Payments | Yes (or a provider) | PCI scope, idempotent payment intents, refunds |
+| Payments | Yes (or a provider) | PCI scope (card-data security rules; fewer systems touching cards means less audit work), idempotent payment intents, refunds |
 | Reservations | Yes | Different traffic (web/app), different data model |
 | Analytics / occupancy history | Event stream consumer | Read-only, async |
 
-I would **not** split "spot service", "ticket service", "vehicle service" from each other: they change together, and splitting them turns an in-process atomic operation into a distributed transaction.
+I would **not** split "spot service", "ticket service", "vehicle service" from each other: they change together, and splitting them turns an in-process atomic operation into a distributed transaction (one change spanning several services/databases that must all succeed or all fail, which is slow and hard to get right).
 
 > 📝 **Note:** Knowing where *not* to draw a service boundary (things that must be atomic together stay together) is the most reliable staff signal in design discussions.
 
@@ -158,7 +161,7 @@ I would **not** split "spot service", "ticket service", "vehicle service" from e
 ## 7. Operability
 
 - **Events, not just state:** every entry/exit/payment is an event with lot, gate, plate, tariff version. Occupancy dashboards, reconciliation and fraud checks (same plate entering two lots 5 minutes apart) all come from the stream.
-- **Device fleet management:** gate firmware/config versions, heartbeats, alerting when a gate has been offline for > 5 minutes or its event queue is growing.
+- **Device fleet management:** gate firmware (the low-level software on the device)/config versions, heartbeats (periodic "I'm alive" pings), alerting when a gate has been offline for > 5 minutes or its event queue is growing.
 - **Reconciliation jobs:** entries without exits after 7 days; payments without exits; exits without payments. These numbers are the health metrics of the business.
 - **Safe rollouts:** new tariff versions and gate software roll out to one lot first.
 
@@ -168,11 +171,11 @@ I would **not** split "spot service", "ticket service", "vehicle service" from e
 
 **🧑‍💼 Interviewer:** The ANPR camera misreads plates 2% of the time.
 
-**🧑‍💻 Candidate:** Plates can't be a strict key then. Treat the ANPR read as a *hint* with a confidence score; the ticket ID (QR/paper or app) is the key. Exit matching: exact plate → fuzzy match (edit distance 1, common confusions like O/0, B/8) among active tickets at this lot → fallback to ticket scan or manual. And the "one active ticket per plate" constraint must allow overrides with an audit trail, or one misread blocks a legitimate driver.
+**🧑‍💻 Candidate:** Plates can't be a strict key then. Treat the ANPR read (automatic number-plate recognition by camera) as a *hint* with a confidence score; the ticket ID (QR/paper or app) is the key. Exit matching: exact plate → fuzzy match (edit distance 1, i.e. one character added, removed or changed; common confusions like O/0, B/8) among active tickets at this lot → fallback to ticket scan or manual. And the "one active ticket per plate" constraint must allow overrides with an audit trail, or one misread blocks a legitimate driver.
 
 **🧑‍💼 Interviewer:** Revenue team says ₹ amounts don't match between gates and payments.
 
-**🧑‍💻 Candidate:** Usual suspects: gates computing with a stale tariff version (fixed by recording tariff version on the ticket); rounding differences between JS (app) and Java (backend), fixed by integer paise or one shared evaluation library with golden test cases run in both languages; duplicate payment events (idempotency keys on payment intents).
+**🧑‍💻 Candidate:** Usual suspects: gates computing with a stale tariff version (fixed by recording tariff version on the ticket); rounding differences between JS (app) and Java (backend), fixed by integer paise or one shared evaluation library with golden test cases (fixed inputs with known correct outputs) run in both languages; duplicate payment events (idempotency keys on payment intents).
 
 ---
 

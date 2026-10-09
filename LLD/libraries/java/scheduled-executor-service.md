@@ -4,16 +4,18 @@
 
 `ScheduledExecutorService` runs tasks **after a delay** or **periodically** on a managed pool of threads — the JDK's in-process cron.
 
+💡 **Thread pool / executor:** a *thread* is one independent line of execution; a *pool* is a fixed set of reusable worker threads that pick up submitted tasks, so you don't create a thread per task. An *executor* is Java's interface for "run this task somewhere".
+
 ## 2. The problem it solves
 
-Rate limiters create one bucket per key. Users come and go; without cleanup the map grows forever (a slow memory leak that shows up as an OOM-kill weeks later). You need a background job: "every minute, remove buckets idle for 10 minutes".
+Rate limiters (components that cap how many requests a caller may make) create one bucket per key (a token counter per user, API key or IP). Users come and go; without cleanup the map grows forever (a slow memory leak that shows up as an OOM-kill, i.e. the OS killing the process for exceeding its memory, weeks later). You need a background job: "every minute, remove buckets idle for 10 minutes".
 
 The naive options are bad:
 
 - **`new Thread(() -> { while (true) { work(); Thread.sleep(60_000); } })`** — no clean shutdown, no error handling, one exception and the thread dies silently, and you've hand-rolled a scheduler.
-- **`java.util.Timer`** — a single thread; if one task throws, the **whole Timer dies** and all its tasks stop. It also schedules on wall-clock time, so system clock changes affect it.
+- **`java.util.Timer`** — a single thread; if one task throws, the **whole Timer dies** and all its tasks stop. It also schedules on wall-clock time (the system's date-and-time, which can be adjusted), so system clock changes affect it.
 
-`ScheduledExecutorService` gives a thread pool, proper lifecycle (`shutdown`), and monotonic-time scheduling.
+`ScheduledExecutorService` gives a thread pool, proper lifecycle (`shutdown`), and monotonic-time scheduling (based on a timer that only moves forward and ignores clock adjustments).
 
 ## 3. How it works
 
@@ -31,7 +33,7 @@ ScheduledFuture<?> handle = scheduler.scheduleWithFixedDelay(
         1, 1, TimeUnit.MINUTES);      // initial delay, delay between runs
 ```
 
-Internally a `ScheduledThreadPoolExecutor` keeps tasks in a **delay queue** ordered by next run time (measured with `System.nanoTime`, see [time-and-clock](time-and-clock.md)). Worker threads sleep until the head task is due, run it, and, for periodic tasks, put it back with the next time.
+(A *daemon* thread is a background thread that does not stop the JVM from exiting.) Internally a `ScheduledThreadPoolExecutor` keeps tasks in a **delay queue** (a queue whose head is only available once its time has come) ordered by next run time (measured with `System.nanoTime`, see [time-and-clock](time-and-clock.md)). Worker threads sleep until the head task is due, run it, and, for periodic tasks, put it back with the next time.
 
 ### scheduleAtFixedRate vs scheduleWithFixedDelay
 
@@ -85,7 +87,7 @@ private void evictIdleKeys() {
 }
 ```
 
-Iterating a [ConcurrentHashMap](concurrent-hashmap.md) while other threads modify it is safe (weakly consistent iterator).
+Iterating a [ConcurrentHashMap](concurrent-hashmap.md) (a thread-safe hash map) while other threads modify it is safe (weakly consistent iterator: it never throws, but may or may not show concurrent changes). `computeIfPresent` updates or removes one key as a single atomic (indivisible) step; returning `null` removes it.
 
 ### Shutdown
 
@@ -98,7 +100,7 @@ public void close() throws InterruptedException {
 }
 ```
 
-Make the limiter `AutoCloseable` so tests and the app can stop the thread. A non-daemon thread that's never shut down keeps the JVM from exiting — the "why does my app hang on Ctrl-C" bug. Daemon threads don't block exit, but they're killed mid-task, so only use them for work that's safe to abandon (like eviction).
+Make the limiter `AutoCloseable` (a Java interface for objects with a `close()` that releases resources, usable in try-with-resources) so tests and the app can stop the thread. A non-daemon thread that's never shut down keeps the JVM from exiting — the "why does my app hang on Ctrl-C" bug. Daemon threads don't block exit, but they're killed mid-task, so only use them for work that's safe to abandon (like eviction).
 
 ### Why lazy refill beats a background refill thread
 
@@ -109,7 +111,7 @@ A tempting token-bucket design: a scheduled task adds tokens to every bucket eve
 | Work = (number of keys) × (ticks per second), even for idle keys | Work only when a request arrives |
 | 1M keys × 10 ticks/s = 10M updates/s doing nothing useful | zero cost for idle keys |
 | Refill granularity = tick size (100 ms jumps) | exact, computed from elapsed time |
-| Refill thread contends with request threads for every bucket lock | no extra contention |
+| Refill thread contends (competes) with request threads for every bucket lock | no extra contention |
 | If the scheduler stalls or dies, nobody gets tokens | nothing to stall |
 
 Lazy refill: on each `tryAcquire`, compute `tokens = min(capacity, tokens + elapsed * rate)`. The only background job left is the cheap, infrequent **eviction** sweep.
@@ -117,14 +119,14 @@ Lazy refill: on each `tryAcquire`, compute `tokens = min(capacity, tokens + elap
 ## 4. When to use it
 
 - Periodic housekeeping: evicting idle keys, flushing metrics, refreshing config from a file or service.
-- Delayed one-shot actions: retries with backoff, timeouts.
+- Delayed one-shot actions: retries with backoff (waiting longer after each failure), timeouts.
 - Anywhere you'd write a `while(true) sleep` loop.
 
 ## 5. When NOT to use it
 
 - **Per-key or per-request timers at scale** (one scheduled task per bucket). A million tasks in a delay queue is a million objects and lots of queue churn. Do one sweep over the map instead.
 - **Work that could be done lazily** — refilling tokens (above), expiring a cache entry on read.
-- **Distributed / durable scheduling** — tasks live in memory and vanish on restart, and every pod runs its own copy. For "run once per cluster" use a k8s CronJob, Quartz with a DB, or a leader-elected worker.
+- **Distributed / durable scheduling** — tasks live in memory and vanish on restart, and every pod runs its own copy. For "run once per cluster" use a k8s CronJob, Quartz with a DB, or a leader-elected worker (one instance chosen by election to be the only one running the job).
 - **Long blocking work on a tiny pool** — one stuck task delays every other task on that thread.
 
 ## 6. Commonly confused with
@@ -141,10 +143,10 @@ Lazy refill: on each `tryAcquire`, compute `tokens = min(capacity, tokens + elap
 
 1. **Not catching exceptions in periodic tasks** — the schedule silently stops.
 2. **Never calling `shutdown`** — thread leak in tests, JVM won't exit with non-daemon threads.
-3. **`scheduleAtFixedRate` for slow tasks** — catch-up runs fire back-to-back after a pause (e.g. a long GC).
+3. **`scheduleAtFixedRate` for slow tasks** — catch-up runs fire back-to-back after a pause (e.g. a long GC, a garbage-collection pause where the JVM freezes while it frees memory).
 4. **A background thread to refill tokens** — O(keys) work forever; use lazy refill.
 5. **Creating a new executor per limiter / per request** — each one is a thread. Share one.
-6. **Assuming the schedule is exact** — runs can be late (GC, CPU starvation in a throttled container). Code must use real elapsed time, not "it's been one tick".
+6. **Assuming the schedule is exact** — runs can be late (GC, CPU starvation in a throttled container (k8s CPU limits pausing your process)). Code must use real elapsed time, not "it's been one tick".
 
 ## 8. Interview cheat-sheet
 

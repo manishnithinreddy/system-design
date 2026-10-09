@@ -4,6 +4,8 @@
 
 A Java `enum` is a **class with a fixed, compile-time list of instances** that can carry fields and behaviour; `EnumMap` and `EnumSet` are collections specialised for enum keys that are backed by a plain array / bit mask, so they're faster and smaller than `HashMap` / `HashSet`.
 
+💡 **Compile-time / bit mask:** *compile-time* means the compiler knows it before the program runs, so mistakes fail the build rather than production. A *bit mask* stores a set of yes/no flags as the individual bits of one number (bit 1 = "MEDIUM is in the set").
+
 ## 2. The problem it solves
 
 Without enums people model categories as `String` or `int` constants:
@@ -18,7 +20,7 @@ Nothing stops an invalid value, and adding a new category means grepping for eve
 
 ## 3. How it works
 
-Each constant is a `public static final` singleton instance of the enum class, created once when the class loads. `==` is safe for comparison. Every enum gets `name()`, `ordinal()` (its position, 0-based), `values()` and `valueOf(String)`.
+Each constant is a `public static final` singleton (the only instance of its kind) instance of the enum class, created once when the class loads (when the JVM first uses it). `==` is safe for comparison. Every enum gets `name()`, `ordinal()` (its position, 0-based), `values()` and `valueOf(String)`.
 
 ### Fields and behaviour
 
@@ -55,7 +57,7 @@ public enum TicketStatus {
 }
 ```
 
-This is a lightweight **State** pattern (see [design-patterns](../../concepts/design-patterns.md)).
+This is a lightweight **State** pattern (an object's behaviour depends on which stage it is in; see [design-patterns](../../concepts/design-patterns.md)). `@Override` marks a method that replaces a parent's version.
 
 ### Switch expressions (Java 21)
 
@@ -69,7 +71,7 @@ static int displayPriority(VehicleType t) {
 }
 ```
 
-Add `BUS` to `VehicleType` and every exhaustive switch expression **fails to compile** until handled. Adding a `default ->` branch throws away that safety net.
+(A *switch expression* is a `switch` that returns a value; *exhaustive* means it must cover every possible constant.) Add `BUS` to `VehicleType` and every exhaustive switch expression **fails to compile** until handled. Adding a `default ->` branch throws away that safety net.
 
 ### EnumMap / EnumSet
 
@@ -92,12 +94,14 @@ flowchart LR
     end
 ```
 
-- `EnumMap` is an array indexed by `ordinal()` — no hashing, no collisions, no boxing of entries, iteration in declaration order.
-- `EnumSet` is a bit vector (one `long` for ≤ 64 constants); `contains` is a bit test, `addAll` is a bitwise OR.
+- `EnumMap` is an array indexed by `ordinal()` — no hashing, no collisions (two keys landing in the same slot), no boxing of entries (wrapping each number in an object), iteration in declaration order.
+- `EnumSet` is a bit vector (one `long`, a 64-bit number, for ≤ 64 constants); `contains` is a bit test, `addAll` is a bitwise OR (combining two bit patterns in one CPU step).
 
-Neither is thread-safe. For a concurrent per-size map, either build an `EnumMap` once at construction **and never change its keys** (values can be thread-safe objects like a `ConcurrentLinkedDeque` — safe as long as the map is published safely, e.g. via a `final` field), or use `ConcurrentHashMap`.
+Neither is thread-safe. For a concurrent per-size map, either build an `EnumMap` once at construction **and never change its keys** (values can be thread-safe objects like a `ConcurrentLinkedDeque` — safe as long as the map is published safely, i.e. other threads are guaranteed to see it fully built, e.g. via a `final` field), or use `ConcurrentHashMap`.
 
 ### Enum as Strategy and Singleton
+
+💡 **Strategy / Singleton:** *Strategy* = a swappable algorithm behind an interface. *Singleton* = a class with exactly one global instance. An enum with one constant is the safest way to write one in Java, because the JVM guarantees it is created once.
 
 ```java
 public enum Rounding implements java.util.function.LongUnaryOperator {
@@ -119,18 +123,18 @@ Enum strategies are great when the set of algorithms is **fixed and stateless**.
 - A closed set of categories known at compile time: `VehicleType`, `SpotSize`, `TicketStatus`, `PaymentMethod`, HTTP methods.
 - Attaching fixed rules to each category (which spots fit which vehicle).
 - `EnumMap` for "one thing per category": free-spot pool per `SpotSize`, counters per `VehicleType`.
-- `EnumSet` for flags / capabilities instead of bit-twiddled `int`s.
+- `EnumSet` for flags / capabilities instead of bit-twiddled `int`s (numbers where you manually set and test individual bits).
 
 ## 5. When NOT to use it
 
-- **Values that change at runtime or per deployment** — hourly prices, tax rates, lot capacity. Hard-coding `CAR(40.00)` in the enum means a price change needs a redeploy. Keep the **category** in the enum and the **price** in config / DB: `Map<VehicleType, BigDecimal>` loaded at startup (see [bigdecimal-and-money](bigdecimal-and-money.md)).
+- **Values that change at runtime or per deployment** — hourly prices, tax rates, lot capacity. Hard-coding `CAR(40.00)` in the enum means a price change needs a redeploy. Keep the **category** in the enum and the **price** in config / DB: `Map<VehicleType, BigDecimal>` (`BigDecimal` = Java's exact decimal number type for money) loaded at startup (see [bigdecimal-and-money](bigdecimal-and-money.md)).
 - **Open-ended sets** that grow without code changes (cities, customer tiers created by ops). Use a DB table.
 - **Persisting `ordinal()`** — see mistakes below.
 - **Huge behaviour per constant** — 200-line constant bodies are a class hierarchy in disguise; make real classes.
 
 ## 6. Commonly confused with
 
-| | `enum` | `static final` String/int constants | `sealed interface` + records |
+| | `enum` | `static final` String/int constants | `sealed interface` + records (a sealed interface lists exactly which classes may implement it; records are immutable data classes) |
 |---|---|---|---|
 | Type-safe | yes | no | yes |
 | Fixed set | yes | no | yes (permitted subtypes) |
@@ -146,10 +150,10 @@ Enum strategies are great when the set of algorithms is **fixed and stateless**.
 
 ## 7. Common mistakes / misuse
 
-1. **Persisting `ordinal()`** (or using `@Enumerated(EnumType.ORDINAL)` in JPA). Someone inserts `SCOOTER` between `MOTORCYCLE` and `CAR`, and every stored `1` now means `SCOOTER`. Persist `name()` or an explicit `code` field.
-2. **Mutable fields in an enum** — it's a global singleton; mutable state there is shared across every thread and test.
+1. **Persisting `ordinal()`** (or using `@Enumerated(EnumType.ORDINAL)` in JPA, Java's standard database-mapping API). Someone inserts `SCOOTER` between `MOTORCYCLE` and `CAR`, and every stored `1` now means `SCOOTER`. Persist `name()` or an explicit `code` field.
+2. **Mutable fields in an enum** — it's a global singleton; mutable (changeable) state there is shared across every thread and test.
 3. **`default` in a switch over your own enum** — hides missing cases when the enum grows.
-4. **`valueOf(userInput)` without handling `IllegalArgumentException`** — a bad query param becomes a 500.
+4. **`valueOf(userInput)` without handling `IllegalArgumentException`** — a bad query param becomes a 500 (HTTP server-error response).
 5. **Prices/config in enum constructors** (see section 5).
 6. Using `HashMap<VehicleType, ...>` where `EnumMap` fits — not wrong, just a missed signal of fluency.
 

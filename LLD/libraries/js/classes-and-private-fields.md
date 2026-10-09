@@ -4,15 +4,17 @@
 
 Modern JavaScript (ES2022+, all of it supported in Node 22) has `class` syntax with **truly private `#fields`**, `static` members, getters, and `Object.freeze` for immutable value objects — enough to write the same entity / value / strategy design you'd write in Java, minus interfaces and compile-time types.
 
+💡 **ES2022 / Node 22:** ES2022 is the 2022 edition of the JavaScript language standard (ECMAScript); Node 22 is the server-side JS runtime version that supports it. A *value object* is an immutable object defined purely by its contents; *immutable* means it can't change after creation.
+
 ## 2. The problem it solves
 
-Pre-2015 JS modelled objects with constructor functions and prototypes, and "private" meant a naming convention (`this._occupied`) that anybody could ignore:
+Pre-2015 JS modelled objects with constructor functions and prototypes (JS's old inheritance mechanism: objects delegate missing lookups to a parent object), and "private" meant a naming convention (`this._occupied`) that anybody could ignore:
 
 ```js
 spot._occupied = false;   // any code can free a spot behind the allocator's back
 ```
 
-In a parking lot, that's two cars assigned to one spot because some module "helpfully" reset a flag. Java developers rely on `private` and `final` to make such bugs impossible; in JS you need to know the equivalent tools — `#private` fields for encapsulation, `Object.freeze` for immutability, frozen objects for enums — or the design you describe in the interview isn't the design your code enforces.
+In a parking lot, that's two cars assigned to one spot because some module "helpfully" reset a flag. Java developers rely on `private` and `final` to make such bugs impossible; in JS you need to know the equivalent tools — `#private` fields for encapsulation (hiding internal state behind methods), `Object.freeze` for immutability, frozen objects for enums — or the design you describe in the interview isn't the design your code enforces.
 
 ## 3. How it works
 
@@ -48,7 +50,7 @@ s.tryOccupy();      // false
 Object.keys(s);     // ['id', 'size']  — private fields are invisible to keys / JSON.stringify
 ```
 
-`tryOccupy` needs no lock because Node runs your JS on **one thread**; nothing can interleave between the `if` and the assignment unless there's an `await` in between (see [event-loop-and-concurrency](event-loop-and-concurrency.md)). The Java version needs `AtomicBoolean.compareAndSet` for the same method.
+`tryOccupy` needs no lock because Node runs your JS on **one thread**; nothing can interleave (have its steps mixed with another's) between the `if` and the assignment unless there's an `await` (a keyword that pauses a function until an async result arrives, letting other code run meanwhile) in between (see [event-loop-and-concurrency](event-loop-and-concurrency.md)). The Java version needs `AtomicBoolean.compareAndSet` (a flag updated as one indivisible check-and-set step) for the same method.
 
 | Java | JavaScript |
 |---|---|
@@ -56,7 +58,7 @@ Object.keys(s);     // ['id', 'size']  — private fields are invisible to keys 
 | `public static int count` | `static count` |
 | `getFoo()` | `get foo()` |
 | `final` field | no direct equivalent; use `Object.freeze(this)` or don't expose a setter |
-| `interface PricingStrategy` | a documented method shape (duck typing), or JSDoc `@typedef` |
+| `interface PricingStrategy` | a documented method shape (duck typing: if it has the right methods, it counts), or JSDoc `@typedef` (type notes written in comments) |
 | `abstract` method | method that `throw new Error('not implemented')` |
 
 ### Value objects: Object.freeze
@@ -75,7 +77,7 @@ class Ticket {
 const vehicle = Object.freeze({ plate: 'KA01AB1234', type: 'CAR' });
 ```
 
-`Object.freeze` is **shallow**, exactly like a Java record's `final` fields: `Object.freeze({ items: [] }).items.push(1)` still works. Freeze nested arrays too, or copy them (`Object.freeze([...items])`). Writes to a frozen object silently do nothing in sloppy mode and throw `TypeError` in strict mode — ES modules and class bodies are always strict, so you'll get the error.
+`Object.freeze` is **shallow**, exactly like a Java record's `final` fields: `Object.freeze({ items: [] }).items.push(1)` still works. Freeze nested arrays too, or copy them (`Object.freeze([...items])`). Writes to a frozen object silently do nothing in sloppy mode (JS's lenient legacy behaviour) and throw `TypeError` in strict mode (the stricter ruleset that turns silent mistakes into errors) — ES modules (`import`/`export` files) and class bodies are always strict, so you'll get the error.
 
 Note: freezing `this` in a base-class constructor stops subclasses from adding fields — another reason value objects shouldn't be subclassed.
 
@@ -107,9 +109,11 @@ const TicketStatus = Object.freeze({
 | Can carry behaviour | via lookup tables like `FITS` | via lookup tables | methods on constants |
 | Exhaustive switch check | no | no | yes |
 
-Use strings when values cross a boundary (API, DB, logs); Symbols for purely in-process states. Either way, validate input: `if (!Object.values(VehicleType).includes(t)) throw ...`. In Java, the same idea is covered in [enums-and-enummap](../java/enums-and-enummap.md).
+(A `Symbol` is a built-in JS value that is guaranteed unique, even if two have the same description.) Use strings when values cross a boundary (API, DB, logs); Symbols for purely in-process states. Either way, validate input: `if (!Object.values(VehicleType).includes(t)) throw ...`. In Java, the same idea is covered in [enums-and-enummap](../java/enums-and-enummap.md).
 
 ### Composition over inheritance
+
+💡 **Composition vs inheritance:** *inheritance* makes a class a subtype of another (`extends`); *composition* gives a class other objects to delegate to ("has-a"). Composition is more flexible, like configuring a service with plugins instead of forking it.
 
 ```mermaid
 classDiagram
@@ -143,13 +147,13 @@ const lot = new ParkingLot(floors, new NearestFirstAllocator(), new HourlyPricin
 - `class` with `#private` fields for **entities** with changing state and invariants: `ParkingSpot`, `ParkingFloor`, `ParkingLot`.
 - Frozen objects / frozen classes for **values**: `Vehicle`, `Ticket`, `Receipt`.
 - Frozen string maps for categories that appear in JSON; Symbols for internal states.
-- `static` for factory methods (`Ticket.create(...)`) and per-class counters.
+- `static` for factory methods (functions that build and return an object, `Ticket.create(...)`) and per-class counters.
 
 ## 5. When NOT to use it
 
 - **Deep `extends` hierarchies** — same fragility as in Java; compose instead.
-- **`#private` when you need to inspect state in tests or logs** — it's invisible to `console.log` field listings and `JSON.stringify`; add an explicit `toJSON()` or getter.
-- **`Object.freeze` in hot loops on huge objects** — it's cheap but not free; freeze at construction, not on every read.
+- **`#private` when you need to inspect state in tests or logs** — it's invisible to `console.log` field listings and `JSON.stringify` (JS's object-to-JSON converter); add an explicit `toJSON()` or getter.
+- **`Object.freeze` in hot loops (code run very often) on huge objects** — it's cheap but not free; freeze at construction, not on every read.
 - **Symbols for anything you persist or send** — they don't serialise.
 - **Classes for pure functions** — a pricing rule with no state can be a plain function; JS doesn't force everything into a class.
 
@@ -168,7 +172,7 @@ const lot = new ParkingLot(floors, new NearestFirstAllocator(), new HourlyPricin
 | Change values | no | yes | yes |
 | Rebind the variable | n/a | n/a | no |
 
-`const` only stops reassigning the **variable**; the object it points to stays mutable — the same trap as Java's `final List`.
+(A *closure* is a function that remembers the variables of the scope where it was created; a `WeakMap` is a map whose keys don't keep objects alive, so entries vanish when the object is garbage collected.) `const` only stops reassigning the **variable**; the object it points to stays mutable — the same trap as Java's `final List`.
 
 ## 7. Common mistakes / misuse
 
@@ -178,7 +182,7 @@ const lot = new ParkingLot(floors, new NearestFirstAllocator(), new HourlyPricin
 4. Inheritance per vehicle/spot type instead of a type field + rules table.
 5. Forgetting that an `await` between check and set breaks the "single-thread" guarantee.
 6. Using enum strings without validating external input.
-7. Arrow-function class fields (`handle = () => {}`) everywhere — each instance gets its own copy; fine for callbacks, wasteful for ordinary methods.
+7. Arrow-function class fields (`handle = () => {}`, a short function syntax) everywhere — each instance gets its own copy; fine for callbacks, wasteful for ordinary methods.
 
 ## 8. Interview cheat-sheet
 

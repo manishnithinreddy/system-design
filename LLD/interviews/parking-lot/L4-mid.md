@@ -31,7 +31,7 @@ Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note*
 4. Show free spots per size.
 
 **Non-functional**
-1. Correct under concurrent gates: a spot is never given to two vehicles.
+1. Correct under concurrent gates (several gates calling at the same time, each on its own thread): a spot is never given to two vehicles.
 2. Fees are exact (money).
 3. Easy to extend: new vehicle types, new pricing.
 
@@ -70,7 +70,11 @@ public enum VehicleType {
 }
 ```
 
+> 💡 **Enum, record, entity:** an *enum* is a fixed list of named constants. A *record* is a Java type that is just immutable data (its fields can never change after creation) and is equal to another record with the same fields. An *entity* is an object with an identity that stays the same while its state changes.
+
 > 📝 **Note:** "Inheritance vs enum/composition" is *the* modelling question in this interview. Interviewers specifically watch for the `Vehicle → Car/Bike/Truck` and `ParkingSpot → SmallSpot/LargeSpot` class explosion.
+
+> 💡 **Immutable:** an object that cannot be changed after it is built. That makes it safe to share between threads, like a read-only config snapshot.
 
 **🧑‍💼 Interviewer:** Why is `ParkingSpot` a class but `Ticket` a record?
 
@@ -119,13 +123,15 @@ classDiagram
 
 (Filled diamond = **composition**: the lot owns its floors, a floor owns its spots. See [UML class diagrams](../../concepts/uml-class-diagrams.md).)
 
+💡 **UML class diagram:** a standard box-and-arrow drawing of classes, their fields/methods and how they relate (owns, uses, extends).
+
 ---
 
 ## 5. Deep dives
 
 ### 5.1 Parking: finding a spot
 
-**🧑‍💻 Candidate:** Go floor by floor; on each floor try the vehicle's sizes in preference order (smallest fitting first), so a bike doesn't take a car spot while bike spots are free.
+**🧑‍💻 Candidate:** Go floor by floor; on each floor try the vehicle's sizes in preference order (smallest fitting first), so a bike doesn't take a car spot while bike spots are free. (`Optional` is Java's wrapper meaning "a value, or nothing"; it avoids returning `null`.)
 
 ```java
 for (ParkingFloor floor : floors) {
@@ -160,11 +166,11 @@ Full code: [HourlyPricing.java](java/src/parkinglot/HourlyPricing.java). Example
 
 **🧑‍💼 Interviewer:** Why `BigDecimal`?
 
-**🧑‍💻 Candidate:** `double` is binary floating point; it can't represent 0.1 exactly. `0.1 + 0.2` is `0.30000000000000004`. For money that leads to bills like ₹119.99999 and totals that don't reconcile. `BigDecimal` is exact decimal arithmetic. Two gotchas: build it from a **string** (`new BigDecimal("0.1")`, not `new BigDecimal(0.1)`), and compare with `compareTo`, because `new BigDecimal("40").equals(new BigDecimal("40.00"))` is **false**. ([BigDecimal & money](../../libraries/java/bigdecimal-and-money.md).) In JavaScript I'd store integer paise instead ([money in JS](../../libraries/js/money-and-numbers-in-js.md)).
+**🧑‍💻 Candidate:** `double` is binary floating point (numbers stored as powers of two, like `1.01 × 2^n`); it can't represent 0.1 exactly. `0.1 + 0.2` is `0.30000000000000004`. For money that leads to bills like ₹119.99999 and totals that don't reconcile. `BigDecimal` is exact decimal arithmetic. Two gotchas: build it from a **string** (`new BigDecimal("0.1")`, not `new BigDecimal(0.1)`), and compare with `compareTo`, because `new BigDecimal("40").equals(new BigDecimal("40.00"))` is **false**. ([BigDecimal & money](../../libraries/java/bigdecimal-and-money.md).) In JavaScript I'd store integer paise instead ([money in JS](../../libraries/js/money-and-numbers-in-js.md)).
 
 **🧑‍💼 Interviewer:** And time?
 
-**🧑‍💻 Candidate:** Entry/exit as `Instant` (a point on the global timeline), duration as `Duration.between(entry, exit)`. Not `LocalDateTime`: on a daylight-saving day, local clock times can make a 2-hour stay look like 1 or 3 hours. And the lot takes a `Clock` in its constructor so tests can control time. ([java.time API](../../libraries/java/java-time-api.md).)
+**🧑‍💻 Candidate:** Entry/exit as `Instant` (a point on the global timeline, like a UTC timestamp), duration as `Duration.between(entry, exit)`. Not `LocalDateTime` (a wall-clock reading with no time zone): on a daylight-saving (DST, clocks jump an hour twice a year) day, local clock times can make a 2-hour stay look like 1 or 3 hours. And the lot takes a `Clock` (Java's source of "now") in its constructor so tests can control time. ([java.time API](../../libraries/java/java-time-api.md).)
 
 ### 5.3 More than one gate
 
@@ -172,14 +178,16 @@ Full code: [HourlyPricing.java](java/src/parkinglot/HourlyPricing.java). Example
 
 **🧑‍💻 Candidate:** If "find a free spot" and "mark it occupied" are two separate steps, both gates can find the same free spot and both send a car there: a **check-then-act** race ([thread-safety basics](../../concepts/thread-safety-basics.md)).
 
-Simplest correct fix at this level: make `park` and `unpark` `synchronized`. Only one gate is inside at a time. Each call takes microseconds, and a car takes ~10 seconds to pass a barrier, so a single lock is plenty for a few gates.
+Simplest correct fix at this level: make `park` and `unpark` `synchronized` (a Java keyword that puts a lock around the method). Only one gate is inside at a time. Each call takes microseconds (millionths of a second), and a car takes ~10 seconds to pass a barrier, so a single lock is plenty for a few gates.
 
 ```java
 public synchronized Ticket park(Vehicle vehicle) { ... }
 public synchronized Receipt unpark(String ticketId) { ... }
 ```
 
-The tickets map should still be a `ConcurrentHashMap` so that read-only calls like `freeSpots` can run without the lock. (The L5 design removes the global lock; see [L5](L5-senior.md#4-deep-dive-concurrency-without-a-global-lock).)
+The tickets map should still be a `ConcurrentHashMap` (a hash map built for use by many threads at once) so that read-only calls like `freeSpots` can run without the lock. (The L5 design removes the global lock; see [L5](L5-senior.md#4-deep-dive-concurrency-without-a-global-lock).)
+
+> 💡 **Coarse lock / lock-free:** a *coarse* lock is one big lock over everything (simple, but callers queue up). *Lock-free* designs avoid locks using hardware atomic operations (indivisible steps), which is faster but much harder to get right.
 
 > 📝 **Note:** At L4, a correct coarse lock *with a reason why it's enough* beats a clever lock-free design you can't defend.
 
@@ -189,11 +197,11 @@ The tickets map should still be a `ConcurrentHashMap` so that read-only calls li
 
 **🧑‍💼 Interviewer:** Someone scans the same ticket at two exit gates.
 
-**🧑‍💻 Candidate:** `unpark` removes the ticket from the active map; `ConcurrentHashMap.remove` is atomic and returns `null` for the second caller → `InvalidTicketException`. A ticket is single-use by construction.
+**🧑‍💻 Candidate:** `unpark` removes the ticket from the active map; `ConcurrentHashMap.remove` is atomic (one indivisible step) and returns `null` for the second caller → `InvalidTicketException`. A ticket is single-use by construction.
 
 **🧑‍💼 Interviewer:** The same number plate enters twice (cloned plate, or a missed exit).
 
-**🧑‍💻 Candidate:** Keep `activeTicketsByPlate`; on park, `putIfAbsent(plate, …)`. If it returns something, reject and alert security. Normalise plates first: "ka 01 ab 1234" and "KA01AB1234" are the same car (the `Vehicle` record's compact constructor does this).
+**🧑‍💻 Candidate:** Keep `activeTicketsByPlate`; on park, `putIfAbsent(plate, …)` (insert only if the key is missing, as one atomic step). If it returns something, reject and alert security. Normalise plates first: "ka 01 ab 1234" and "KA01AB1234" are the same car (the `Vehicle` record's compact constructor, a short constructor body that runs before the fields are set, does this).
 
 **🧑‍💼 Interviewer:** Add an "EV" vehicle type that needs a charging spot.
 
@@ -223,7 +231,7 @@ The tickets map should still be a `ConcurrentHashMap` so that read-only calls li
 | `double fee` | Rounding errors on money |
 | `LocalDateTime` for entry/exit | Breaks across DST changes and time zones |
 | `System.currentTimeMillis()` called inside pricing | Untestable; inject a `Clock` |
-| Spot lookup by scanning *all* spots on every park | Works, but O(n) per car; keep free spots per size |
+| Spot lookup by scanning *all* spots on every park | Works, but O(n) per car (time grows linearly with the number of spots); keep free spots per size |
 | "Is it free?" then "occupy" as two unsynchronised steps | Two cars, one spot |
 | Designing payments, users, admin panels unprompted | Burns the time you need for the core |
 

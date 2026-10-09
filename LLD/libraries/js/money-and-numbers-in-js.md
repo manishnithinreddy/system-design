@@ -4,6 +4,8 @@
 
 Every ordinary JavaScript `number` is a 64-bit binary floating-point value (the same as Java's `double`), so money is stored as an **integer count of minor units** (paise / cents), with `BigInt` for amounts beyond 2^53, `Intl.NumberFormat` to display it, and explicit `Math.ceil` / `Math.round` where the business rule rounds.
 
+💡 **Floating point / IEEE 754 / minor units / BigInt:** *floating point* (IEEE 754 is the standard it follows) stores fractions as binary approximations, so values like 0.1 are slightly off. *Minor units* are the smallest coin of a currency (paise, cents), so ₹40.10 becomes the integer 4010. `BigInt` is JS's arbitrary-size integer type. `Intl.NumberFormat` is JS's built-in locale-aware number formatter. `2^53` means 2 to the power 53, about 9 quadrillion.
+
 ## 2. The problem it solves
 
 JavaScript has no `int`, `long` or `BigDecimal` — just `number`. So the classic float problem is everywhere, not just when you choose `double`:
@@ -15,9 +17,9 @@ JavaScript has no `int`, `long` or `BigDecimal` — just `number`. So the classi
 (1.005).toFixed(2);      // "1.00"  — you expected "1.01"
 ```
 
-A parking fee computed as `40.1 * 3` and summed over a day's tickets drifts away from what the payment gateway recorded. Reconciliation fails, finance raises a ticket, and you're debugging floating point at 2 a.m.
+A parking fee computed as `40.1 * 3` and summed over a day's tickets drifts away from what the payment gateway recorded. Reconciliation (matching your totals against the payment gateway's) fails, finance raises a ticket, and you're debugging floating point at 2 a.m.
 
-The fix is the same idea as Java's `long` minor units (see [bigdecimal-and-money](../java/bigdecimal-and-money.md)): keep money as **whole numbers of the smallest unit**. Integers up to 2^53 are represented exactly in a `number`, so `4010 + 1990` is always exactly `6000`.
+The fix is the same idea as Java's `long` minor units (see [bigdecimal-and-money](../java/bigdecimal-and-money.md)): keep money as **whole numbers of the smallest unit**. Integers up to 2^53 are represented exactly in a `number` (the 64-bit float has 53 bits for the significant digits), so `4010 + 1990` is always exactly `6000`.
 
 ## 3. How it works
 
@@ -48,9 +50,11 @@ Percentages produce fractions, so round **once, deliberately**:
 const gst = Math.round(12000 * 0.18);  // 2160 paise — exact enough: one rounding to the nearest paisa
 ```
 
-`Math.round` rounds .5 **up toward +∞** (`Math.round(2.5) === 3`, `Math.round(-2.5) === -2`). That's fine for positive fees; for refunds (negatives) decide the rule explicitly. There is no built-in banker's rounding.
+(GST is India's goods and services tax; 0.18 is its 18% rate.) `Math.round` rounds .5 **up toward +∞** (positive infinity) (`Math.round(2.5) === 3`, `Math.round(-2.5) === -2`). That's fine for positive fees; for refunds (negatives) decide the rule explicitly. There is no built-in banker's rounding (round-half-to-even, which avoids systematic upward bias over many rows).
 
 ### Parsing user/config strings into paise
+
+💡 **Regex:** a *regular expression*, a pattern language for matching text; here `^(\d+)(?:\.(\d{1,2}))?$` means digits, optionally followed by a dot and 1-2 digits.
 
 ```js
 function toPaise(str) {                       // "40.1" -> 4010, "40" -> 4000
@@ -64,13 +68,15 @@ Avoid `Math.round(parseFloat(str) * 100)` — it works for most inputs but hides
 
 ### Safe integer range and BigInt
 
+💡 **Safe integer:** an integer that a `number` can hold exactly without two different integers collapsing into the same value; the limit is `Number.MAX_SAFE_INTEGER` (2^53 - 1).
+
 ```js
 Number.MAX_SAFE_INTEGER;            // 9007199254740991  (2^53 - 1)
 2 ** 53 + 1;                        // 9007199254740992 — silently wrong
 Number.isSafeInteger(12000);        // true — assert this in money code
 ```
 
-2^53 paise is ~₹90 trillion, so a parking lot never gets near it. For ledgers, aggregates across years, or crypto amounts with 18 decimals, use `BigInt`:
+2^53 paise is ~₹90 trillion, so a parking lot never gets near it. For ledgers (append-only lists of money movements), aggregates across years, or crypto amounts with 18 decimals, use `BigInt`:
 
 ```js
 const total = 9007199254740991n + 10n;  // 9007199254741001n, exact
@@ -92,7 +98,7 @@ function billableHours(entryMs, exitMs) {
 }
 ```
 
-`Math.floor` here would let a car park 1h59m for the price of 1h. Subtracting epoch milliseconds is exact elapsed time — the JS equivalent of Java's `Duration.between` on `Instant`s (see [java-time-api](../java/java-time-api.md)).
+(`Math.ceil` rounds up, `Math.floor` rounds down.) `Math.floor` here would let a car park 1h59m for the price of 1h. Subtracting epoch milliseconds (ms since 1970-01-01 UTC, the agreed zero point for timestamps) is exact elapsed time — the JS equivalent of Java's `Duration.between` on `Instant`s (see [java-time-api](../java/java-time-api.md)).
 
 ### Display with Intl.NumberFormat
 
@@ -109,12 +115,12 @@ Dividing by 100 **only at the display edge** is fine: the result is formatted, n
 
 - Any fee, price, refund, or balance in JS: store and compute as integer paise/cents.
 - `Number.isSafeInteger` checks at boundaries (API input, DB reads).
-- `BigInt` for values that can exceed 2^53 (ledgers, large IDs — Twitter/Snowflake IDs are why JSON APIs send IDs as strings).
+- `BigInt` for values that can exceed 2^53 (ledgers, large IDs — Twitter/Snowflake IDs, 64-bit unique IDs that exceed 2^53, are why JSON APIs send IDs as strings).
 - `Intl.NumberFormat` for every user-facing amount, with locale and currency.
 
 ## 5. When NOT to use it
 
-- **Floats for money**, including `toFixed` for rounding (`toFixed` returns a string and inherits float errors).
+- **Floats for money**, including `toFixed` for rounding (`toFixed` formats a number to N decimals, returns a string and inherits float errors).
 - **`BigInt` for ordinary amounts** — slower, can't mix with `number`, doesn't serialise to JSON.
 - **Hand-written formatting** (`'₹' + (p / 100).toFixed(2)`) — wrong grouping for `en-IN`, wrong symbol placement in other locales.
 - **Integer minor units for multi-currency conversion with many decimals** — use a decimal library in production (e.g. `decimal.js`, `dinero.js`); the interview solution stays dependency-free.
@@ -127,7 +133,7 @@ Dividing by 100 **only at the display edge** is fine: the result is formatted, n
 | Max exact integer | 2^53 − 1 | 2^53 − 1 | unlimited | unlimited |
 | Fractional values | yes (inexact) | no | no (truncates) | yes |
 | JSON-friendly | yes | yes | no (needs string) | as string |
-| Java equivalent | `double` | `long` minor units | `BigInteger` | `BigDecimal` |
+| Java equivalent | `double` | `long` minor units | `BigInteger` (Java's arbitrary-size integer) | `BigDecimal` (Java's exact decimal) |
 
 | | `Math.round` | `Math.ceil` | `Math.floor` | `Math.trunc` |
 |---|---|---|---|---|
@@ -141,7 +147,7 @@ Dividing by 100 **only at the display edge** is fine: the result is formatted, n
 2. `toFixed(2)` as a rounding function — float error leaks in (`1.005 → "1.00"`), and you get a string.
 3. Rounding at every step instead of at defined points (per line item or final total).
 4. `Math.floor` for billable hours → undercharging.
-5. Mixing `BigInt` and `number` (`TypeError`) or `JSON.stringify` on a BigInt.
+5. Mixing `BigInt` and `number` (`TypeError`) or `JSON.stringify` (JS's object-to-JSON-text converter) on a BigInt.
 6. Using `Date` local getters (`getHours()`) for durations instead of subtracting epoch ms.
 7. Not validating `Number.isSafeInteger` on amounts from requests.
 

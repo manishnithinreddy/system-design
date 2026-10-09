@@ -4,6 +4,8 @@
 
 Money must be stored **exactly**: `double` can't represent most decimal amounts, so in Java you use `java.math.BigDecimal` (exact decimal arithmetic with an explicit rounding rule) or a `long` holding **minor units** (paise / cents) — never `float` or `double`.
 
+💡 **Floating point / minor units / JSR 354:** *floating point* is how CPUs store fractional numbers approximately (`float` and `double` are the Java types). *Minor units* are the smallest coin of a currency (paise, cents), so ₹40.10 becomes the whole number 4010. *JSR 354* is a Java Specification Request, i.e. an official Java standard proposal, for a money API.
+
 ## 2. The problem it solves
 
 `double` is a **binary** floating-point number. It stores values as fractions with powers of two in the denominator (1/2, 1/4, 1/8 ...). `0.5` fits exactly; `0.1` does not — it becomes the closest binary fraction, which is slightly off. The errors are tiny but they show up the moment you add or compare:
@@ -16,7 +18,7 @@ for (int i = 0; i < 10; i++) total += 0.10;
 System.out.println(total);                // 0.9999999999999999
 ```
 
-In a parking lot that charges ₹40.10 per hour, a day of transactions summed as `double` won't match the bank statement. Finance teams reconcile to the paisa; "off by 0.0000001" becomes a ticket on your on-call rotation.
+In a parking lot that charges ₹40.10 per hour, a day of transactions summed as `double` won't match the bank statement. Finance teams reconcile (match your numbers against the bank's) to the paisa; "off by 0.0000001" becomes a ticket on your on-call rotation.
 
 The fix: represent amounts as **decimal** numbers with a **fixed number of decimal places** and an **explicit rounding rule**.
 
@@ -46,7 +48,7 @@ Rule: **string constructor or `valueOf`**, never `new BigDecimal(double)`.
 
 ### Arithmetic and rounding
 
-`BigDecimal` is immutable: every operation returns a new object (`a.add(b)` does not change `a`).
+`BigDecimal` is immutable (an object that never changes after creation): every operation returns a new object (`a.add(b)` does not change `a`).
 
 ```java
 BigDecimal rate  = new BigDecimal("40.00");          // per hour
@@ -80,11 +82,11 @@ new BigDecimal("2.0").compareTo(new BigDecimal("2.00"));   // 0 (equal)
 fee.compareTo(BigDecimal.ZERO) > 0;                        // "is fee positive?"
 ```
 
-Consequence: a `HashSet<BigDecimal>` can hold both `2.0` and `2.00`. Either normalise with `setScale(2, ...)` everywhere, or compare with `compareTo`.
+Consequence: a `HashSet<BigDecimal>` (a collection that treats two items as duplicates if `equals`/`hashCode` match) can hold both `2.0` and `2.00`. Either normalise (force one canonical form) with `setScale(2, ...)` everywhere, or compare with `compareTo`.
 
 ### Alternative: `long` minor units
 
-Store `4010L` paise instead of `40.10`. Integer maths is exact and fast, and it's what many payment APIs do (Stripe and Razorpay amounts are integers in the smallest unit).
+Store `4010L` paise instead of `40.10`. Integer maths is exact and fast, and it's what many payment APIs do (Stripe and Razorpay, two payment gateways, take amounts as integers in the smallest unit).
 
 ```java
 long ratePaise = 40_00;                   // ₹40.00
@@ -93,9 +95,12 @@ long perHead   = Math.floorDiv(10_000, 3);  // 3333 paise; the 1 left over must 
 long safeSum   = Math.addExact(feePaise, 50_00);  // throws on overflow instead of wrapping
 ```
 
+💡 **Overflow / wrapping:** a `long` has a maximum value; adding past it silently flips to a large negative number ("wraps around") unless you use the `*Exact` methods, which throw instead.
 Division and percentages still need a rounding decision — you just make it with integer maths. The JS version of the parking lot does exactly this (see [money-and-numbers-in-js](../js/money-and-numbers-in-js.md)).
 
 ### A tiny Money value object
+
+💡 **Value object:** a small immutable type defined entirely by its contents (two `Money` of 5 INR are interchangeable), as opposed to an entity with its own identity.
 
 ```java
 public record Money(BigDecimal amount, java.util.Currency currency) {
@@ -111,7 +116,7 @@ public record Money(BigDecimal amount, java.util.Currency currency) {
 }
 ```
 
-Normalising the scale in the compact constructor means record `equals` works (`2.0` and `2.00` both become `2.00`). See [records-and-immutability](records-and-immutability.md).
+Normalising the scale in the compact constructor (the short constructor block of a record, which runs before fields are assigned) means record `equals` works (`2.0` and `2.00` both become `2.00`). See [records-and-immutability](records-and-immutability.md).
 
 ### Production: JSR 354 / Joda-Money
 
@@ -129,18 +134,18 @@ Both are external dependencies, so the interview solution uses a tiny `Money` re
 | Is it a hot path or a huge in-memory structure (ledgers, counters)? | `long` (no allocation, 8 bytes) |
 | Does the currency have no fixed minor unit, or you need sub-paisa precision? | `BigDecimal` |
 
-Splitwise is the first case: expenses, settlements and balances are sums, and every split (equal, percent as basis points, shares) is integer weights, so a `Money(long paise)` record plus the largest remainder method keeps everything exact (see [splitting-money-and-rounding](../../concepts/splitting-money-and-rounding.md)). Guard against overflow with `Math.addExact` / `Math.multiplyExact` — a `long` of paise holds up to about 9.2 × 10^16 rupees, so overflow only happens with bugs or huge weight multiplications.
+Splitwise is the first case: expenses, settlements and balances are sums, and every split (equal, percent as basis points (1/100 of a percent), shares) is integer weights, so a `Money(long paise)` record plus the largest remainder method (give each person the rounded-down share, then hand the leftover paise to those with the biggest fractional remainders) keeps everything exact (see [splitting-money-and-rounding](../../concepts/splitting-money-and-rounding.md)). Guard against overflow with `Math.addExact` / `Math.multiplyExact` — a `long` of paise holds up to about 9.2 × 10^16 rupees, so overflow only happens with bugs or huge weight multiplications.
 
 ## 4. When to use it
 
 - Any fee, price, balance, tax, or discount — e.g. parking fee = hourly rate × billable hours, capped at a daily maximum.
 - `BigDecimal` when you need percentages, tax rates, or currency with varying decimals (JPY has 0, INR/USD have 2, KWD has 3).
-- `long` minor units when amounts are simple sums/multiplies and performance or storage matters (ledgers, counters, Kafka events).
+- `long` minor units when amounts are simple sums/multiplies and performance or storage matters (ledgers, i.e. append-only lists of money movements; counters; Kafka events, messages on a Kafka log).
 
 ## 5. When NOT to use it
 
-- **Scientific / metric values** (latency p99, CPU %, sensor readings): `double` is correct and much faster; small error is fine there.
-- **`BigDecimal` for hot-path counters** — it allocates on every operation. Use `long`.
+- **Scientific / metric values** (latency p99, the time 99% of requests beat; CPU %; sensor readings): `double` is correct and much faster; small error is fine there.
+- **`BigDecimal` for hot-path counters** (code run very often) — it allocates (creates a new heap object, which the garbage collector must later clean up) on every operation. Use `long`.
 - **`long` minor units for currency conversion or interest calculations** with many decimals — you'll end up re-implementing `BigDecimal` badly.
 
 ## 6. Commonly confused with
@@ -151,7 +156,7 @@ Splitwise is the first case: expenses, settlements and balances are sums, and ev
 | Rounding | implicit, binary | explicit `RoundingMode` | you do it in integer maths | explicit, configurable |
 | Carries currency | no | no | no | yes |
 | Speed / allocation | fastest, none | slow, allocates | fast, none | slowest |
-| Overflow | Infinity | none (arbitrary size) | wraps silently unless `Math.*Exact` | none |
+| Overflow (value too big for the type) | Infinity | none (arbitrary size) | wraps silently unless `Math.*Exact` | none |
 | Good for | science, metrics | money in Java code | money in storage/APIs | money in big prod systems |
 
 ## 7. Common mistakes / misuse
@@ -163,7 +168,7 @@ Splitwise is the first case: expenses, settlements and balances are sums, and ev
 5. Rounding at every step instead of once at the end (or once per line item, as your business rules say) — repeated rounding drifts.
 6. Converting to `double` "just for the calculation" and back.
 7. Mixing currencies in one sum — a `Money` type with a currency check prevents it.
-8. Storing money as `FLOAT` in the database; use `DECIMAL(12,2)` / `NUMERIC` or `BIGINT` minor units.
+8. Storing money as `FLOAT` in the database; use `DECIMAL(12,2)` / `NUMERIC` (SQL exact-decimal types, 12 digits with 2 after the point) or `BIGINT` minor units.
 
 ## 8. Interview cheat-sheet
 

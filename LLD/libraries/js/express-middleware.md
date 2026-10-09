@@ -4,11 +4,13 @@
 
 Middleware is a function `(req, res, next)` that runs before your route handler and either **ends the response** (e.g. `429 Too Many Requests`) or **calls `next()`** to pass the request along — the standard place to plug a rate limiter into a Node web server.
 
+💡 **Express / rate limiter / 429:** Express is the most popular web framework for Node.js (server-side JavaScript). A *rate limiter* caps how many requests a caller may send per time window. *429* is the HTTP status code meaning "Too Many Requests".
+
 ## 2. The problem it solves
 
-Without middleware, every route handler would repeat the same preamble: parse auth, log, check the rate limit, set CORS headers. That's copy-paste, and the one route someone forgets becomes the unprotected one.
+Without middleware, every route handler would repeat the same preamble: parse auth, log, check the rate limit, set CORS headers (CORS = Cross-Origin Resource Sharing: headers telling browsers which other websites may call your API). That's copy-paste, and the one route someone forgets becomes the unprotected one.
 
-Middleware turns these cross-cutting concerns into a **pipeline**, like filters on an nginx location or an Envoy filter chain: each stage looks at the request, maybe rejects it, maybe decorates it, and hands it on. In Java this is a Servlet `Filter` or Spring `HandlerInterceptor`; structurally it's the Chain of Responsibility / [Decorator](../../concepts/design-patterns.md) idea.
+Middleware turns these cross-cutting concerns into a **pipeline**, like filters on an nginx location or an Envoy filter chain: each stage looks at the request, maybe rejects it, maybe decorates it, and hands it on. In Java this is a Servlet `Filter` or Spring `HandlerInterceptor`; structurally it's the Chain of Responsibility (each handler either handles a request or passes it to the next) / [Decorator](../../concepts/design-patterns.md) (wrapping a function with extra behaviour) idea.
 
 ## 3. How it works
 
@@ -30,12 +32,14 @@ sequenceDiagram
 
 ### The contract
 
-- `req` — incoming request (`IncomingMessage`): method, url, headers, socket.
+- `req` — incoming request (`IncomingMessage`): method, url, headers, socket (the network connection to the client).
 - `res` — response (`ServerResponse`): `statusCode`, `setHeader`, `end`.
 - `next(err?)` — call to continue; call with an error to jump to error handling.
-- A middleware must do **exactly one** of: end the response, or call `next()`. Doing neither hangs the request; doing both causes "headers already sent".
+- A middleware must do **exactly one** of: end the response, or call `next()`. Doing neither hangs the request; doing both causes "headers already sent" (you can't change the status or headers after the response has started).
 
 ### A rate-limit middleware with only `node:http`
+
+💡 **Token bucket / `Map`:** a *token bucket* is a counter that refills at a steady rate; each request spends one token and an empty bucket means reject. A JS `Map` is a built-in key-to-value dictionary.
 
 ```js
 // rate-limit-server.mjs — run with: node rate-limit-server.mjs
@@ -111,16 +115,16 @@ Try: `for i in $(seq 1 7); do curl -si localhost:3000 | head -1; done` — five 
 
 ### Status and headers
 
-- **429 Too Many Requests** (RFC 6585) — the correct status. Not 503 (that says *the server* is unhealthy, and some load balancers will mark it down) and not 403 (that says "never allowed").
+- **429 Too Many Requests** (RFC 6585, an internet standards document) — the correct status. Not 503 (that says *the server* is unhealthy, and some load balancers will mark it down) and not 403 (that says "never allowed").
 - **`Retry-After`** — seconds (or an HTTP date) until retrying makes sense. Well-behaved clients and SDKs honor it; without it they retry instantly and make the overload worse.
-- **`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`** — from the IETF draft *RateLimit header fields for HTTP* (newer revisions combine them into `RateLimit` and `RateLimit-Policy`). Many APIs still use the older `X-RateLimit-*` names. Pick one and document it.
+- **`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`** — from the IETF (the internet standards body) draft *RateLimit header fields for HTTP* (newer revisions combine them into `RateLimit` and `RateLimit-Policy`). Many APIs still use the older `X-RateLimit-*` names. Pick one and document it.
 
 ### Choosing the key
 
 | Key | Good for | Weakness |
 |---|---|---|
-| Client IP | anonymous traffic, login/signup endpoints, flood protection | NAT / corporate proxies put many users on one IP; attackers rotate IPs; IPv6 gives one user a whole /64 |
-| User id (from session/JWT) | fair per-user limits after auth | must run **after** auth middleware; doesn't protect the auth endpoint itself |
+| Client IP | anonymous traffic, login/signup endpoints, flood protection | NAT (many devices sharing one public IP) / corporate proxies put many users on one IP; attackers rotate IPs; IPv6 gives one user a whole /64 (about 18 quintillion addresses) |
+| User id (from session/JWT, a signed login token) | fair per-user limits after auth | must run **after** auth middleware; doesn't protect the auth endpoint itself |
 | API key | B2B APIs, per-plan quotas | keys leak / get shared |
 | Composite (`apiKey:route`) | different limits per endpoint | more keys → more memory |
 
@@ -128,11 +132,11 @@ Middleware **order** matters: put an IP limiter before auth (to protect login fr
 
 ### X-Forwarded-For behind a load balancer
 
-Behind an ALB / nginx / k8s ingress, `req.socket.remoteAddress` is the **proxy's** IP — every user shares one bucket and the whole site gets throttled together.
+Behind an ALB (AWS Application Load Balancer) / nginx / k8s ingress (the entry-point proxy of a cluster), `req.socket.remoteAddress` is the **proxy's** IP — every user shares one bucket and the whole site gets throttled together.
 
 The proxy adds `X-Forwarded-For: client, proxy1, proxy2`. But any client can send that header themselves, so:
 
-- Only trust it when the request came from a proxy you control.
+- Only trust it when the request came from a proxy you control. (*Spoofable* = a client can forge it.)
 - Take the address added by **your** outermost trusted proxy — count from the **right** by the number of trusted hops — not the leftmost value, which the client controls.
 
 ```js
@@ -156,7 +160,7 @@ In Express this is the `trust proxy` setting; get it wrong one way and everyone 
 
 - **Business logic specific to one route** — keep it in the handler; middleware is for shared behavior.
 - **Limits that must be global across instances** with an in-memory `Map` — each pod has its own; use a Redis-backed store (see [event-loop-and-concurrency](event-loop-and-concurrency.md)).
-- **Volumetric attacks** — by the time Node parses the request, you've spent the resources. Use the edge (nginx `limit_req`, cloud WAF, Envoy) for that; see [production-rate-limit-libraries](../java/production-rate-limit-libraries.md).
+- **Volumetric attacks** (floods of sheer request volume) — by the time Node parses the request, you've spent the resources. Use the edge (nginx `limit_req`, cloud WAF (web application firewall), Envoy, a proxy used as load balancer) for that; see [production-rate-limit-libraries](../java/production-rate-limit-libraries.md).
 - **Heavy async work in every middleware** — each adds latency to every request.
 
 ## 6. Commonly confused with
@@ -171,14 +175,14 @@ In Express this is the `trust proxy` setting; get it wrong one way and everyone 
 ## 7. Common mistakes / misuse
 
 1. **Neither calling `next()` nor ending the response** → request hangs until client timeout.
-2. **Calling `next()` after sending 429** → `ERR_HTTP_HEADERS_SENT`.
+2. **Calling `next()` after sending 429** → `ERR_HTTP_HEADERS_SENT` (Node's error for writing headers after the response started).
 3. **Keying by `remoteAddress` behind a load balancer** → one global bucket.
 4. **Trusting the leftmost `X-Forwarded-For`** → attackers bypass limits by sending random IPs.
 5. **Returning 503 or 403 instead of 429**, or omitting `Retry-After`.
-6. **In-memory limiter in PM2 cluster mode** → limit multiplied by worker count.
+6. **In-memory limiter in PM2 cluster mode** (PM2 runs several copies of your Node app as separate processes) → limit multiplied by worker count.
 7. **No eviction on the key map** → memory grows with every unique IP (see [map-vs-object](map-vs-object.md)).
 
-Production libraries: **`express-rate-limit`** (simple Express middleware, pluggable stores such as Redis via `rate-limit-redis`) and **`rate-limiter-flexible`** (many algorithms and backends: memory, Redis, Memcached, Mongo, Postgres; works with any framework).
+Production libraries: **`express-rate-limit`** (simple Express middleware, pluggable stores such as Redis (an in-memory key-value server shared between instances) via `rate-limit-redis`) and **`rate-limiter-flexible`** (many algorithms and backends: memory, Redis, Memcached, Mongo, Postgres; works with any framework).
 
 ## 8. Interview cheat-sheet
 

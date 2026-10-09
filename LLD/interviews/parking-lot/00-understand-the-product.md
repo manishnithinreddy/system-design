@@ -55,10 +55,14 @@ A car can't fit in a bike spot. A bike *can* fit in a car spot, but it's wastefu
 
 👉 Interview: *how do you model vehicle types and spot sizes?* (Enum vs inheritance: the classic modelling question. See [OOP modelling](../../concepts/oop-modeling.md).)
 
+💡 **Enum vs inheritance:** an *enum* is a fixed list of named constants (`CAR`, `BIKE`); *inheritance* means making a subclass per type (`class Car extends Vehicle`). The question is whether types differ in *data* (enum is enough) or in *behaviour* (subclasses may help).
+
 ### 3.2 Which spot? (allocation)
 "Nearest to the entrance/lift first" is the usual rule. But a mall might prefer "fill the floor with the most free spots" to avoid one congested ramp. An EV must get a charging bay. A disabled badge holder gets reserved spots.
 
 👉 Interview: *how do you make the allocation rule swappable without rewriting the lot?* (**Strategy** pattern.)
+
+💡 **Strategy pattern:** put each rule behind a small interface (`AllocationStrategy`) and hand the lot the one to use, so you swap rules without editing the lot. Same idea as picking a load-balancing algorithm (round-robin vs least-connections) from config.
 
 ### 3.3 Tickets
 A ticket is proof of "this vehicle entered at this time". It must be **unique**, **single-use** (can't exit twice with one ticket), and a vehicle can't have two active tickets (that's how cloned number plates get caught).
@@ -81,15 +85,21 @@ Hidden in it: **grace period**, **rounding up** ("or part": 2 h 10 min = 3 hours
 
 👉 Interview: *pricing that changes often must be easy to change.* (**Strategy**, configuration; and money must be `BigDecimal` or integer paise, never `double`: see [BigDecimal & money](../../libraries/java/bigdecimal-and-money.md).)
 
+💡 **`BigDecimal` / paise / `double`:** `double` stores numbers in binary and cannot represent values like 0.1 exactly, so sums drift (₹119.99999). `BigDecimal` keeps exact decimal digits; the alternative is counting whole paise (1/100 rupee) in a `long`.
+
 ### 3.5 Display boards
 "Level B2: 34 free" must update the moment a car parks or leaves. There may be boards at the entrance, on each floor, and in an app.
 
 👉 Interview: *the lot shouldn't know about every kind of board.* (**Observer** pattern.)
 
+💡 **Observer pattern:** the lot publishes "a spot changed" events and any number of boards subscribe to them, so the lot never needs to know who is listening. It is the in-process version of a pub/sub topic or a metrics subscriber.
+
 ### 3.6 Many gates at once
 Four entry gates, each a separate machine/thread, all asking "give me a free car spot" at the same instant.
 
 👉 Interview: ***concurrency***. Two gates must never get the same spot. This is the same check-then-act race as the [rate limiter](../rate-limiter/README.md): "is it free? → take it" must be one atomic step.
+
+💡 **Concurrency / thread / race / atomic:** a *thread* is one independent line of execution; several run at once. A *check-then-act race* happens when two threads both see "free" before either takes the spot. *Atomic* means the check and the take happen as one indivisible step that no other thread can interleave with (like a compare-and-set on a k8s resource version).
 
 ---
 
@@ -155,6 +165,9 @@ Two separate things have state: the **spot** (free / occupied) and the **ticket*
 | **Grace period** | Short free time (e.g. 10 min) for people who just drop someone off |
 | **Daily cap** | Maximum charge per 24 hours |
 | **ANPR** | Automatic Number Plate Recognition: a camera reads the plate |
+| **FASTag** | India's electronic toll tag: a windscreen sticker that is read wirelessly so payment needs no cash or ticket |
+| **RFID** | Radio-frequency ID: a badge/tag a reader detects without touching, used for office access cards |
+| **Thread-safe** | Correct even when many threads call it at the same time |
 | **Entry / exit gate** | Barrier + machine; each one is a concurrent caller of the software |
 | **Facade** | One simple class (`ParkingLot`) that the gates talk to, hiding the internals |
 

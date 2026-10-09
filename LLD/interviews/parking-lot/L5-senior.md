@@ -30,10 +30,12 @@ Full class diagram: [README](README.md#class-diagram-l5-design-matches-the-code)
 | **State** (lightweight) | `TicketStatus` enum with allowed transitions | Payment rules live in one place instead of `if` checks scattered across gates |
 | **Dependency injection** | `Clock`, strategies passed into the constructor | Tests control time and behaviour |
 
+> 💡 **Patterns in plain words:** *Facade* = one simple front class hiding many internals. *Strategy* = a swappable rule behind an interface. *Observer* = subscribers get notified of events without the publisher knowing them. *State* = an object's behaviour depends on which stage it is in. *Dependency injection* = passing collaborators (clock, strategies) in from outside instead of creating them inside, like injecting config into a service. *Open/Closed* = add behaviour by adding classes, not by editing existing ones.
+
 **🧑‍💻 Candidate:** Deliberately **not** used:
-- **Singleton `ParkingLot`.** Tempting ("there's only one lot"), but it makes tests share state and blocks running two lots in one process. The application wires one instance instead.
+- **Singleton `ParkingLot`** (a class that allows only one instance, reachable globally). Tempting ("there's only one lot"), but it makes tests share state and blocks running two lots in one process. The application wires one instance instead.
 - **Abstract `Vehicle` / `ParkingSpot` hierarchies.** Enums with data (L4).
-- **Builder.** The constructor has four arguments. Not worth it.
+- **Builder** (a helper that assembles an object step by step, useful for many optional fields). The constructor has four arguments. Not worth it.
 
 > 📝 **Note:** Listing what you *didn't* use, and why, is one of the clearest senior signals in LLD rounds. Pattern-stuffing is the most common way strong L4s fail L5 interviews.
 
@@ -52,7 +54,7 @@ Two allocation strategies ship: [NearestFirstStrategy](java/src/parkinglot/Neare
 
 **🧑‍💼 Interviewer:** Weekend rates and "first 2 hours free with a cinema ticket"?
 
-**🧑‍💻 Candidate:** Compose strategies instead of growing one class with flags (**Decorator**):
+**🧑‍💻 Candidate:** Compose strategies instead of growing one class with flags (**Decorator**, a wrapper that implements the same interface as the thing it wraps and adds behaviour, like middleware around a handler):
 
 ```java
 PricingStrategy base = new HourlyPricing(rates, caps, Duration.ofMinutes(10));
@@ -90,12 +92,12 @@ private void notifyListeners(ParkingSpot spot) {
 ```
 
 Two deliberate details:
-- **`CopyOnWriteArrayList`**: listeners are registered once at startup but iterated on every car. Copy-on-write makes iteration lock-free and safe even if someone registers a listener mid-iteration ([concurrent collections](../../libraries/java/concurrent-collections.md)).
+- **`CopyOnWriteArrayList`**: listeners are registered once at startup but iterated on every car. Copy-on-write (every change copies the whole array, so readers keep using their old snapshot) makes iteration lock-free (no lock to wait on) and safe even if someone registers a listener mid-iteration ([concurrent collections](../../libraries/java/concurrent-collections.md)).
 - **Exceptions are contained.** The test `unparkFreesSpotAndNotifiesBoards` registers a listener that always throws, and parking still works.
 
 **🧑‍💼 Interviewer:** Listeners run on the gate's thread. What if an app listener is slow?
 
-**🧑‍💻 Candidate:** Then the gate waits on it. For anything doing I/O, the listener should just put the event on a queue and return; a separate thread pushes it to the app. The lot's contract: "listeners must be fast and non-blocking".
+**🧑‍💻 Candidate:** Then the gate waits on it. For anything doing I/O (network or disk calls), the listener should just put the event on a queue and return; a separate thread pushes it to the app. The lot's contract: "listeners must be fast and non-blocking" (never wait for something slow).
 
 ---
 
@@ -125,7 +127,7 @@ public enum TicketStatus {
 }
 ```
 
-**🧑‍💻 Candidate:** The `Ticket` itself stays an immutable record (entry facts). The *status* lives next to it: an `AtomicReference<TicketStatus>` per active ticket, so `pay` and `exit` transitions are compare-and-set and two pay stations can't both accept payment for one ticket. (The shipped code models the simpler "pay at exit" flow: `unpark` = pay + exit. [Records & immutability](../../libraries/java/records-and-immutability.md) explains why status shouldn't go inside the record.)
+**🧑‍💻 Candidate:** The `Ticket` itself stays an immutable record (entry facts). The *status* lives next to it: an `AtomicReference<TicketStatus>` per active ticket, so `pay` and `exit` transitions are compare-and-set (CAS: "change the value to X only if it is still Y", as one indivisible step; same idea as an optimistic-lock version check) and two pay stations can't both accept payment for one ticket. (The shipped code models the simpler "pay at exit" flow: `unpark` = pay + exit. [Records & immutability](../../libraries/java/records-and-immutability.md) explains why status shouldn't go inside the record.)
 
 > 📝 **Note:** A full State pattern (a class per state) would be overkill for three states and three transitions. An enum with transition methods gives the same safety with a fraction of the code.
 
@@ -135,9 +137,11 @@ public enum TicketStatus {
 
 **🧑‍💼 Interviewer:** L4 used `synchronized park()`. A stadium has 12 exit gates and 30,000 cars leaving in 40 minutes. Still fine?
 
-**🧑‍💻 Candidate:** 30,000 / 2,400 s ≈ 12.5 operations/s. Honestly, still fine: a global lock held for microseconds handles thousands per second. But a global lock also means a slow listener or a GC pause blocks every gate, so I'd like the design to be correct **without** one. The idea: make every shared mutation a single atomic operation on a concurrent structure.
+**🧑‍💻 Candidate:** 30,000 / 2,400 s ≈ 12.5 operations/s. Honestly, still fine: a global lock held for microseconds handles thousands per second. But a global lock also means a slow listener or a GC pause (garbage-collection stop-the-world freeze of the JVM) blocks every gate, so I'd like the design to be correct **without** one. The idea: make every shared mutation a single atomic operation on a concurrent structure.
 
 ### Claiming a spot: one atomic step
+
+💡 **Atomic:** an operation that other threads see as either not started or fully done, never half-way.
 
 ```java
 // ParkingFloor: free spots per size, sorted nearest-first
@@ -153,11 +157,11 @@ Optional<ParkingSpot> claimSpot(SpotSize size) {
 ```
 
 - `pollFirst()` **removes and returns** the nearest free spot as one atomic operation. Two gates can't both get the same spot: if they race, one gets spot 3, the other gets spot 4 (or `null`). There's no separate "check" to go stale.
-- **Why `ConcurrentSkipListSet`:** it's thread-safe *and sorted*, so "nearest first" is just `pollFirst()`. A `ConcurrentLinkedQueue` would be thread-safe but unsorted.
-- **Why separate `AtomicInteger` counts:** `ConcurrentSkipListSet.size()` walks the whole set (O(n)). The boards ask for counts on every change.
-- **The `EnumMap` itself is never modified after construction**, so it's safe to read from many threads without locks. Only its *values* (concurrent structures) change.
+- **Why `ConcurrentSkipListSet`:** (a sorted set built from layered linked lists that many threads can use at once) it's thread-safe *and sorted*, so "nearest first" is just `pollFirst()`. A `ConcurrentLinkedQueue` would be thread-safe but unsorted.
+- **Why separate `AtomicInteger` counts:** (`AtomicInteger` is a counter that can be incremented safely from many threads) `ConcurrentSkipListSet.size()` walks the whole set (O(n), time grows with the number of elements). The boards ask for counts on every change.
+- **The `EnumMap`** (a map keyed by enum values, stored as a compact array) **itself is never modified after construction**, so it's safe to read from many threads without locks. Only its *values* (concurrent structures) change.
 
-**Defence in depth:** `ParkingSpot.occupy()` is a CAS on `AtomicReference<Vehicle>`:
+**Defence in depth** (a second safety check behind the first): `ParkingSpot.occupy()` is a CAS on `AtomicReference<Vehicle>` (a holder for one object reference that supports atomic updates):
 
 ```java
 boolean occupy(Vehicle vehicle) { return occupant.compareAndSet(null, vehicle); }
@@ -181,15 +185,15 @@ Ticket ticket = activeTicketsById.remove(ticketId);   // second scanner gets nul
 
 **🧑‍💼 Interviewer:** Is the free count always exactly right?
 
-**🧑‍💻 Candidate:** It's **eventually** consistent with the set, not atomic with it: between `pollFirst()` and `decrementAndGet()` another thread could read a count that's one too high. For a display board that's harmless; it'll be correct a microsecond later. Correctness of *spot assignment* never depends on the count, only on `pollFirst()`. Stating which values are exact and which are approximate is the important part.
+**🧑‍💻 Candidate:** It's **eventually** consistent (briefly out of date, but converges to the right value) with the set, not atomic with it: between `pollFirst()` and `decrementAndGet()` another thread could read a count that's one too high. For a display board that's harmless; it'll be correct a microsecond later. Correctness of *spot assignment* never depends on the count, only on `pollFirst()`. Stating which values are exact and which are approximate is the important part.
 
 `LeastCrowdedFloorStrategy` uses those counts to *order* floors, and then still claims via `pollFirst()`, so a stale count can at worst pick a slightly worse floor, never a wrong spot.
 
 ### Proving it
 
-[ParkingLotTests.java](java/src/parkinglot/ParkingLotTests.java) → `concurrentGatesNeverShareASpot`: 64 threads try to park **2,000 cars into 500 spots** at the same instant (released together by a `CountDownLatch`). Asserts exactly 500 tickets, **500 distinct spot IDs**, and a free count of 0.
+[ParkingLotTests.java](java/src/parkinglot/ParkingLotTests.java) → `concurrentGatesNeverShareASpot`: 64 threads try to park **2,000 cars into 500 spots** at the same instant (released together by a `CountDownLatch`, a gate that holds all threads until a counter reaches zero, so they start at the same instant). Asserts exactly 500 tickets, **500 distinct spot IDs**, and a free count of 0.
 
-> 📝 **Note:** "Exactly N tickets, N distinct spots" is a much stronger assertion than "no exception thrown". A good concurrency test checks the *invariant*.
+> 📝 **Note:** "Exactly N tickets, N distinct spots" is a much stronger assertion than "no exception thrown". A good concurrency test checks the *invariant* (a statement that must always hold, e.g. "no spot is held by two cars").
 
 ---
 
@@ -216,19 +220,19 @@ assertMoney("80", lot.unpark(t.id()).fee());   // 1h30 -> 2 hours x ₹40
 |---|---|
 | Single responsibility | Floor manages its spots; pricing computes fees; lot coordinates |
 | Open/closed | New tariff or allocation rule = new class, `ParkingLot` untouched |
-| Liskov | Every `PricingStrategy` honours "non-negative fee for non-negative duration" |
-| Interface segregation | Listeners implement one method, not a fat `ParkingEventHandler` |
-| Dependency inversion | `ParkingLot` depends on `PricingStrategy`/`Clock` abstractions, not `HourlyPricing`/system time |
+| Liskov (any implementation can replace another without surprising callers) | Every `PricingStrategy` honours "non-negative fee for non-negative duration" |
+| Interface segregation (small focused interfaces) | Listeners implement one method, not a fat `ParkingEventHandler` |
+| Dependency inversion (depend on abstractions, not concrete classes) | `ParkingLot` depends on `PricingStrategy`/`Clock` abstractions, not `HourlyPricing`/system time |
 
 ---
 
 ## 7. JavaScript version
 
 [js/parkingLot.js](js/parkingLot.js) mirrors the design. Differences worth saying out loud:
-- **Money in integer paise** (`4000` = ₹40). `Intl.NumberFormat('en-IN', {currency: 'INR'})` only for display ([money in JS](../../libraries/js/money-and-numbers-in-js.md)).
-- **No locks:** `park` has no `await`, so it runs start-to-finish on the single event-loop thread ([event loop](../../libraries/js/event-loop-and-concurrency.md)). The moment spot state moves to a DB or Redis with `await` in between, the race comes back. That's the [L6](L6-staff.md) topic.
+- **Money in integer paise** (`4000` = ₹40; paise are 1/100 of a rupee). `Intl.NumberFormat('en-IN', {currency: 'INR'})` (JS's built-in locale-aware number formatter) only for display ([money in JS](../../libraries/js/money-and-numbers-in-js.md)).
+- **No locks:** `park` has no `await` (JS keyword that pauses a function until an async result arrives), so it runs start-to-finish on the single event-loop thread (the one thread that takes queued tasks one at a time) ([event loop](../../libraries/js/event-loop-and-concurrency.md)). The moment spot state moves to a DB or Redis with `await` in between, the race comes back. That's the [L6](L6-staff.md) topic.
 - **Strategies are plain functions**: `(floors, type) => spot`. In JS a one-method interface is just a function.
-- `#private` fields and `Object.freeze` for values ([classes & private fields](../../libraries/js/classes-and-private-fields.md)).
+- `#private` fields (truly private to the class) and `Object.freeze` (makes an object read-only) for values ([classes & private fields](../../libraries/js/classes-and-private-fields.md)).
 
 ---
 

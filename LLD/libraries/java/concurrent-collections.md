@@ -4,11 +4,13 @@
 
 `java.util.concurrent` ships thread-safe lists, sets, queues and sorted maps — `ConcurrentLinkedDeque`, `ConcurrentSkipListSet/Map`, `CopyOnWriteArrayList`, the `BlockingQueue` family — each tuned for a different read/write pattern, so you pick by **access pattern**, not just "it needs to be thread-safe".
 
+💡 **Thread-safe / deque / FIFO / LIFO:** *thread-safe* means correct even when many threads use it at once. A *deque* ("deck") is a queue you can add to or remove from at both ends. *FIFO* = first in, first out (a queue); *LIFO* = last in, first out (a stack).
+
 ## 2. The problem it solves
 
 In a parking lot with four entry gates, each gate runs on its own thread and asks "give me a free MEDIUM spot". If free spots live in a plain `ArrayDeque`, two gates calling `poll()` at the same moment can corrupt the deque or receive **the same spot** — two cars, one space, an angry customer and a support ticket.
 
-Wrapping everything in `Collections.synchronizedXxx` is correct but serialises every gate behind one lock (one backend behind the load balancer). The concurrent collections give correctness **and** let threads proceed in parallel, using CAS (see [atomics-and-cas](atomics-and-cas.md)) or clever copying instead of a global lock.
+Wrapping everything in `Collections.synchronizedXxx` (wrappers that put one lock around every method) is correct but serialises every gate behind one lock (one backend behind the load balancer). The concurrent collections give correctness **and** let threads proceed in parallel, using CAS (compare-and-set: change a value only if it still holds what you last read; see [atomics-and-cas](atomics-and-cas.md)) or clever copying instead of a global lock.
 
 For hash maps, see the dedicated [concurrent-hashmap](concurrent-hashmap.md) page; this page covers the rest.
 
@@ -42,7 +44,7 @@ free.get(exitedSpot.size()).offerFirst(exitedSpot);         // put it back
 
 ### ConcurrentSkipListSet — "nearest free spot first"
 
-A skip list is a sorted linked list with extra "express lanes" so search is O(log n) without rebalancing a tree; that makes it easy to do lock-free.
+A skip list is a sorted linked list with extra "express lanes" so search is O(log n) (work grows only with the logarithm of the size: ~20 steps for a million items) without rebalancing a tree; that makes it easy to do lock-free (no lock waits; threads coordinate with CAS).
 
 ```java
 Comparator<ParkingSpot> nearest = Comparator.comparingInt(ParkingSpot::distanceToGate)
@@ -52,11 +54,11 @@ NavigableSet<ParkingSpot> freeMedium = new ConcurrentSkipListSet<>(nearest);
 ParkingSpot best = freeMedium.pollFirst();   // atomic remove-smallest
 ```
 
-The comparator **must** distinguish distinct spots (hence `thenComparing(id)`) — a sorted set treats `compare == 0` as "duplicate" and silently drops one. `ConcurrentSkipListMap` is the map version (`floorKey`, `ceilingEntry`, `headMap` — e.g. "all tickets that entered before 6 a.m.").
+The comparator (an object that defines the sort order) **must** distinguish distinct spots (hence `thenComparing(id)`) — a sorted set treats `compare == 0` as "duplicate" and silently drops one. `ConcurrentSkipListMap` is the map version (`floorKey`, `ceilingEntry`, `headMap` — e.g. "all tickets that entered before 6 a.m.").
 
 ### CopyOnWriteArrayList — observer lists
 
-Every write (`add`, `remove`) copies the whole backing array; reads and iteration use the old array with no locks and never throw `ConcurrentModificationException`.
+Every write (`add`, `remove`) copies the whole backing array; reads and iteration use the old array (a snapshot) with no locks and never throw `ConcurrentModificationException` (the error a normal list throws when changed during iteration).
 
 ```java
 private final List<AvailabilityListener> listeners = new CopyOnWriteArrayList<>();
@@ -67,11 +69,11 @@ void publish(SpotSize size, int freeCount) {
 }
 ```
 
-Perfect for **Observer** subscribers (display boards register once, get notified thousands of times). Terrible for write-heavy data: 10,000 adds to a 10,000-element list copies ~50 million references.
+Perfect for **Observer** subscribers (the Observer pattern: listeners subscribe and get called when something happens; display boards register once, get notified thousands of times). Terrible for write-heavy data: 10,000 adds to a 10,000-element list copies ~50 million references.
 
 ### BlockingQueue — producer / consumer
 
-`put` waits when full, `take` waits when empty; `offer`/`poll` with a timeout return instead of waiting forever.
+`put` waits when full, `take` waits when empty; `offer`/`poll` with a timeout return instead of waiting forever. (*Producer/consumer*: some threads add work, others take it off, like a Kafka topic between services but inside one process.)
 
 ```java
 BlockingQueue<Receipt> toPrint = new ArrayBlockingQueue<>(100);   // bounded = back-pressure
@@ -85,13 +87,13 @@ BlockingQueue<Receipt> toPrint = new ArrayBlockingQueue<>(100);   // bounded = b
 | `LinkedBlockingQueue` | optional (default `Integer.MAX_VALUE`) | two locks (put/take); unbounded by default = memory leak risk |
 | `PriorityBlockingQueue` | no | ordered by comparator |
 | `DelayQueue` | no | elements become available after a delay |
-| `SynchronousQueue` | capacity 0 | hand-off; used by cached thread pools |
+| `SynchronousQueue` | capacity 0 | hand-off; used by cached thread pools (pools that create threads on demand) |
 
-This is what `ThreadPoolExecutor` uses internally for its work queue (see [scheduled-executor-service](scheduled-executor-service.md)) — and the same idea as a Kafka topic between services, inside one JVM.
+*Back-pressure* means a full queue makes producers wait or fail, so a slow consumer slows its source instead of memory filling up. This is what `ThreadPoolExecutor` (Java's standard pool of worker threads) uses internally for its work queue (see [scheduled-executor-service](scheduled-executor-service.md)) — and the same idea as a Kafka topic between services, inside one JVM.
 
 ### Check-then-act is still unsafe
 
-Thread-safe collections make **each call** atomic, not a **sequence** of calls:
+Thread-safe collections make **each call** atomic (indivisible: other threads see it as not started or fully done), not a **sequence** of calls:
 
 ```java
 // BROKEN: both gates can pass the check before either removes, and both assign the spot
@@ -109,18 +111,18 @@ Same lesson as get-then-put on [ConcurrentHashMap](concurrent-hashmap.md), and t
 
 ## 4. When to use it
 
-- `ConcurrentLinkedDeque` / `ConcurrentLinkedQueue`: unordered pools of free resources, work stealing, non-blocking queues.
+- `ConcurrentLinkedDeque` / `ConcurrentLinkedQueue`: unordered pools of free resources, work stealing (idle threads take tasks from busy threads' queues), non-blocking queues (calls return immediately instead of waiting).
 - `ConcurrentSkipListSet/Map`: sorted concurrent data — nearest-first allocation, leaderboards, time-ordered indexes, range queries.
 - `CopyOnWriteArrayList` / `CopyOnWriteArraySet`: listener lists, rarely-changing config lists, read-mostly routing tables.
 - `BlockingQueue`: hand-off between threads with back-pressure.
 
 ## 5. When NOT to use it
 
-- **Single-threaded or thread-confined data** — use `ArrayDeque`, `TreeSet`, `ArrayList`; they're faster and simpler.
-- **`CopyOnWriteArrayList` for frequently-changing data** — every write is O(n) copy plus garbage.
+- **Single-threaded or thread-confined data** (only ever touched by one thread) — use `ArrayDeque`, `TreeSet`, `ArrayList`; they're faster and simpler.
+- **`CopyOnWriteArrayList` for frequently-changing data** — every write is O(n) copy (cost grows with list size) plus garbage (old arrays the GC must clean up).
 - **`ConcurrentSkipListSet` when you don't need order** — O(log n) and more memory than a deque.
-- **Unbounded `LinkedBlockingQueue` in front of a slow consumer** — the queue grows until OOM; bound it and decide what happens when full.
-- **Multi-step invariants across structures** — no collection makes two structures change together; use a lock or a single owner thread.
+- **Unbounded `LinkedBlockingQueue` in front of a slow consumer** — the queue grows until OOM (OutOfMemoryError, the JVM runs out of heap); bound it and decide what happens when full.
+- **Multi-step invariants (rules that must always hold) across structures** — no collection makes two structures change together; use a lock or a single owner thread.
 - **State shared across JVMs** — these are in-process; multiple lot servers need a DB / Redis.
 
 ## 6. Commonly confused with
@@ -133,7 +135,7 @@ Same lesson as get-then-put on [ConcurrentHashMap](concurrent-hashmap.md), and t
 | Read cost | O(1) ends | O(log n) | O(1), no lock | O(1) | lock |
 | Write cost | O(1) | O(log n) | O(n) copy | O(1) | lock |
 | `size()` | O(n), estimate | O(n), estimate | O(1) | O(1) | O(1) |
-| Iteration | weakly consistent | weakly consistent | snapshot | weakly consistent | must lock manually |
+| Iteration | weakly consistent (may or may not show concurrent changes, but never crashes) | weakly consistent | snapshot | weakly consistent | must lock manually |
 
 ## 7. Common mistakes / misuse
 
@@ -142,7 +144,7 @@ Same lesson as get-then-put on [ConcurrentHashMap](concurrent-hashmap.md), and t
 3. **Mutating a field used by the comparator** while the element is in the set → set ordering breaks; remove, mutate, re-add.
 4. **Using `size()` for decisions** ("if size > 0 then poll") — estimate, and O(n) on linked structures.
 5. **`CopyOnWriteArrayList` as a general concurrent list.**
-6. **Unbounded blocking queues** hiding an overloaded consumer until the heap dies.
+6. **Unbounded blocking queues** hiding an overloaded consumer until the heap (the JVM's memory for objects) dies.
 7. **Assuming the collection makes its elements thread-safe** — a `ParkingSpot` inside a concurrent set still needs its own safe state.
 
 ## 8. Interview cheat-sheet

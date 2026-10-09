@@ -4,9 +4,11 @@
 
 `Map` is JavaScript's real hash map — any key type, a `size`, insertion-ordered iteration, no inherited keys — and it's the right container for a registry like "key → rate-limit bucket"; a plain object `{}` is for records with known field names.
 
+💡 **Hash map / rate-limit bucket:** a *hash map* is a key-to-value lookup table with near-instant access by key. A *rate-limit bucket* is a per-user counter (a token bucket) that decides whether a request is allowed. `WeakMap` is a variant whose keys don't keep objects alive (explained below).
+
 ## 2. The problem it solves
 
-Before ES2015, people used plain objects as dictionaries:
+Before ES2015 (the 2015 JavaScript standard that added `Map`, classes and more), people used plain objects as dictionaries:
 
 ```js
 const buckets = {};
@@ -16,9 +18,9 @@ buckets[userKey] = new TokenBucket(10, 5);
 That works until it doesn't:
 
 - Keys are coerced to **strings**: `obj[1]` and `obj["1"]` are the same; an object key becomes `"[object Object]"`.
-- Objects inherit from `Object.prototype`, so `"toString" in buckets` is `true` before you insert anything, and a key like `__proto__` can modify the prototype (**prototype pollution** — a real class of security bugs when keys come from user input such as a header or API key).
-- No cheap size: `Object.keys(obj).length` builds an array every time.
-- Engines optimize objects for fixed shapes ("hidden classes"); frequent add/delete of arbitrary keys pushes them into slow dictionary mode.
+- Objects inherit from `Object.prototype` (JS's built-in parent object whose properties every object can see), so `"toString" in buckets` is `true` before you insert anything, and a key like `__proto__` can modify the prototype (**prototype pollution** — a real class of security bugs when keys come from user input such as a header or API key).
+- No cheap size: `Object.keys(obj).length` builds an array every time (cost grows with the number of keys).
+- Engines (the JS runtimes such as V8 in Node) optimize objects for fixed shapes ("hidden classes"); frequent add/delete of arbitrary keys pushes them into slow dictionary mode.
 
 `Map` was added to be a proper dictionary.
 
@@ -43,9 +45,11 @@ for (const [key, bucket] of buckets) { /* insertion order */ }
 
 In Java this get-then-put would be a race and you'd use [`computeIfAbsent`](../java/concurrent-hashmap.md). In Node it's fine because the function is synchronous and the [event loop](event-loop-and-concurrency.md) runs it to completion.
 
-Map keys use **SameValueZero** equality: strings and numbers by value, objects by identity, `NaN` equals `NaN`. So `map.get(1)` and `map.get("1")` are different entries.
+Map keys use **SameValueZero** equality (JS's rule for comparing keys: like `===` except that `NaN`, the not-a-number value, equals itself): strings and numbers by value, objects by identity, `NaN` equals `NaN`. So `map.get(1)` and `map.get("1")` are different entries.
 
 ### Insertion order enables cheap LRU-ish eviction
+
+💡 **LRU / eviction:** *LRU* = least recently used; *eviction* = removing entries to keep memory bounded, here dropping the ones touched longest ago.
 
 A `Map` iterates in insertion order. Delete-then-set moves a key to the end, so the first entries are the least recently touched:
 
@@ -65,7 +69,7 @@ function evictOldest(maxSize) {
 
 ### Memory growth and eviction
 
-A registry keyed by user/IP grows with every new key and never shrinks on its own. A bot rotating IPs can create millions of entries and the process gets OOM-killed by Kubernetes. Options:
+A registry keyed by user/IP grows with every new key and never shrinks on its own. A bot rotating IPs can create millions of entries and the process gets OOM-killed by Kubernetes (the container exceeds its memory limit and is terminated). Options:
 
 1. **Idle sweep** — a `setInterval(...).unref()` that deletes buckets idle longer than N minutes (see [event-loop-and-concurrency](event-loop-and-concurrency.md)).
 2. **Size cap** — evict oldest when `size` exceeds a limit (above). Bounded memory even under attack.
@@ -82,7 +86,7 @@ flowchart LR
 
 ### WeakMap — and why it doesn't fit here
 
-`WeakMap` holds its keys **weakly**: when nothing else references the key object, the garbage collector can drop the entry. Perfect for attaching data to objects you don't own:
+`WeakMap` holds its keys **weakly**: when nothing else references the key object, the garbage collector (the runtime's automatic memory cleaner) can drop the entry. Perfect for attaching data to objects you don't own:
 
 ```js
 const meta = new WeakMap();
@@ -119,7 +123,7 @@ Rate-limit state needs to outlive the request and be keyed by a value, so it's a
 | Size | `Object.keys(o).length` (O(n)) | same | `size` (O(1)) | not available |
 | Iteration order | integer-like keys first, then insertion | same | insertion | not iterable |
 | Frequent add/delete | can degrade | can degrade | designed for it | designed for it |
-| GC of entries | never automatic | never | never | when key object is unreachable |
+| GC (garbage collection) of entries | never automatic | never | never | when key object is unreachable |
 | JSON | native | native | needs conversion | no |
 
 ## 7. Common mistakes / misuse
@@ -127,7 +131,7 @@ Rate-limit state needs to outlive the request and be keyed by a value, so it's a
 1. `buckets[key]` with a user-controlled key → `__proto__`/`constructor` surprises.
 2. `if (buckets[key])` → false for a stored `0` or `""`; use `map.has(key)` or compare with `undefined`.
 3. Using an object as a Map key and expecting lookup by content: `map.get({ id: 1 })` never hits — identity, not equality.
-4. `JSON.stringify(map)` → `"{}"`. Use `Object.fromEntries(map)` or `[...map]`.
+4. `JSON.stringify(map)` (JS's object-to-JSON-text converter) → `"{}"`. Use `Object.fromEntries(map)` or `[...map]`.
 5. No eviction → unbounded growth.
 6. Reaching for `WeakMap` to "fix" the memory leak of a string-keyed registry.
 
@@ -135,7 +139,7 @@ Rate-limit state needs to outlive the request and be keyed by a value, so it's a
 
 - "I store buckets in a `Map<string, Bucket>` — any key type, O(1) `size`, insertion order, and no prototype keys, so user-supplied keys can't collide with `__proto__`."
 - "Get-then-set is safe in Node because it's synchronous; in Java I'd need `computeIfAbsent`."
-- "The map grows with every key, so I add an `unref()`'d sweeper for idle buckets and a size cap that evicts the oldest using Map's insertion order."
+- "The map grows with every key, so I add an `unref()`'d (not keeping the process alive) sweeper for idle buckets and a size cap that evicts the oldest using Map's insertion order."
 - "`WeakMap` doesn't fit: keys must be objects, and state should outlive the request, not be collected with it."
 
 ## 9. Used in

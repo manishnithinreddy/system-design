@@ -6,21 +6,21 @@
 
 ## 2. The problem it solves
 
-A plain `HashMap` is not safe when several threads touch it. Two threads calling `put` at once can lose an entry, corrupt the internal bucket array during a resize, or (in old JDKs) produce an infinite loop on `get`. You will not get an exception — you get silently wrong data, which is the worst kind of bug to debug at 3 a.m. on-call.
+A plain `HashMap` (a key-to-value lookup table that hashes each key to pick a slot) is not safe when several threads (independent lines of execution) touch it. Two threads calling `put` at once can lose an entry, corrupt the internal bucket array during a resize (when the table grows and entries are re-spread), or (in old JDKs) produce an infinite loop on `get`. You will not get an exception — you get silently wrong data, which is the worst kind of bug to debug at 3 a.m. on-call.
 
 The first fix people reach for is `Collections.synchronizedMap(new HashMap<>())` or the legacy `Hashtable`. Both put **one lock around the whole map**. That is correct, but every thread queues on that one lock — like a load balancer with a single backend. Under load, throughput collapses.
 
-`ConcurrentHashMap` (CHM) fixes both: it is correct under concurrency, and threads working on different keys almost never block each other.
+`ConcurrentHashMap` (CHM) fixes both (*thread-safe* = correct under concurrent use; *lock* = a guard letting one thread at a time into a section of code): it is correct under concurrency, and threads working on different keys almost never block each other.
 
 ## 3. How it works
 
 Just enough internals (Java 8+):
 
-- The map is an array of **bins** (buckets). Each bin holds a linked list, or a red-black tree once it gets long.
-- **Reads (`get`) take no lock.** They read `volatile` fields, so they always see a fully published entry (see [thread-safety-basics](../../concepts/thread-safety-basics.md) for what `volatile` guarantees).
+- The map is an array of **bins** (buckets). Each bin holds a linked list, or a red-black tree (a self-balancing sorted tree, so lookups stay fast) once it gets long.
+- **Reads (`get`) take no lock.** They read `volatile` fields (a field modifier that guarantees other threads see the latest written value, not a stale cached copy), so they always see a fully published entry (see [thread-safety-basics](../../concepts/thread-safety-basics.md) for what `volatile` guarantees).
 - **Inserting into an empty bin** uses a single CAS (compare-and-set, see [atomics-and-cas](atomics-and-cas.md)).
-- **Updating a non-empty bin** locks only the **first node of that bin** (`synchronized` on that node). Other bins stay free.
-- Resizing is done cooperatively: threads that run into a resize help move bins.
+- **Updating a non-empty bin** locks only the **first node of that bin** (`synchronized`, Java's built-in lock keyword, on that node). Other bins stay free.
+- Resizing is done cooperatively: threads that run into a resize help move bins (so no single thread stalls everyone).
 
 ```mermaid
 flowchart LR
@@ -43,9 +43,11 @@ flowchart LR
 | `compute(k, (k, old) -> new)` | read-modify-write of a single entry; returning `null` removes it |
 | `merge(k, v, (old, v) -> new)` | insert `v` or combine with old value |
 
-"Atomically" means: for **that one key**, no other thread can slip in between the read and the write.
+"Atomically" means: for **that one key**, no other thread can slip in between the read and the write. (`fn` is a lambda, i.e. a small inline function passed as an argument.)
 
 ### The classic check-then-act race
+
+💡 **Check-then-act race:** you check a condition, then act on it, but another thread changes things in the gap between the two. Like two engineers both seeing "no lock file" and both creating one.
 
 ```java
 // BROKEN: two threads can both see null and both create a bucket
@@ -83,7 +85,7 @@ This is exactly how the per-key registry in the rate limiter is built.
 - **Single-threaded code** (or data confined to one thread): plain `HashMap` is simpler and slightly faster. Using CHM there signals "I don't know who touches this".
 - **You need several keys updated together** (move money from key A to key B). CHM's atomicity is per key; two `compute` calls are two separate atomic steps. Use a lock around both, or redesign.
 - **You need `null` keys or values.** CHM forbids them (`NullPointerException`) — because `get` returning `null` must unambiguously mean "absent".
-- **You need a bounded cache with eviction (LRU / TTL).** CHM never evicts. Use Caffeine in production, or a scheduled sweeper (see [scheduled-executor-service](scheduled-executor-service.md)). Using a raw CHM as a cache is a memory leak with extra steps.
+- **You need a bounded cache with eviction (LRU / TTL).** CHM never evicts. Use Caffeine (a popular Java caching library) in production, or a scheduled sweeper (see [scheduled-executor-service](scheduled-executor-service.md)). Using a raw CHM as a cache is a memory leak with extra steps. (*LRU* = evict the least recently used entry; *TTL* = evict after a time-to-live expires.)
 - **Data shared across JVMs / pods.** CHM lives in one process. For a fleet you need Redis or similar (see [production-rate-limit-libraries](production-rate-limit-libraries.md)).
 
 ## 6. Commonly confused with
@@ -92,9 +94,9 @@ This is exactly how the per-key registry in the rate limiter is built.
 |---|---|---|---|---|
 | Thread-safe | No | Yes | Yes | Yes |
 | Locking | none | one lock for whole map | one lock (every method `synchronized`) | per-bin lock + CAS, lock-free reads |
-| Throughput under contention | n/a | poor | poor | high |
+| Throughput under contention (many threads competing) | n/a | poor | poor | high |
 | `null` keys/values | allowed | allowed (if backing map allows) | not allowed | not allowed |
-| Iteration while others modify | `ConcurrentModificationException` | must manually `synchronized(map)` | fail-fast/enum | weakly consistent, never throws |
+| Iteration while others modify | `ConcurrentModificationException` (an error thrown when a collection changes mid-loop) | must manually `synchronized(map)` | fail-fast/enum | weakly consistent, never throws |
 | Atomic `computeIfAbsent` | no | yes (whole-map lock) | yes (whole-map lock) | yes (per-bin) |
 | Status | normal | fine for low contention | legacy, don't use | default choice |
 
@@ -108,11 +110,11 @@ This is exactly how the per-key registry in the rate limiter is built.
    // BAD: network call while holding the bin lock
    map.computeIfAbsent(userId, id -> userService.fetchLimitsOverHttp(id));
    ```
-   Fetch outside, then `putIfAbsent`; or use a cache library designed for async loading.
-3. **Modifying the same map inside the mapping function.** `map.computeIfAbsent(a, k -> map.computeIfAbsent(b, ...))` is forbidden — it can throw `IllegalStateException("Recursive update")` or deadlock. Don't recurse into the map.
-4. **Thinking the values are thread-safe too.** CHM protects the map structure, not the object you store. A `TokenBucket` inside it still needs its own lock or atomics (see [locks-and-synchronized](locks-and-synchronized.md)).
+   Fetch outside, then `putIfAbsent`; or use a cache library designed for async loading (fetching values in the background without blocking callers).
+3. **Modifying the same map inside the mapping function.** `map.computeIfAbsent(a, k -> map.computeIfAbsent(b, ...))` is forbidden — it can throw `IllegalStateException("Recursive update")` or deadlock (threads waiting on each other forever). Don't recurse into the map.
+4. **Thinking the values are thread-safe too.** CHM protects the map structure, not the object you store. A `TokenBucket` (a rate-limiter counter that refills over time) inside it still needs its own lock or atomics (see [locks-and-synchronized](locks-and-synchronized.md)).
 5. **Compound ops across calls.** `if (map.containsKey(k)) map.remove(k);` or `map.put(k, map.get(k) + 1)` are races. Use `remove(k, expectedValue)`, `merge`, or `compute`.
-6. **Evicting while in use.** A sweeper does `map.remove(key)` while a request thread holds the bucket it just got from `computeIfAbsent`. That request's update lands on an orphan. Usually acceptable for a rate limiter (worst case, one extra request), but say it out loud. Use `map.remove(key, bucket)` plus an idle check inside `computeIfPresent` to make it tighter:
+6. **Evicting while in use.** A sweeper does `map.remove(key)` while a request thread holds the bucket it just got from `computeIfAbsent`. That request's update lands on an orphan. Usually acceptable for a rate limiter (worst case, one extra request), but say it out loud. (An *orphan* is an object no longer reachable through the map.) Use `map.remove(key, bucket)` plus an idle check inside `computeIfPresent` to make it tighter:
    ```java
    buckets.computeIfPresent(key, (k, b) -> b.isIdle(now) ? null : b); // null = remove
    ```
