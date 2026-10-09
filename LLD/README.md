@@ -18,6 +18,7 @@
 | [In-memory File System](interviews/file-system/README.md) | Composite tree, path resolution with `.`/`..`, mv subtree check, symlinks with loop limit, Unix permissions, read/write lock, model-based random tests | [Java](interviews/file-system/java/) · [JS](interviews/file-system/js/) |
 | [ATM / Digital Wallet](interviews/digital-wallet/README.md) | ATM state machine, PIN lockout, note planning when greedy fails, reversals after timeouts, double-entry wallet ledger, idempotent transfers, lock ordering, holds, KYC limits | [Java](interviews/digital-wallet/java/) · [JS](interviews/digital-wallet/js/) |
 | [Pub-Sub Broker (in-memory)](interviews/pub-sub-broker/README.md) | Observer → per-subscriber queues + dispatchers, overflow policies as Strategy, acks + redelivery + dead letters, consumer groups, per-key ordering, retained log with offsets, wildcard topics | [Java](interviews/pub-sub-broker/java/) · [JS](interviews/pub-sub-broker/js/) |
+| [Chess](interviews/chess/README.md) | Piece/board modelling, legal vs pseudo-legal moves, check/mate/stalemate, castling, en passant, promotion, undo via Command + Memento, Zobrist repetition, perft tests | [Java](interviews/chess/java/) · [JS](interviews/chess/js/) |
 
 ## Libraries — Java
 | | Use it for |

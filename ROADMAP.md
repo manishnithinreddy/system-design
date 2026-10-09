@@ -25,12 +25,12 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 13 | [File Storage & Sync](HLD/interviews/file-storage-sync/README.md) | Metadata vs blocks, dedup, journal + cursor, conflicts, erasure coding | [In-memory File System](LLD/interviews/file-system/README.md) | Composite, path resolution, symlinks, permissions, locking |
 | 14 | [Payment System](HLD/interviews/payment-system/README.md) | State machine, idempotency end to end, unknown outcomes, double-entry ledger, outbox + saga, reconciliation, payouts, multi-PSP routing, fraud | [ATM / Digital Wallet](LLD/interviews/digital-wallet/README.md) | ATM states, note planning, reversals, idempotent transfers, lock ordering, holds |
 | 15 | [Distributed Message Queue](HLD/interviews/distributed-message-queue/README.md) | Partitioned logs, ISR + high watermark, leader epochs, consumer groups + rebalancing, exactly-once, compaction, tiered storage, multi-region | [Pub-Sub Broker](LLD/interviews/pub-sub-broker/README.md) | Observer at scale, overflow policies, acks + redelivery + DLQ, per-key ordering, retained log |
+| 16 | [Distributed Job Scheduler](HLD/interviews/distributed-job-scheduler/README.md) | next_run_at + SKIP LOCKED, leases + fencing, sharded leaders, misfires, jitter, DST, DAGs | [Chess](LLD/interviews/chess/README.md) | OOP modelling, legal-move pipeline, special rules, undo, perft testing |
 
 ## 🔜 Next (in order)
 
 | # | HLD | New ideas it brings | LLD | New ideas it brings |
 |---|---|---|---|---|
-| 16 | **Distributed Job Scheduler** | Leader election, exactly-once execution, sharding schedules, time zones | **Chess** | Rich OOP modelling, rules engines, move validation, undo |
 | 17 | **Ad Click Aggregation / Real-time Analytics** | Lambda vs Kappa, windowed aggregation, dedup at scale, reconciliation | **Hotel / Meeting-Room Booking** | Interval overlap, availability search, overbooking rules |
 
 After these 17 pairs, every major building block (storage engines, replication, consensus, caching, queues, streams, search, CDNs, consistency models, concurrency primitives, core design patterns) will have been used in at least one full interview.

@@ -259,4 +259,5 @@ Immutable data structures make snapshots nearly free: a persistent rope or a pie
 ## 9. Used in
 
 - [Text editor](../interviews/text-editor/README.md): **undo/redo** with command objects and two stacks, coalescing keystrokes, macros for replace-all, mementos for "restore version", and periodic snapshots plus a command log for long histories.
+- [Chess](../interviews/chess/README.md): moves as Commands that return a Memento of captured piece, castling rights and en-passant square, so undo restores the exact position.
 - Related: [design patterns](design-patterns.md), [undo logs and redo logs](undo-logs-and-redo-logs.md), [ledgers and event sourcing](ledgers-and-event-sourcing.md), [durability, WAL and snapshots](durability-wal-and-snapshots.md), [gap buffers, piece tables and ropes](gap-buffers-piece-tables-and-ropes.md), [Git's object store](../../under-the-hood/git-object-store.md).
