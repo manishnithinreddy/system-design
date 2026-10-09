@@ -236,4 +236,5 @@ Software encoders (x264, x265, libaom/SVT-AV1: open-source encoder libraries for
 
 - [Video Streaming](../interviews/video-streaming/README.md): the upload-to-playable pipeline, the chunked DAG, worker pool sizing, and the processing state shown to the uploader.
 - [Case study: video upload, transcode and storage](../../case-studies/video-upload-transcode-and-storage.md): how real platforms run their pipelines.
+- 🔍 Under the Hood: [Video compression](../../under-the-hood/video-compression.md) (what the encoder does inside: DCT, quantisation, I/P/B frames) · [Upscaling & super-resolution](../../under-the-hood/upscaling-and-super-resolution.md).
 - Related: [adaptive bitrate streaming](adaptive-bitrate-streaming.md), [resumable and chunked uploads](resumable-and-chunked-uploads.md), [object storage](../technologies/object-storage.md), [message queues](../technologies/message-queues.md), [retries, backoff and DLQ](retries-backoff-and-dlq.md), [idempotency](idempotency-and-delivery-semantics.md), [content fingerprinting](content-fingerprinting-and-dedup.md), [sagas](sagas-and-distributed-transactions.md).

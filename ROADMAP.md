@@ -80,7 +80,7 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U11 | **TLS 1.3 / QUIC** | How is an encrypted connection set up in one round trip? | Later |
 | U12 | **Containers: namespaces & cgroups** | What is a container, really? | Later |
 | U13 | **JVM garbage collectors** | How does ZGC pause for under a millisecond? | Later |
-| U14 | **Video compression** | I/P/B frames and motion vectors | Later |
+| U14 | ✅ [**Video compression**](under-the-hood/video-compression.md) | I/P/B frames and motion vectors | Done (reader request) |
 | U15 | **Shazam's audio fingerprints** | How is a song recognised in 3 seconds? | Later |
 | U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
 | U17 | ✅ [**Adaptive bitrate in the player**](under-the-hood/adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does it decide to climb back? | Done |

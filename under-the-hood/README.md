@@ -27,13 +27,14 @@ Each page follows the same shape: the hook question → life before it → the c
 | [Content-defined chunking](content-defined-chunking.md) | How do sync and backup tools dedupe files when one inserted byte shifts everything? |
 | [Adaptive bitrate in the player](adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does the player decide to climb back up? |
 | [How a voice is stored in a file](how-sound-is-stored.md) | What in those numbers is the pitch, and what makes a voice yours? |
+| [Video compression](video-compression.md) | How is a 1080p video 5 Mbps when raw it would be 1.5 Gbps, and how does the server make the 480p copy? |
 | [Upscaling & super-resolution](upscaling-and-super-resolution.md) | Can you really turn a blurry 360p video into HD? |
 | [Erasure coding](erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? |
 | [Double-entry ledgers](double-entry-ledgers.md) | How do payment systems make money impossible to lose? |
 | [Kafka's speed tricks](kafka-speed-tricks.md) | How does Kafka push millions of messages a second through ordinary disks? |
 | [UPI](upi.md) | What happens in the ~2 seconds between "Pay" and "₹ debited"? |
 
-More are planned (the Kubernetes scheduler, TLS 1.3, containers, JVM garbage collectors, video compression, Shazam, route planning): see the [roadmap](../ROADMAP.md).
+More are planned (the Kubernetes scheduler, TLS 1.3, containers, JVM garbage collectors, Shazam, route planning): see the [roadmap](../ROADMAP.md).
 
 Runnable demos live in [`code/`](code/).
 
