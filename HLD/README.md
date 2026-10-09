@@ -95,6 +95,8 @@
 | [Workflow orchestration & DAGs](concepts/workflow-orchestration-and-dags.md) | Jobs with dependencies: topological order, per-task retries, backfills, Airflow vs Temporal |
 | [Windowing, watermarks & late events](concepts/windowing-watermarks-and-late-events.md) | Counting events in time windows by when they happened, and deciding when a window is done |
 | [Lambda vs Kappa architecture](concepts/lambda-vs-kappa-architecture.md) | Fast streaming numbers plus an exact batch recount, or one replayable stream |
+| [RAG & vector search](concepts/rag-and-vector-search.md) | Giving an LLM your own documents: embeddings, chunking, ANN indexes (HNSW), hybrid search |
+| [LLM evals, guardrails & prompt injection](concepts/llm-evals-guardrails-and-prompt-injection.md) | Testing non-deterministic features and keeping untrusted text from steering the model |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |
