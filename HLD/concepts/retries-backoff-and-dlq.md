@@ -192,4 +192,5 @@ See the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md) for toke
 - [Distributed message queue](../interviews/distributed-message-queue/README.md): poison messages on a log (skip + dead-letter topic) and why per-message retries fit a queue better.
 - [LLD: Pub-Sub Broker](../../LLD/interviews/pub-sub-broker/README.md): max attempts then a dead-letter topic with reason headers, tested.
 - [Distributed job scheduler](../interviews/distributed-job-scheduler/README.md): per-run retries with backoff, dead runs, and misfire backlogs released through rate limits.
+- 🔬 [See it work: fan-out worker with retries + DLQ](../../see-it-work/fanout-worker-dlq/README.md): backoff with full jitter, Retry-After, a circuit breaker and a dead-letter queue, with an invariant check over 10,000 jobs.
 - Related: [message queues](../technologies/message-queues.md) (visibility timeout, DLQ config), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [push/email/SMS providers](../technologies/push-email-sms-providers.md), [rate limiter (LLD)](../../LLD/interviews/rate-limiter/README.md).

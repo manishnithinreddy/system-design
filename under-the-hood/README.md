@@ -38,6 +38,8 @@ Each page follows the same shape: the hook question → life before it → the c
 | [TLS 1.3 handshake](tls-1-3-handshake.md) | How is an encrypted connection set up in one round trip? |
 | [Password hashing](password-hashing.md) | How do you make cracking stolen passwords deliberately slow? |
 | [Shazam's audio fingerprints](shazam-audio-fingerprinting.md) | How is a song recognised in 3 seconds in a noisy café? |
+| [Anycast](anycast.md) | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? |
+| [Signal's double ratchet](signal-double-ratchet.md) | How does stealing today's key not reveal yesterday's messages? |
 | [UPI](upi.md) | What happens in the ~2 seconds between "Pay" and "₹ debited"? |
 
 More ideas (route planning, QR codes, anycast, Maglev hashing, Signal's double ratchet) are listed in the [roadmap](../ROADMAP.md).

@@ -59,7 +59,7 @@ The most instructive *distributed* mechanism from an HLD interview, as a small s
 | S2 | ✅ [**Raft leader election**](see-it-work/raft-leader-election/README.md): terms, votes, timeouts, a partitioned leader | Distributed KV store / etcd | Done |
 | S3 | ✅ [**Chat sequencer + gap detection + offline sync**](see-it-work/chat-sequencer-sync/README.md) | Chat system | Done |
 | S4 | ✅ [**Saga with compensations**](see-it-work/saga-compensations/README.md): reserve → charge → ship, retries, compensations, crash recovery | Payments / ride-sharing | Done |
-| S5 | **Fan-out worker with retries, backoff and a DLQ** | Notification system | After #16 |
+| S5 | ✅ [**Fan-out worker with retries, backoff and a DLQ**](see-it-work/fanout-worker-dlq/README.md) | Notification system | Done |
 
 ### 🔍 Under the Hood: how clever things actually work
 Curiosity-driven deep dives into one specific invention: the problem before it, the clever idea, how it works step by step, where you've used it without knowing. 1–2 per core pair, picked to match it.
@@ -85,11 +85,11 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U17 | ✅ [**Adaptive bitrate in the player**](under-the-hood/adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does it decide to climb back? | Done |
 | U18 | ✅ [**Erasure coding**](under-the-hood/erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | Done |
 | U19 | ✅ [**UPI under the hood**](under-the-hood/upi.md) | What happens between "Pay" and "₹ debited" in about 2 seconds? | Done |
-| U20 | **Anycast** | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Later |
+| U20 | ✅ [**Anycast**](under-the-hood/anycast.md) | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Done |
 | U21 | ✅ [**Password hashing**](under-the-hood/password-hashing.md) | How do you make cracking stolen passwords deliberately slow? | Done |
 | U22 | **QR codes and Reed–Solomon** | How does a QR code still scan with a corner torn off? | Later |
 | U23 | **Maglev hashing** | How do load balancers spread connections evenly and survive a server dying? | Later |
-| U24 | **Signal's double ratchet** | How does stealing today's key not reveal yesterday's messages? | Later |
+| U24 | ✅ [**Signal's double ratchet**](under-the-hood/signal-double-ratchet.md) | How does stealing today's key not reveal yesterday's messages? | Done |
 | U25 | ✅ [**Upscaling & super-resolution**](under-the-hood/upscaling-and-super-resolution.md) | Can you really turn a blurry 360p video into HD? | Done (reader request) |
 | U26 | ✅ [**How a voice is stored in a file**](under-the-hood/how-sound-is-stored.md) | What in the numbers is the pitch, and what makes a voice yours? | Done (reader request) |
 
