@@ -20,6 +20,7 @@
 | [Distributed Message Queue (Kafka internals)](interviews/distributed-message-queue/README.md) | Partitioned append-only logs, consumer groups and offsets, ISR + high watermark, leader epochs, rebalancing, idempotent producer + transactions, compaction, tiered storage, multi-region |
 | [Distributed Job Scheduler](interviews/distributed-job-scheduler/README.md) | next_run_at index + SKIP LOCKED claiming, leases + fencing + idempotent targets, sharding with a leader per shard, misfires, stable jitter, DST, DAGs, build vs buy |
 | [Ad Click Aggregation](interviews/ad-click-aggregation/README.md) | Event-time windows, watermarks and late events, exactly-once via checkpoints + upserts, salted hot keys, Lambda reconciliation, fraud, data-quality SLOs |
+| [LLM Gateway](interviews/llm-gateway/README.md) | One internal endpoint for LLM providers: token-based rate limits, budgets, exact + semantic caching, provider failover, streaming, guardrails, cost governance |
 
 ## Technologies (tools)
 | | What problem it solves |

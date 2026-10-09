@@ -204,14 +204,14 @@ What **did** lose value: memorising solutions to famous LeetCode problems verbat
 
 ## 8. Gaps in this repo worth filling later
 
-Not written yet; a list for the roadmap owner to consider.
+All six were added after this guide was written:
 
-1. **RAG and vector databases** (concept + technology file): chunking, embeddings, ANN/HNSW, hybrid search, re-embedding.
-2. **LLM gateway** (HLD interview): token-based rate limiting, budgets, semantic cache, provider failover, metering.
-3. **LLM inference serving and GPU scheduling** (HLD interview or Under the Hood): batching, KV cache, autoscaling, gang scheduling.
-4. **Evals, guardrails and prompt injection** (concept): how to test and secure non-deterministic features.
-5. **AI-assisted coding round practice** (LLD format): a small multi-file Java codebase with seeded bugs and failing tests, to practise sections 4.1–4.3.
-6. **Code review as an interview** (guide): a checklist and 2–3 sample PRs with planted issues.
+1. ✅ Done: [RAG & vector search](../HLD/concepts/rag-and-vector-search.md). **RAG and vector databases** (concept + technology file): chunking, embeddings, ANN/HNSW, hybrid search, re-embedding.
+2. ✅ Done: [LLM gateway interview](../HLD/interviews/llm-gateway/README.md). **LLM gateway** (HLD interview): token-based rate limiting, budgets, semantic cache, provider failover, metering.
+3. ✅ Done: [LLM inference serving](../under-the-hood/llm-inference-serving.md). **LLM inference serving and GPU scheduling** (HLD interview or Under the Hood): batching, KV cache, autoscaling, gang scheduling.
+4. ✅ Done: [Evals, guardrails & prompt injection](../HLD/concepts/llm-evals-guardrails-and-prompt-injection.md). **Evals, guardrails and prompt injection** (concept): how to test and secure non-deterministic features.
+5. ✅ Done: [practice kit](../practice/ai-assisted-coding/README.md). **AI-assisted coding round practice** (LLD format): a small multi-file Java codebase with seeded bugs and failing tests, to practise sections 4.1–4.3.
+6. ✅ Done: [code review guide](code-review-interview.md). **Code review as an interview** (guide): a checklist and 2–3 sample PRs with planted issues.
 
 ---
 
