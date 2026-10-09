@@ -26,6 +26,7 @@ Each page follows the same shape: the hook question → life before it → the c
 | [rsync's rolling hash](rsync-rolling-hash.md) | How does rsync send only the bytes that changed? |
 | [Content-defined chunking](content-defined-chunking.md) | How do sync and backup tools dedupe files when one inserted byte shifts everything? |
 | [Adaptive bitrate in the player](adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does the player decide to climb back up? |
+| [Upscaling & super-resolution](upscaling-and-super-resolution.md) | Can you really turn a blurry 360p video into HD? |
 | [Erasure coding](erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? |
 | [Double-entry ledgers](double-entry-ledgers.md) | How do payment systems make money impossible to lose? |
 | [Kafka's speed tricks](kafka-speed-tricks.md) | How does Kafka push millions of messages a second through ordinary disks? |

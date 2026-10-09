@@ -91,6 +91,7 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U22 | **QR codes and Reed–Solomon** | How does a QR code still scan with a corner torn off? | Later |
 | U23 | **Maglev hashing** | How do load balancers spread connections evenly and survive a server dying? | Later |
 | U24 | **Signal's double ratchet** | How does stealing today's key not reveal yesterday's messages? | Later |
+| U25 | ✅ [**Upscaling & super-resolution**](under-the-hood/upscaling-and-super-resolution.md) | Can you really turn a blurry 360p video into HD? | Done (reader request) |
 
 ## 🗺️ Learning path pages
 
