@@ -40,9 +40,12 @@ Each page follows the same shape: the hook question → life before it → the c
 | [Shazam's audio fingerprints](shazam-audio-fingerprinting.md) | How is a song recognised in 3 seconds in a noisy café? |
 | [Anycast](anycast.md) | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? |
 | [Signal's double ratchet](signal-double-ratchet.md) | How does stealing today's key not reveal yesterday's messages? |
+| [Route planning](route-planning.md) | How does a maps app find a route across a country in milliseconds? |
+| [QR codes and Reed–Solomon](qr-codes-reed-solomon.md) | How does a QR code still scan with a corner torn off? |
+| [Maglev hashing](maglev-hashing.md) | How do load balancers spread connections evenly and survive a server dying? |
 | [UPI](upi.md) | What happens in the ~2 seconds between "Pay" and "₹ debited"? |
 
-More ideas (route planning, QR codes, anycast, Maglev hashing, Signal's double ratchet) are listed in the [roadmap](../ROADMAP.md).
+Every planned page is done; new ideas go in the [roadmap](../ROADMAP.md).
 
 Runnable demos live in [`code/`](code/).
 
