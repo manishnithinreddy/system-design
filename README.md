@@ -62,6 +62,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | LLD | [Text Editor with Undo/Redo](LLD/interviews/text-editor/README.md) | [Product intro](LLD/interviews/text-editor/00-understand-the-product.md) · [L4](LLD/interviews/text-editor/L4-mid.md) · [L5](LLD/interviews/text-editor/L5-senior.md) · [L6](LLD/interviews/text-editor/L6-staff.md) |
 | LLD | [In-memory File System](LLD/interviews/file-system/README.md) | [Product intro](LLD/interviews/file-system/00-understand-the-product.md) · [L4](LLD/interviews/file-system/L4-mid.md) · [L5](LLD/interviews/file-system/L5-senior.md) · [L6](LLD/interviews/file-system/L6-staff.md) |
 | LLD | [ATM / Digital Wallet](LLD/interviews/digital-wallet/README.md) | [Product intro](LLD/interviews/digital-wallet/00-understand-the-product.md) · [L4](LLD/interviews/digital-wallet/L4-mid.md) · [L5](LLD/interviews/digital-wallet/L5-senior.md) · [L6](LLD/interviews/digital-wallet/L6-staff.md) |
+| LLD | [Pub-Sub Broker (in-memory)](LLD/interviews/pub-sub-broker/README.md) | [Product intro](LLD/interviews/pub-sub-broker/00-understand-the-product.md) · [L4](LLD/interviews/pub-sub-broker/L4-mid.md) · [L5](LLD/interviews/pub-sub-broker/L5-senior.md) · [L6](LLD/interviews/pub-sub-broker/L6-staff.md) |
 
 Indexes: [HLD](HLD/README.md) · [LLD](LLD/README.md)
 
@@ -104,4 +105,6 @@ LLD/interviews/file-system/java/run.sh                  # Java 21+, tests + demo
 cd LLD/interviews/file-system/js && node --test         # Node 22+, tests
 LLD/interviews/digital-wallet/java/run.sh               # Java 21+, tests + demo
 cd LLD/interviews/digital-wallet/js && node --test      # Node 22+, tests
+LLD/interviews/pub-sub-broker/java/run.sh               # Java 21+, tests + demo
+cd LLD/interviews/pub-sub-broker/js && node --test      # Node 22+, tests
 ```

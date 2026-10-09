@@ -162,4 +162,5 @@ For **large groups/channels** (say 100k members), publishing once per member's g
 
 - [Chat system](../interviews/chat-system/README.md): **routing a message to the gateway holding the recipient's WebSocket** (per-gateway channels vs direct gateway-to-gateway RPC), large-group/channel delivery, and the durable "message sent" event stream for push and analytics.
 - [Distributed message queue](../interviews/distributed-message-queue/README.md): the durable, partitioned log behind pub/sub at scale.
+- [LLD: Pub-Sub Broker](../../LLD/interviews/pub-sub-broker/README.md): the same ideas inside one process, in Java and JavaScript.
 - Related: [Redis](redis.md) (Pub/Sub, Streams), [Kafka](kafka.md), [message queues](message-queues.md), [WebSockets and SSE](websockets-and-sse.md), [fan-out](../concepts/fan-out.md), [idempotency and delivery semantics](../concepts/idempotency-and-delivery-semantics.md), [presence and heartbeats](../concepts/presence-and-heartbeats.md).

@@ -188,4 +188,5 @@ See the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md) for toke
 - [Video streaming](../interviews/video-streaming/README.md): per-chunk retries in the transcoding DAG and a dead-letter queue for videos that crash every encoder.
 - [Payment system](../interviews/payment-system/README.md): status checks with backoff for PENDING payments, and why a timed-out charge is retried only with the **same** key.
 - [Distributed message queue](../interviews/distributed-message-queue/README.md): poison messages on a log (skip + dead-letter topic) and why per-message retries fit a queue better.
+- [LLD: Pub-Sub Broker](../../LLD/interviews/pub-sub-broker/README.md): max attempts then a dead-letter topic with reason headers, tested.
 - Related: [message queues](../technologies/message-queues.md) (visibility timeout, DLQ config), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [push/email/SMS providers](../technologies/push-email-sms-providers.md), [rate limiter (LLD)](../../LLD/interviews/rate-limiter/README.md).

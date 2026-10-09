@@ -282,4 +282,5 @@ Also confused: **Decorator vs Proxy** — same shape; Decorator adds behavior, P
 - [Vending Machine](../interviews/vending-machine/README.md): **State** pattern for the machine's modes, and a pluggable `Dispenser` so tests can simulate a motor jam.
 - [Text Editor](../interviews/text-editor/README.md): **Command** (insert/delete with undo), **Composite/Macro** commands (paste, replace-all as one undo step), and Memento as the snapshot alternative.
 - [In-memory File System](../interviews/file-system/README.md): **Composite** (File and Directory as Nodes, recursive size) and iterators/visitors for find.
+- [Pub-Sub Broker](../interviews/pub-sub-broker/README.md): Observer scaled up (per-subscriber queues and dispatchers), Strategy for overflow policies. Deeper: [Observer & event dispatch](observer-and-event-dispatch.md).
 - Related: [SOLID principles](solid-principles.md) — Strategy and Decorator are how Open/Closed is usually achieved.
