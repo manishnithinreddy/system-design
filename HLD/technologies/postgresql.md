@@ -163,4 +163,5 @@ See [CAP and consistency](../concepts/cap-and-consistency.md) for why these trad
 - [LLD: Task Scheduler](../../LLD/interviews/task-scheduler/README.md): a **durable task table** where many scheduler instances claim due rows with `SELECT ... FOR UPDATE SKIP LOCKED` without blocking each other.
 - [Video streaming](../interviews/video-streaming/README.md): video metadata and the processing **state machine** (UPLOADING → PROCESSING → READY / FAILED): small rows, heavily cached reads.
 - [LLD: Thread Pool / Connection Pool](../../LLD/interviews/thread-pool/README.md): `max_connections` vs pods × pool size, and when to put **pgbouncer / RDS Proxy** in front.
+- [Payment system](../interviews/payment-system/README.md): payments, ledger, idempotency keys and outbox in **one transaction**; conditional state updates; synchronous replication for RPO 0.
 - Related concepts: [sharding and replication](../concepts/sharding-and-replication.md), [CAP and consistency](../concepts/cap-and-consistency.md), [back-of-the-envelope](../concepts/back-of-the-envelope.md), [ID generation](../concepts/id-generation.md).

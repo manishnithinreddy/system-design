@@ -59,7 +59,7 @@ The most instructive *distributed* mechanism from an HLD interview, as a small s
 | S1 | ✅ [**Hash ring + quorum reads/writes + hinted handoff**](see-it-work/hash-ring-quorum/README.md), with nodes you can "kill" | Distributed KV store | Done |
 | S2 | ✅ [**Raft leader election**](see-it-work/raft-leader-election/README.md): terms, votes, timeouts, a partitioned leader | Distributed KV store / etcd | Done |
 | S3 | ✅ [**Chat sequencer + gap detection + offline sync**](see-it-work/chat-sequencer-sync/README.md) | Chat system | Done |
-| S4 | **Saga with compensations**: book → pay → fail → undo | Ride-sharing / payments | After #14 |
+| S4 | ✅ [**Saga with compensations**](see-it-work/saga-compensations/README.md): reserve → charge → ship, retries, compensations, crash recovery | Payments / ride-sharing | Done |
 | S5 | **Fan-out worker with retries, backoff and a DLQ** | Notification system | After #16 |
 
 ### 🔍 Under the Hood: how clever things actually work
@@ -84,7 +84,7 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U15 | **Shazam's audio fingerprints** | How is a song recognised in 3 seconds? | Later |
 | U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
 | U17 | ✅ [**Adaptive bitrate in the player**](under-the-hood/adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does it decide to climb back? | Done |
-| U18 | **Erasure coding** | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | With #13 |
+| U18 | ✅ [**Erasure coding**](under-the-hood/erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | Done |
 | U19 | **UPI under the hood** | What happens between "Pay" and "₹ debited" in about 2 seconds? | With #14 |
 | U20 | **Anycast** | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Later |
 | U21 | **Password hashing (bcrypt / Argon2)** | How do you make cracking stolen passwords deliberately slow? | Later |

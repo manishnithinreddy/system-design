@@ -164,4 +164,5 @@ A saga is atomic *eventually* but **not isolated**: other readers can see half-d
 ## 9. Used in
 
 - [Ride-sharing](../interviews/ride-sharing/README.md): the **payment flow**: authorize at request, capture at trip end, driver payout, void/refund compensations on cancellation or failure, idempotency keys per step, outbox-driven events from the trip service.
+- [Payment system](../interviews/payment-system/README.md): **payment ↔ order saga** with refund as the compensation, outbox for events, and step ordering by cost to undo (L5 §3.1). Runnable: [See it work: saga with compensations](../../see-it-work/saga-compensations/README.md).
 - Related: [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [fan-out](fan-out.md) (transactional outbox), [retries, backoff and DLQ](retries-backoff-and-dlq.md), [distributed locks and leases](distributed-locks-and-leases.md), [CAP and consistency](cap-and-consistency.md), [Kafka](../technologies/kafka.md), [PostgreSQL](../technologies/postgresql.md).

@@ -159,4 +159,5 @@ A **materialised view** is a stored query result the database keeps (e.g. `CREAT
 
 - [Ride-sharing](../interviews/ride-sharing/README.md): **surge pricing** per H3 cell per minute (supply vs demand over windows), **ETA features** from driver pings (live speed per road segment), and fraud/anomaly signals; results written to Redis for the pricing and matching services.
 - [Search autocomplete](../interviews/search-autocomplete/README.md): **windowed and exponentially decayed query counts** with a trending score (recent rate ÷ baseline), producing a small fresh index every ~5 minutes.
+- [Payment system](../interviews/payment-system/README.md): provisional real-time revenue from the ledger change stream (L6 §8).
 - Related: [Kafka](kafka.md) (the input log and offsets), [Redis](redis.md) (serving the computed values), [idempotency and delivery semantics](../concepts/idempotency-and-delivery-semantics.md), [counters at scale](../concepts/counters-at-scale.md), [geospatial indexing](../concepts/geospatial-indexing.md) (cells as keys), [back-of-the-envelope](../concepts/back-of-the-envelope.md).

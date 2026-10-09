@@ -160,4 +160,5 @@ Also: **optimistic locking vs a distributed lock** (Redis `SET NX`). A distribut
 - [LLD: Design a Movie Ticket Booking System](../interviews/movie-booking/README.md) — `LockingSeatInventory` (one lock per show, pessimistic) vs `CasSeatInventory` (per-seat `AtomicReference<SeatState>`, optimistic with rollback); at L6, `UPDATE ... WHERE state = 'AVAILABLE'`, `SELECT ... FOR UPDATE SKIP LOCKED` and version columns.
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — `AtomicBoolean.compareAndSet` spot claim; conditional `UPDATE` vs `FOR UPDATE SKIP LOCKED` at L6.
 - [HLD: File storage & sync](../../HLD/interviews/file-storage-sync/README.md): every commit carries a **parentVersion**; a stale one is rejected and resolved on the client.
+- [Payment system (HLD)](../../HLD/interviews/payment-system/README.md): optimistic locking on seller balances (L5 §3.6).
 - Related: [thread-safety-basics](thread-safety-basics.md), [deadlocks-and-lock-ordering](deadlocks-and-lock-ordering.md), [locks-and-synchronized](../libraries/java/locks-and-synchronized.md), [atomics-and-cas](../libraries/java/atomics-and-cas.md).

@@ -154,4 +154,5 @@ See [end-to-end encryption](end-to-end-encryption.md) and [authentication, OAuth
 
 - [API gateway](../interviews/api-gateway/README.md): **TLS termination** on the gateway fleet (SNI for many domains, handshake CPU sizing, resumption) and **mTLS to backends** so services trust only the gateway's identity headers.
 - [Web crawler](../interviews/web-crawler/README.md): TLS setup is part of every fetch's latency, which is why crawlers **reuse keep-alive connections per host**.
+- [Payment system](../interviews/payment-system/README.md): mTLS to bank payout APIs; HMAC-signed PSP webhooks.
 - Related: [load balancer](../technologies/load-balancer.md) (TLS termination at the LB), [service mesh and Envoy](../technologies/service-mesh-and-envoy.md) (automatic mTLS, SDS), [CDN](../technologies/cdn.md) (edge termination), [authentication, OAuth and JWT](authentication-oauth-jwt.md), [end-to-end encryption](end-to-end-encryption.md).

@@ -169,4 +169,5 @@ Also: **C in ACID ≠ C in CAP.** ACID consistency = "app invariants hold"; CAP 
 ## 9. Used in
 
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../interviews/kv-store/README.md) — `BEGIN/ROLLBACK/COMMIT` semantics, why Redis `MULTI/EXEC` is different, and at L6 MVCC snapshots and isolation levels for multi-client sessions.
+- [Payment system (HLD)](../../HLD/interviews/payment-system/README.md): "check balance, then debit" for payouts under row locks or SERIALIZABLE (L5 §3.6).
 - Related: [undo-logs-and-redo-logs](undo-logs-and-redo-logs.md), [durability-wal-and-snapshots](durability-wal-and-snapshots.md), [optimistic-vs-pessimistic-locking](optimistic-vs-pessimistic-locking.md), [single-writer-principle](single-writer-principle.md), [thread-safety-basics](thread-safety-basics.md).

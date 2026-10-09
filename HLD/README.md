@@ -16,6 +16,7 @@
 | [Metrics & Monitoring](interviews/metrics-monitoring/README.md) | Time-series storage, Gorilla compression, cardinality limits, downsampling, alerting at scale, SLO burn rates, monitoring that survives outages |
 | [Collaborative Editor](interviews/collaborative-editor/README.md) | Operational transformation vs CRDTs, one sequencer per document, local-first latency, op log + snapshots, presence, failover with fencing |
 | [File Storage & Sync](interviews/file-storage-sync/README.md) | Metadata vs content-addressed blocks, commit-then-upload-missing, journal + cursor sync, three-way conflicts, erasure coding, safe GC, storage economics |
+| [Payment System](interviews/payment-system/README.md) | Payment state machine, idempotency keys end to end, PENDING for unknown outcomes, double-entry ledger, outbox + saga, reconciliation, payouts, multi-PSP routing, fraud |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -38,6 +39,7 @@
 | [Elasticsearch](technologies/elasticsearch.md) | Full-text and search-as-you-type over documents; shards, refresh, suggesters |
 | [DNS](technologies/dns.md) | Turning names into IPs; TTLs, GeoDNS, why DNS failover is slow, DNS as a crawler bottleneck |
 | [Service mesh & Envoy](technologies/service-mesh-and-envoy.md) | Programmable proxies for routing, mTLS, retries and telemetry |
+| [Payment gateways & PSPs](technologies/payment-gateways-and-psps.md) | Accepting cards and UPI without integrating every bank: authorisation, capture, settlement, webhooks, tokens |
 
 ## Concepts (ideas)
 | | Question it answers |
@@ -81,6 +83,7 @@
 | [Real-time collaboration & presence](concepts/real-time-collaboration-and-presence.md) | Sessions per document, op logs, cursors, reconnects |
 | [File sync & conflict resolution](concepts/file-sync-and-conflict-resolution.md) | How do devices stay in sync, and what counts as a conflict? |
 | [Chunking & block-level dedup](concepts/chunking-and-block-level-dedup.md) | How do sync systems upload only changed blocks and store duplicates once? |
+| [Payment reconciliation](concepts/payment-reconciliation.md) | Matching your ledger against PSP settlement files and bank statements every day, and working the breaks |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |
