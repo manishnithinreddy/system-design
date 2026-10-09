@@ -74,7 +74,7 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U5 | ✅ [**Postgres MVCC**](under-the-hood/postgres-mvcc.md) | How do readers and writers not block each other? | Done |
 | U6 | ✅ [**rsync's rolling hash**](under-the-hood/rsync-rolling-hash.md) | How do you send only the bytes that changed? | Done |
 | U7 | ✅ [**Content-defined chunking**](under-the-hood/content-defined-chunking.md) | How do Dropbox-style systems dedupe files that shift? | Done |
-| U8 | **Double-entry ledgers in databases** | How do payment systems make money impossible to lose? | With #14 |
+| U8 | ✅ [**Double-entry ledgers in databases**](under-the-hood/double-entry-ledgers.md) | How do payment systems make money impossible to lose? | Done |
 | U9 | **Kafka's speed tricks** | Sequential I/O, page cache, zero-copy: how millions of messages/s fit on one disk | With #15 |
 | U10 | **Kubernetes scheduler** | How does Kubernetes pick a node for your pod? | With #16 |
 | U11 | **TLS 1.3 / QUIC** | How is an encrypted connection set up in one round trip? | Later |
@@ -85,7 +85,7 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
 | U17 | ✅ [**Adaptive bitrate in the player**](under-the-hood/adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does it decide to climb back? | Done |
 | U18 | ✅ [**Erasure coding**](under-the-hood/erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | Done |
-| U19 | **UPI under the hood** | What happens between "Pay" and "₹ debited" in about 2 seconds? | With #14 |
+| U19 | ✅ [**UPI under the hood**](under-the-hood/upi.md) | What happens between "Pay" and "₹ debited" in about 2 seconds? | Done |
 | U20 | **Anycast** | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Later |
 | U21 | **Password hashing (bcrypt / Argon2)** | How do you make cracking stolen passwords deliberately slow? | Later |
 | U22 | **QR codes and Reed–Solomon** | How does a QR code still scan with a corner torn off? | Later |
