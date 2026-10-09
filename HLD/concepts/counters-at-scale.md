@@ -154,4 +154,5 @@ Periodic **reconciliation** (a nightly batch `COUNT` from the facts table) fixes
 - [URL shortener](../interviews/url-shortener/README.md): click counting for analytics.
 - [Video streaming](../interviews/video-streaming/README.md): **view counts** from player heartbeats, counted once per session past a watch-time threshold, aggregated in a stream job.
 - [Payment system](../interviews/payment-system/README.md): splitting a **hot ledger account** (platform commission) into sub-accounts (L5 §3.6), and velocity counters for fraud (L6 §2).
+- [Ad click aggregation](../interviews/ad-click-aggregation/README.md): per-ad per-minute counts at 58k clicks/s, salting hot ads, HyperLogLog for unique clickers.
 - Related: [Redis](../technologies/redis.md) (INCR, HyperLogLog), [Kafka](../technologies/kafka.md), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [sharding and replication](sharding-and-replication.md), [Bloom filters](bloom-filters.md).

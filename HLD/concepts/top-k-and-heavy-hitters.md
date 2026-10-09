@@ -266,4 +266,5 @@ double max ≈ 1.8e308 ≈ 2^1024  →  must rebase well before ~1,000 hours (~6
 ## 9. Used in
 
 - [Search Autocomplete](../interviews/search-autocomplete/README.md): aggregating search logs into per-prefix top-k suggestions, the trending layer with decayed counts, and the shard-merge pitfall in the counting pipeline.
+- [Ad click aggregation](../interviews/ad-click-aggregation/README.md): top-N ads over the last M minutes, and detecting hot ads to salt.
 - Related: [tries and prefix search](tries-and-prefix-search.md) (where the top-k lists are stored), [inverted index](inverted-index.md), [Elasticsearch](../technologies/elasticsearch.md), [stream processing](../technologies/stream-processing.md), [Kafka](../technologies/kafka.md), [counters at scale](counters-at-scale.md), [Bloom filters](bloom-filters.md).

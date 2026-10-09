@@ -226,6 +226,7 @@ Each `remove` both matches and marks the PSP row as used, so leftovers are exact
 
 - [Payment system](../interviews/payment-system/README.md): daily reconciliation of the internal ledger against PSP reports and bank statements, pending-state polling, break queue and ageing report, scale arithmetic.
 - [Digital wallet](../../LLD/interviews/digital-wallet/README.md) (L6 discussion): reconciling the sum of wallet balances with top-ups and withdrawals at the PSP and bank.
+- [Ad click aggregation](../interviews/ad-click-aggregation/README.md): the same idea for clicks: real-time counts reconciled nightly with an exact batch recount before billing.
 - Related: [payment gateways and PSPs](../technologies/payment-gateways-and-psps.md), [sagas and distributed transactions](sagas-and-distributed-transactions.md), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [retries, backoff and DLQ](retries-backoff-and-dlq.md), [observability](observability.md), [ledgers and event sourcing](../../LLD/concepts/ledgers-and-event-sourcing.md), [state machines](../../LLD/concepts/state-machines.md), [double-entry ledgers](../../under-the-hood/double-entry-ledgers.md), [How UPI works](../../under-the-hood/upi.md).
 
 **Sources:** UTR lengths from Indian fintech blogs (Cashfree, Skydo, 2024–2025), not official NPCI/RBI documents, so unverified. Fee rates, break rates and staffing numbers are illustrative assumptions.

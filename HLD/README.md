@@ -19,6 +19,7 @@
 | [Payment System](interviews/payment-system/README.md) | Payment state machine, idempotency keys end to end, PENDING for unknown outcomes, double-entry ledger, outbox + saga, reconciliation, payouts, multi-PSP routing, fraud |
 | [Distributed Message Queue (Kafka internals)](interviews/distributed-message-queue/README.md) | Partitioned append-only logs, consumer groups and offsets, ISR + high watermark, leader epochs, rebalancing, idempotent producer + transactions, compaction, tiered storage, multi-region |
 | [Distributed Job Scheduler](interviews/distributed-job-scheduler/README.md) | next_run_at index + SKIP LOCKED claiming, leases + fencing + idempotent targets, sharding with a leader per shard, misfires, stable jitter, DST, DAGs, build vs buy |
+| [Ad Click Aggregation](interviews/ad-click-aggregation/README.md) | Event-time windows, watermarks and late events, exactly-once via checkpoints + upserts, salted hot keys, Lambda reconciliation, fraud, data-quality SLOs |
 
 ## Technologies (tools)
 | | What problem it solves |
@@ -91,6 +92,8 @@
 | [Consumer groups & rebalancing](concepts/consumer-groups-and-rebalancing.md) | Sharing partitions among consumers, offset commits, and keeping rebalances cheap |
 | [Distributed scheduling & time buckets](concepts/distributed-scheduling-and-time-buckets.md) | Finding "due now" among millions of jobs: indexes, time buckets, SKIP LOCKED, leader per shard, jitter |
 | [Workflow orchestration & DAGs](concepts/workflow-orchestration-and-dags.md) | Jobs with dependencies: topological order, per-task retries, backfills, Airflow vs Temporal |
+| [Windowing, watermarks & late events](concepts/windowing-watermarks-and-late-events.md) | Counting events in time windows by when they happened, and deciding when a window is done |
+| [Lambda vs Kappa architecture](concepts/lambda-vs-kappa-architecture.md) | Fast streaming numbers plus an exact batch recount, or one replayable stream |
 | [Gossip & failure detection](concepts/gossip-and-failure-detection.md) | How do hundreds of nodes know who's alive without a central list? |
 | [Vector clocks & conflict resolution](concepts/vector-clocks-and-conflict-resolution.md) | What happens when two replicas accept different writes? |
 | [Merkle trees & anti-entropy](concepts/merkle-trees-and-anti-entropy.md) | How do replicas find their differences cheaply? |

@@ -173,4 +173,5 @@ For a deeper look at the queue side (ack, visibility timeout, DLQ, priority queu
 - [Payment system](../interviews/payment-system/README.md): payment events published from an outbox, consumed idempotently by orders, payouts and reconciliation.
 - 🔍 [Under the Hood: Kafka's speed tricks](../../under-the-hood/kafka-speed-tricks.md): sequential appends, page cache, zero-copy `sendfile` and batching, with a runnable demo and real numbers.
 - [Distributed message queue](../interviews/distributed-message-queue/README.md): **building Kafka itself**: partitions and segments, ISR and high watermark, leader epochs, the KRaft controller, rebalancing, idempotent producer and transactions, tiered storage, multi-region.
+- [Ad click aggregation](../interviews/ad-click-aggregation/README.md): click events keyed by ad, replayed for recomputation (Kappa) and archived for batch recounts.
 - Related concepts: [back-of-the-envelope](../concepts/back-of-the-envelope.md) (sizing events/s and storage), [CAP and consistency](../concepts/cap-and-consistency.md), [sharding and replication](../concepts/sharding-and-replication.md) (partitions are shards).
