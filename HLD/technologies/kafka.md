@@ -4,6 +4,8 @@
 
 Apache Kafka is a **distributed, durable, append-only log**: producers append events to it, and any number of consumers read those events at their own pace, each remembering how far they've read (an **offset**). Use it to **decouple** services and move big streams of events asynchronously.
 
+💡 **Durable / consumer / async:** durable = written to disk and replicated, so it survives crashes. A producer is any program that writes events; a consumer is any program that reads them. Async (asynchronous) = the sender does not wait for the receiver to finish.
+
 ---
 
 ## 2. The problem it solves
@@ -15,6 +17,8 @@ Apache Kafka is a **distributed, durable, append-only log**: producers append ev
 - Tomorrow, the fraud team also wants the click stream. Do you write to their system too?
 
 **The fix:** the redirect handler just **appends a "click" event to Kafka** (~1–5 ms, batched, async) and returns. Separate consumers — an analytics aggregator, a fraud detector, an archiver to S3 — each read the stream independently, at their own speed, and can **replay** history if they have a bug.
+
+💡 **Replay:** because Kafka keeps old events, a consumer can rewind to an earlier position and re-read them, e.g. after fixing a bug. **Batched:** many small messages are grouped into one network request, which is far cheaper than one request each.
 
 > Infra analogy: it's like a centralized log pipeline (Fluentd → Kafka → Elasticsearch). The app emits lines; downstream systems index, alert, or archive them independently. Kafka is the durable buffer in the middle.
 
@@ -58,19 +62,29 @@ flowchart LR
 | **Retention** | Messages are kept for a time (e.g. 7 days) or size, **whether or not anyone read them**. Consuming doesn't delete. |
 | **Replication factor** | Each partition copied to e.g. 3 brokers; `acks=all` + `min.insync.replicas=2` = a write survives a broker loss. |
 
+💡 **Leader/follower and acks:** each partition has one *leader* broker that handles reads and writes and *follower* brokers that copy it. `acks=all` makes the producer wait until all in-sync replicas (followers that are caught up) have the message; `min.insync.replicas=2` refuses writes if fewer than 2 copies are in sync. Together: an acknowledged write is on at least 2 machines.
+
 ### 3.2 Why it's fast
 
 - Writes are **sequential appends** to disk files, and reads are mostly sequential too, served from the OS page cache.
 - Producers **batch** messages and compress them; consumers fetch in batches.
 - Zero-copy (`sendfile`) from page cache to the network socket.
 
+💡 **Sequential vs random I/O:** disks (even SSDs) are much faster when you read/write one contiguous stretch than when you jump around, because seeking costs time. The **OS page cache** is RAM the kernel uses to keep recently used file data, so reads often never touch the disk.
+
+💡 **Zero-copy / `sendfile`:** a system call (a request from your program to the OS kernel) that sends file bytes straight from the page cache to the network card, skipping the copy into the application's memory and back. Less CPU, fewer memory copies.
+
 Rough numbers: one broker can sustain **hundreds of MB/s**; a modest cluster handles **millions of messages/sec**. End-to-end latency is typically **a few ms to tens of ms** — fast, but not request/response fast.
+
+💡 **Throughput vs latency:** throughput = how much data per second flows through (MB/s, messages/s); latency = how long one message takes end to end. Kafka is optimised for the first.
 
 ### 3.3 Ordering: per partition only
 
 Kafka guarantees order **within a partition**, not across the topic. If you need "all events for short code abc123 in order", use `short_code` as the key so they all land in one partition. Global ordering would require 1 partition = no parallelism.
 
 Parallelism ceiling: a group can have at most **#partitions active consumers**. 12 partitions → max 12 consumers doing work; the 13th sits idle. Choose partition count for future throughput (e.g. 12–100), since increasing it later changes key → partition mapping.
+
+💡 **Rebalance** (mentioned later): when consumers join or leave a group, Kafka reassigns partitions among the remaining consumers, and consumption briefly pauses.
 
 ### 3.4 Delivery semantics and idempotent consumers
 
@@ -87,6 +101,8 @@ So with at-least-once, **design consumers to be idempotent**: processing the sam
 
 Kafka also offers **idempotent producers** (no duplicates from producer retries) and **transactions** for "exactly-once" *within Kafka* (read-process-write Kafka to Kafka, e.g. Kafka Streams). Once you write to an external DB, idempotency is back on you.
 
+💡 **Exactly-once / Kafka Streams / upsert:** exactly-once means each event has its effect once even with retries; it is hard across systems. Kafka Streams is a Java library for processing topics. An *upsert* is "insert, or update if the key exists", so repeating it changes nothing.
+
 ### 3.5 Click analytics pipeline example
 
 1. Redirect service: `producer.send("clicks", shortCode, clickJson)` — async, fire and continue; return 302.
@@ -95,6 +111,8 @@ Kafka also offers **idempotent producers** (no duplicates from producer retries)
 4. If the analytics DB is down for an hour, Kafka just **buffers** (consumer lag grows); when it recovers, consumers catch up. Redirects never noticed.
 
 Monitor **consumer lag** (latest offset − committed offset) — it's the key on-call metric, like queue depth.
+
+💡 **Queue depth:** how many messages are waiting to be processed; same idea as pending requests in a thread pool queue.
 
 ---
 
@@ -106,6 +124,8 @@ Monitor **consumer lag** (latest offset − committed offset) — it's the key o
 - **Replay**: rebuild a derived store or fix a buggy consumer by re-reading from an old offset.
 - **Buffering** spikes so downstream systems process at a steady rate.
 
+💡 **CDC (change data capture):** streaming every insert/update/delete from a database's own log out as events, so other systems can mirror the data.
+
 ## 5. When NOT to use it (and why it's a mistake)
 
 | Situation | Why it's a mistake |
@@ -115,6 +135,8 @@ Monitor **consumer lag** (latest offset − committed offset) — it's the key o
 | **Per-message work queue** with retries, delays, priority | Kafka has no per-message ack/redelivery or delay; a slow message blocks its partition. RabbitMQ/SQS fit better. |
 | **Querying** events by arbitrary fields | Kafka isn't a database; you can only read sequentially by offset. Sink to a DB first. |
 | Strict **global** ordering at high throughput | Only per-partition order exists. |
+
+💡 **Row 2 terms:** *KRaft* (Kafka's built-in consensus, in which brokers agree on cluster metadata) and *ZooKeeper* (the older external coordination service Kafka used for that) are extra moving parts to run. *SQS* is Amazon's managed queue; *correlation ID* is a unique ID attached to a request so a reply can be matched to it. *Ack* (acknowledgement) = "I got it / finished it"; *DLQ* (dead-letter queue) = a side queue where messages that keep failing are parked.
 
 ---
 
@@ -134,6 +156,8 @@ Monitor **consumer lag** (latest offset − committed offset) — it's the key o
 
 Mental model: a **queue** is a to-do list — finished items are crossed out. A **log** is a newspaper archive — everyone reads it at their own pace and old issues stay on the shelf.
 
+💡 **Pub/Sub / fan-out / visibility timeout:** publish/subscribe means a sender broadcasts to whoever is listening. Fan-out = one event delivered to many independent consumers. Visibility timeout (SQS) = after a worker takes a message it is hidden for a while; if not acked in time it reappears for another worker.
+
 For a deeper look at the queue side (ack, visibility timeout, DLQ, priority queues, DB-table queues), see [Message queues](message-queues.md).
 
 ---
@@ -149,11 +173,15 @@ For a deeper look at the queue side (ack, visibility timeout, DLQ, priority queu
 7. **Treating Kafka as a database** forever (infinite retention + querying). Sink to a proper store.
 8. **Ignoring consumer lag** — the silent failure: everything "works" but analytics are 6 hours behind.
 
+💡 **Hot key:** one key (a viral short code) that gets far more traffic than others; since a key always maps to one partition, that partition and its single consumer get overloaded.
+
 ---
 
 ## 8. Interview cheat-sheet
 
 > "The redirect path should stay fast and not depend on analytics, so the redirect service publishes a click event to a Kafka topic asynchronously and returns the 302 immediately. Kafka is a partitioned, replicated append-only log: I'd key events by short code so a given URL's clicks stay ordered in one partition, and size the topic with enough partitions — say 32 — to scale consumers. An analytics consumer group aggregates clicks per URL per minute and writes them to the analytics store; delivery is at-least-once, so the consumer is idempotent, using event IDs or overwriting per-window aggregates. Because Kafka retains data for days, if the analytics DB goes down, the events just buffer and we catch up, and we can replay if we ship a bug. I'd monitor consumer lag as the main health signal."
+
+💡 **Outbox** (in Used in, below): a pattern where a service writes the event to a table in the same DB transaction as its data change, and a separate process publishes it to Kafka, so the DB and Kafka never disagree.
 
 ---
 

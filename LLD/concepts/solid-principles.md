@@ -8,6 +8,8 @@ SOLID is five guidelines for object-oriented design — **S**ingle responsibilit
 
 Code rots in predictable ways: one class does five things, so every change risks breaking the other four; adding a feature means editing a growing `if/else`; a subclass quietly breaks callers; tests need a real database because a class `new`s its own dependencies. It's the codebase equivalent of a single giant Helm chart that deploys everything — every change is scary.
 
+💡 **Dependency / `new`s its own dependencies / Helm chart:** a dependency is anything a class needs to do its job (a database, a clock, another class). If the class creates it itself with `new`, you cannot swap it in a test. A Helm chart is a package of Kubernetes manifests; one giant chart is the infra equivalent of one giant class. **Subtype / subclass** = a class (or implementation) that can be used wherever its parent type is expected.
+
 SOLID names the five most common causes and their fixes. In LLD interviews, interviewers rarely ask "what is SOLID?" — they watch whether your class diagram and code follow it.
 
 ## 3. How it works
@@ -22,6 +24,8 @@ flowchart LR
 ```
 
 ### S — Single Responsibility Principle
+
+💡 **Rate limiter / token math:** a rate limiter decides whether a caller may proceed or must be rejected for sending too many requests per period; the examples here use it as the running example (see [the interview](../interviews/rate-limiter/README.md)). `429` is the HTTP "Too Many Requests" status.
 
 A class should have **one reason to change** (one owner / one concern).
 
@@ -64,9 +68,13 @@ final class SlidingWindowCounterLimiter implements RateLimiter {
 
 The [factory](design-patterns.md) still has one `switch` to update — that's fine; creation is the one place that must know concrete types.
 
+💡 **Strategy / factory:** Strategy = one interface with several interchangeable implementations of an algorithm; a factory is a class whose job is to decide which implementation to build. Both are explained in [design-patterns](design-patterns.md).
+
 ### L — Liskov Substitution Principle
 
 Any implementation must be usable wherever the interface is expected **without surprising the caller**: same preconditions or looser, same guarantees or stronger.
+
+💡 **Precondition / guarantee / contract:** a precondition is what a caller must satisfy before calling (e.g. "key is not null"); a guarantee is what the method promises afterwards (e.g. "returns immediately"). Together they form the method's contract.
 
 ```java
 // BAD: breaks the RateLimiter contract
@@ -95,6 +103,8 @@ final class RemoteLimiter implements RateLimiter {
 
 Write the contract in the interface's Javadoc ("non-blocking, thread-safe, returns false when limited") so implementers know what to keep.
 
+💡 **Javadoc / thread-safe / non-blocking:** Javadoc is the documentation comment format for Java. Thread-safe = correct when called from many threads at once. Non-blocking = returns quickly instead of waiting on I/O or locks. **Fail-over** (in the code above) = falling back to a backup when the main path fails; here a local limiter takes over when Redis cannot be reached.
+
 ### I — Interface Segregation Principle
 
 Clients shouldn't depend on methods they don't use. Prefer several small interfaces over one fat one.
@@ -118,9 +128,13 @@ interface QuotaReporter     { long remaining(String key); }
 
 The request path depends only on `RateLimiter`; an admin endpoint depends on `ResettableLimiter`.
 
+💡 **Fat interface / segregation:** a fat interface lists many methods, so every implementer must support all of them. **Prometheus** is a metrics system, and "exporting" means writing out metrics in its text format. **Admin endpoint** = an internal HTTP route for operators (reset a user, view stats).
+
 ### D — Dependency Inversion Principle
 
 High-level code depends on **abstractions**, and concrete dependencies are **passed in** (dependency injection), not created inside.
+
+💡 **Abstraction / dependency injection (DI) / constructor injection:** an abstraction is an interface rather than a concrete class. DI means the object receives its dependencies from the outside (usually through its constructor) instead of building them itself. "High-level" code is the business logic; "low-level" code is the detail it relies on (a database client, a clock).
 
 ```java
 // BAD: hard-wired to wall-clock time and a concrete algorithm — untestable
@@ -141,7 +155,11 @@ final class ApiGateway {
 // test:       new ApiGateway(key -> false)    // lambda as a fake, since RateLimiter has one method
 ```
 
+💡 **Fake / lambda:** a fake is a simple stand-in object used in tests instead of the real thing. A Java lambda (`key -> false`) can implement an interface that has just one method, so it works as an instant fake.
+
 The same idea makes time testable: inject a `TimeSource` instead of calling `System.nanoTime()` directly — see [time-and-clock](../libraries/java/time-and-clock.md).
+
+💡 **Wall-clock time / monotonic clock:** wall-clock time is the real date and time (can jump when synced); `System.nanoTime()` is a steadily increasing counter good for measuring elapsed time. Injecting a fake clock lets a test "fast-forward" instead of sleeping.
 
 ## 4. When to use it
 
@@ -155,6 +173,8 @@ The same idea makes time testable: inject a `TimeSource` instead of calling `Sys
 - **Open/closed against imagined change.** Extension points should follow real variation, not guesses (YAGNI).
 - **ISP to the extreme** — one-method interfaces for every method make wiring painful.
 - **DI frameworks in an interview** — constructor injection by hand is enough and clearer.
+
+💡 **Ravioli code:** the opposite of spaghetti code: many tiny, neat pieces, but so many that you cannot follow the overall flow. **YAGNI** ("you aren't gonna need it") = do not build flexibility for needs that may never come. **IoC container:** a framework (Spring) that creates objects and injects their dependencies automatically; IoC = inversion of control.
 
 ## 6. Commonly confused with
 
@@ -172,6 +192,11 @@ The same idea makes time testable: inject a `TimeSource` instead of calling `Sys
 2. **Fat interfaces** that force `UnsupportedOperationException` — a sign of both ISP and LSP violations.
 3. **Calling `new` on dependencies inside business classes** — kills testability.
 4. **Static utility calls for time/randomness/IO** inside logic — hidden dependencies.
+
+💡 **`UnsupportedOperationException`:** a Java exception implementers throw when they cannot do what the interface demands; it is a red flag the interface is too broad or the subclass breaks the contract.
+
+💡 **Hidden dependency:** a dependency that does not appear in the constructor or method signature (like reading the clock via a static call), so you cannot see or replace it from outside.
+
 5. **Reciting definitions** without pointing at your own design.
 6. **Over-splitting in a 45-minute interview** — you run out of time before the core algorithm works.
 

@@ -18,7 +18,11 @@
 | Kubernetes | `kubectl` slowness, "client-side throttling" log lines, API Priority & Fairness | The kube-apiserver and client-go both rate-limit to protect the control plane |
 | nginx / Envoy / API gateway config | `limit_req zone=... rate=10r/s burst=20` | You may have *configured* a rate limiter without calling it that |
 
+💡 **Table terms:** *HTTP 429* is the status code a server returns to say "too many requests". An *API quota* is the number of calls a provider lets you make in a period. *Control plane* = the part of a system that manages the cluster (for Kubernetes, the API server and friends), as opposed to the workloads it runs. *client-go* is the Go library that kubectl and controllers use to call that API. *API gateway* = a front door service that handles auth, routing and limits for all your APIs. *nginx*/*Envoy* are proxy servers.
+
 **A rate limiter answers one question, extremely fast, for every request:**
+
+💡 **Latency:** how long one request takes. A limiter sits on the path of every request, so its own latency must be tiny (microseconds to a millisecond).
 
 > "Has **this client** made **too many requests** **recently**? → allow or reject."
 
@@ -34,6 +38,8 @@
 | **Cost control** | Every OTP SMS costs money, and every call to a paid downstream API costs money. Limits cap the bill. |
 | **Business plans** | Free plan: 100 requests/minute. Pro plan: 10,000/minute. The limit *is* the product tier. |
 
+💡 **Melts / brute force / scraping:** a "melting" database is one overloaded until it stops responding. Brute force = trying every possible password or code until one works. Scraping = a script downloading large amounts of data from a site automatically.
+
 ---
 
 ## 3. The vocabulary, through examples
@@ -48,7 +54,11 @@ The limit is counted **per something**. That something is the **key**.
 | IP address | "Each IP: 20 login attempts/min" | Many users behind one office/college/mobile NAT share an IP. Attackers rotate IPs |
 | Phone number / account | "Each phone: 1 OTP per 30 s" | Business-level limits |
 
+💡 **NAT** (network address translation): many devices on one office, college or mobile-carrier network leave to the internet through one shared public IP, so the server sees them as a single address.
+
 Each key gets its **own** counter, so you being blocked doesn't block me.
+
+💡 **Counter / state:** the small piece of memory (a number, a list of timestamps) the limiter keeps per key to remember how many requests it has seen.
 
 ### Limit and window: "N requests per T"
 `100 requests per 1 minute` → limit = 100, window = 1 minute.
@@ -58,6 +68,8 @@ Opening a web app's dashboard might fire **15 API calls in 1 second**, then noth
 
 ### What happens when you're over the limit
 Usually: **reject immediately** with HTTP **`429 Too Many Requests`** and tell the client when to come back:
+
+💡 **Header / throttle:** HTTP headers are name-value lines sent before the body (`Retry-After`, `X-RateLimit-*`). Throttling here means slowing down instead of rejecting; a queue absorbs the excess and releases requests at the allowed pace.
 
 ```http
 HTTP/1.1 429 Too Many Requests
@@ -73,6 +85,8 @@ X-RateLimit-Remaining: 0
 ## 4. The four algorithms as everyday pictures
 
 You'll implement these in the interviews. Here's the intuition first:
+
+💡 **Algorithm / refill:** an algorithm is the exact rule for counting and allowing requests. A refill is the steady process of adding allowance back over time.
 
 ### 🪣 Token bucket: a bucket of coins that refills
 You have a jar that holds at most **10 coins**. Every request costs 1 coin. A machine drops **1 coin every 6 seconds** into the jar (= 10 per minute). Jar full? Extra coins fall out.
@@ -117,6 +131,8 @@ x-ratelimit-used: 1
 
 Run it a few times and watch `remaining` go down. Exceed it and you get `403`/`429` with a message saying you've hit the limit. That's a rate limiter answering "allow or reject" for the key **your IP address**. (Docs: GitHub REST API → "Rate limits for the REST API".)
 
+💡 **Unix time:** the number of seconds since 1 January 1970 UTC; a common way for APIs to give a moment in time as one plain number. **403** is the HTTP "forbidden" status (GitHub uses it as well as 429 for limits).
+
 Also worth reading for 5 minutes if you use them at work: the nginx `limit_req` docs (token-bucket-like with `rate` and `burst`), and Kubernetes "API Priority and Fairness".
 
 ---
@@ -131,8 +147,13 @@ Also worth reading for 5 minutes if you use them at work: the nginx `limit_req` 
 | Dashboard fires 15 calls at once and works | **Allow reasonable bursts** | Functional (algorithm choice) |
 | You never noticed the limiter on normal use | Must add almost **no latency** (it runs on *every* request) | Non-functional |
 | 100 requests from 50 threads at once still allow exactly 100 | **Thread-safe / correct under concurrency** | Non-functional, and the core of the LLD interview |
+
+💡 **Thread-safe / correct under concurrency:** many threads (parallel lines of execution in one program) may call the limiter simultaneously, and it must still count exactly. See [thread-safety-basics](../../concepts/thread-safety-basics.md). **Bounded memory** = memory use has an upper limit even with millions of keys, so idle keys must be evicted (removed).
+
 | Millions of users, each with a counter | **Bounded memory** (forget idle users) | Non-functional |
 | API runs on 50 servers but the quota is global | **Distributed** limit | Non-functional (the [L6](L6-staff.md) topic) |
+
+💡 **Distributed:** the state is shared across several machines (for example in Redis) so they all enforce one common limit instead of 50 separate ones.
 
 ---
 

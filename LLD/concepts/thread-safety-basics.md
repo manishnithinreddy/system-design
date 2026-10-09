@@ -4,9 +4,13 @@
 
 A class is **thread-safe** if it behaves correctly when many threads call it at the same time, with no extra coordination by the caller; getting there means handling three things — **atomicity**, **visibility**, and **ordering**.
 
+💡 **Thread:** an independent line of execution inside a process; all threads of a JVM share the same heap (object memory), which is exactly why they can step on each other. Atomicity, visibility and ordering are explained one by one below.
+
 ## 2. The problem it solves
 
 A Java web server (Tomcat, Netty, Jetty) handles requests on many threads. A rate limiter object is shared by all of them. Code that is perfectly correct on one thread can, under load:
+
+💡 **Tomcat / Netty / Jetty:** Java servers that run your request-handling code on a pool of threads (Netty uses a few event-loop threads instead). **Rate limiter** = code that rejects callers who exceed N requests per period (see the [interview](../interviews/rate-limiter/README.md)).
 
 - let 12 requests through when the limit is 10,
 - read a stale value that another thread already changed,
@@ -46,6 +50,8 @@ return false;
 
 Same shape: `if (!map.containsKey(k)) map.put(k, v)` — see [concurrent-hashmap](../libraries/java/concurrent-hashmap.md).
 
+💡 **Check-then-act** is the name of this shape: the check and the act are two steps, and the world can change between them (like checking a Kubernetes node has free CPU, then scheduling a pod there while another scheduler did the same).
+
 ### Atomicity
 
 An operation is **atomic** if other threads see it as all-or-nothing — never halfway. Tools:
@@ -54,11 +60,15 @@ An operation is **atomic** if other threads see it as all-or-nothing — never h
 - `AtomicLong.compareAndSet` / `getAndUpdate` for single values ([atomics-and-cas](../libraries/java/atomics-and-cas.md)).
 - Single-call compound ops like `ConcurrentHashMap.computeIfAbsent`.
 
+💡 **Locks and CAS:** `synchronized` / `ReentrantLock` let only one thread at a time into a block (a *mutex*, "mutual exclusion"). CAS (compare-and-set) updates a variable only if it still holds the value you expected, as one CPU-level step; if another thread got there first it fails and you retry. `computeIfAbsent` runs "if key missing, compute and insert" as one atomic call.
+
 The key insight: **thread-safe parts don't make a thread-safe whole.** Two individually atomic calls in a row are not atomic together.
 
 ### Visibility
 
 Each CPU core has caches, and the JIT compiler may keep a value in a register. Without synchronization, a write by one thread **may never be seen** by another.
+
+💡 **CPU cache / JIT / register:** each core keeps recently used memory in tiny, very fast private caches (L1/L2), so two cores can briefly hold different values for the same variable. The JIT (just-in-time compiler) turns hot bytecode into machine code at runtime and may keep a value in a CPU register (the fastest storage, inside the core) rather than re-reading memory.
 
 ```java
 class Evictor implements Runnable {
@@ -70,11 +80,15 @@ class Evictor implements Runnable {
 
 The JIT may hoist `running` out of the loop. Fix: `private volatile boolean running = true;`
 
+💡 **Hoist / `volatile`:** hoisting = the compiler moves a read out of a loop because, from one thread's view, the value never changes. `volatile` forbids that and forces every read to see the latest write.
+
 `volatile` guarantees **visibility and ordering** for that one variable — every read sees the latest write. It does **not** make `count++` atomic. Rule of thumb: `volatile` is for flags and for publishing a reference to an immutable object; anything read-modify-write needs atomics or a lock.
 
 ### Ordering and happens-before (in plain words)
 
 Compilers and CPUs reorder instructions when a single thread can't tell the difference. Another thread can. The Java Memory Model's **happens-before** rule says: if action X happens-before action Y, then Y sees everything X (and everything before X) wrote. The edges you'll use:
+
+💡 **Java Memory Model (JMM):** the rulebook in the Java spec that says when one thread is guaranteed to see another thread's writes. **Join** = waiting for another thread to finish (`thread.join()`). **Publishing** = making an object reachable by other threads.
 
 | Edge | Meaning |
 |---|---|
@@ -87,12 +101,16 @@ Compilers and CPUs reorder instructions when a single thread can't tell the diff
 
 In plain words: **threads only reliably see each other's writes through a shared "meeting point"** — a lock, a volatile, a concurrent collection, or thread start/join. No meeting point, no guarantee.
 
+💡 **Concurrent collection:** a thread-safe collection from `java.util.concurrent`, such as `ConcurrentHashMap`, built so many threads can use it without external locking.
+
 ### How to make a class thread-safe (in order of preference)
 
 1. **Don't share** — confine state to one thread (local variables, per-request objects).
 2. **Don't mutate** — immutable objects (`record`s with `final` fields) are always thread-safe.
 3. **Delegate** — store state in thread-safe classes (`ConcurrentHashMap`, `AtomicLong`), as long as there's no invariant spanning several of them.
 4. **Lock** — guard all fields that participate in one invariant with the **same** lock, on every read and write.
+
+💡 **Confine / invariant (items 1 and 4):** confining state to one thread means no other thread can touch it, so no locks are needed. An *invariant* is a rule that must always hold across several fields together (e.g. `count` always belongs to the current `windowStart`). **Delegate** = let an already thread-safe class do the work.
 
 ### A thread-safe bucket in an interview
 
@@ -126,6 +144,8 @@ public final class FixedWindowCounter {
 
 Why it's safe: `windowStart` and `count` form one invariant and are only touched under one lock (`this`); `final` fields are safely published; the check and the increment are in the same critical section.
 
+💡 **Critical section / safely published:** the critical section is the code between lock acquire and release, where only one thread runs at a time. A `final` field is guaranteed visible to other threads once the constructor finishes, so the object can be shared safely.
+
 ### Reasoning checklist: "Is this class thread-safe?"
 
 1. **What state is shared?** List fields reachable by more than one thread.
@@ -135,6 +155,8 @@ Why it's safe: `windowStart` and `count` form one invariant and are only touched
 5. **Does anything escape?** Returning a mutable internal list, or leaking `this` from a constructor (e.g. starting a thread in it).
 6. **What's the lock scope?** Too wide = throughput dies; too narrow = races. Never hold a lock during I/O.
 7. **Compound actions by callers?** Document it: "each method is atomic; sequences are not".
+
+💡 **Leaking `this`:** if a constructor hands out `this` (e.g. starts a thread or registers a listener) before it finishes, another thread can see a half-built object. **Lock scope** (item 6) = how much code runs while the lock is held.
 
 ## 4. When to use it
 
@@ -148,6 +170,8 @@ Why it's safe: `windowStart` and `count` form one invariant and are only touched
 - **Across processes** — JVM thread-safety says nothing about two pods; that's a distributed-systems problem (atomic ops in Redis, idempotency).
 - **"Make everything `synchronized` just in case"** — it hides the real design question (what's shared?) and serializes the app.
 
+💡 **Node.js event loop / `await`:** Node runs your JavaScript on one thread, so two lines never run at the same instant; but at an `await` the function pauses and other code can run, so check-then-act across an `await` can still race. **Idempotency** = making a repeated operation harmless (same result when applied twice).
+
 ## 6. Commonly confused with
 
 | | Atomicity | Visibility | Ordering |
@@ -159,6 +183,8 @@ Why it's safe: `windowStart` and `count` form one invariant and are only touched
 | `synchronized` / lock fixes | yes | yes | yes |
 
 Also: **thread-safe vs concurrent** — `Collections.synchronizedMap` is thread-safe but not concurrent (one lock); `ConcurrentHashMap` is both. **Race condition vs data race** — a data race is unsynchronized access to the same memory (a JMM term); a race condition is a logic bug from timing and can exist even with all-atomic operations (check-then-act across two atomic calls).
+
+💡 **Lock striping / single-flight** (in Used in below): striping = splitting one big lock into several, each guarding part of the data, so unrelated keys do not wait for each other. Single-flight = when many threads miss the same cache key, only one loads it and the rest wait for that result.
 
 ## 7. Common mistakes / misuse
 
@@ -189,3 +215,5 @@ Also: **thread-safe vs concurrent** — `Collections.synchronizedMap` is thread-
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../interviews/kv-store/README.md) — thread safety by single-threaded command execution (Redis model, see [single-writer-principle](single-writer-principle.md)); at L6, multiple client sessions and isolation ([transactions-and-isolation](transactions-and-isolation.md)).
 - [Thread Pool / Connection Pool](../interviews/thread-pool/README.md): the check-then-act race between `execute()` and `shutdown()`, and keeping a connection's state transitions under one lock.
 - Related: [design-patterns](design-patterns.md), [solid-principles](solid-principles.md).
+
+💡 **Deadlock** (see the movie booking link): two threads each hold a lock the other needs, so both wait forever. Taking locks in one agreed order prevents it. **Optimistic vs pessimistic locking:** pessimistic = lock first, then work; optimistic = work without a lock and detect conflicts at commit time, retrying if someone else changed the data.

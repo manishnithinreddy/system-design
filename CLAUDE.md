@@ -97,4 +97,4 @@ Link every technology/concept the first time it is used, e.g. `[Redis](../../tec
 ## Deferred ideas (come back after the main content is complete; do not build yet)
 
 - ~~Toy playground per problem~~: merged into the **"See it work"** side track in ROADMAP.md (small runnable pieces of HLD mechanisms, explanation first).
-- **Jargon sweep of older files:** files written before the "every technical term gets a short plain explanation" rule may still use terms without explanation. Do one pass over all files and add 1–2 sentence explanations where missing. The user asked to handle this later.
+- ~~**Jargon sweep of older files**~~: done (2026-10-09) for the 60 files written before the rule. New files must follow the rule from the start.

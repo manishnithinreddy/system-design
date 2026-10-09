@@ -4,6 +4,8 @@
 
 These are **third-party delivery services** that actually put a message on a user's phone or inbox: **APNs** (Apple) and **FCM** (Google) for push notifications, **Twilio / SMS aggregators** for text messages, and **Amazon SES / SendGrid** for email. Your system never talks to the phone directly; it hands the message to one of these over HTTPS.
 
+💡 **OTP / HTTPS:** an OTP (one-time password) is the short code sent for login or payment confirmation. HTTPS is HTTP over TLS encryption; here it simply means a normal authenticated REST call to the provider.
+
 ---
 
 ## 2. The problem it solves
@@ -13,6 +15,10 @@ These are **third-party delivery services** that actually put a message on a use
 - **Push:** a persistent connection to every phone. Impossible: iOS and Android kill background apps to save battery. Only the OS vendor keeps one always-on connection per device.
 - **SMS:** contracts with hundreds of mobile carriers worldwide, telecom protocols (SMPP), sender ID registration per country (e.g. DLT registration in India, 10DLC in the US).
 - **Email:** mail servers with a good **IP reputation**, SPF/DKIM/DMARC records, bounce handling, feedback loops with Gmail/Outlook. A new IP sending 1M emails lands straight in spam.
+
+💡 **SMPP / sender ID / DLT / 10DLC:** SMPP is the telecom protocol carriers use to exchange text messages. Sender ID is the name or number a message appears to come from; India (DLT) and the US (10DLC) require businesses to register it with carriers or messages are blocked.
+
+💡 **IP reputation / SPF / DKIM / DMARC / bounce:** receiving mail servers score each sending IP on past behaviour (spam complaints, bounces). SPF, DKIM and DMARC are DNS records that prove an email really comes from your domain. A bounce is a "could not deliver" reply from the receiving server. A feedback loop is the mailbox provider telling you which users marked your mail as spam.
 
 **The fix:** pay a provider. You make one HTTPS call (`POST /messages`), they handle carriers, reputation and devices. Your job becomes: call them reliably, respect their limits, and track what happened.
 
@@ -45,6 +51,10 @@ flowchart LR
 - Tokens **change or expire**: app reinstall, restore to a new phone, OS update, user disables notifications, or the app isn't opened for a long time (FCM treats tokens inactive for ~270 days as stale). The app should re-send its token on every launch.
 - When you send to a dead token, APNs returns **410 Unregistered** and FCM returns **`UNREGISTERED` (404)**. You must delete the token, or you waste calls forever.
 
+💡 **Opaque / payload:** opaque = the string has no meaning you can decode; just store and send it. The payload is the JSON body of the notification (title, text, extra data).
+
+💡 **410 / 404:** HTTP status codes meaning "gone" and "not found". Here they tell you the token is no longer valid.
+
 ### 3.2 Provider cheat-table
 
 | Provider | Channel | API | Rough limits | Rough cost |
@@ -54,11 +64,15 @@ flowchart LR
 | **Twilio / aggregators** (Twilio, Vonage, Sinch, MessageBird, local gateways) | SMS | REST `POST /Messages` | Throughput **per sender number**: ~1 msg/s for a US long code, ~100 msg/s for a short code; pay for more | **~$0.008 (US) to ~$0.05+ per SMS** (much more for some countries) |
 | **Amazon SES / SendGrid** | Email | REST or SMTP | SES starts in a sandbox (200/day), then e.g. 14 msg/s and rising with reputation | **~$0.10 per 1,000 emails** = $0.0001 each |
 
+💡 **Table terms:** *HTTP/2* = a newer HTTP version that multiplexes many requests on one connection. *JWT* and *OAuth2* are ways of proving who you are with a signed token. *Long code vs short code* = an ordinary 10-digit phone number vs a special 5-6 digit number approved for high-volume sending. *SMTP* = the classic protocol for sending email. *Sandbox* = a restricted starter mode until the provider trusts you. *Quota* = the maximum you are allowed to send per period.
+
 **Order of magnitude:** push ≈ free, email ≈ $0.0001, SMS ≈ $0.01. One SMS costs about as much as **100 emails** and infinitely more than a push. A 10M-user SMS blast at $0.01 is **10,000,000 × $0.01 = $100,000**. That is why marketing goes via push/email and SMS is reserved for OTPs and critical alerts.
 
 ### 3.3 Delivery receipts and webhooks
 
 "Provider accepted it" (HTTP 200/202) is **not** "user received it". Real status arrives later and asynchronously:
+
+💡 **Webhook / callback:** instead of you polling, the provider sends an HTTP request to a URL you gave it whenever something happens. **Hard vs soft bounce:** hard = address does not exist (stop sending); soft = temporary problem such as a full mailbox (retry later). **SNS** = Amazon's notification/pub-sub service.
 
 | Channel | What you can learn | How |
 |---|---|---|
@@ -68,11 +82,15 @@ flowchart LR
 
 Your webhook endpoint receives these, matches them by the provider's message ID (stored when you sent), and updates `notification_status`. Webhooks themselves are **at-least-once and unordered**: you may get "delivered" before "sent", or the same event twice, so store the furthest state and dedupe.
 
+💡 **Unordered / dedupe:** events may arrive in a different order than they happened; "dedupe" = detect and drop repeats.
+
 ### 3.4 Never call them synchronously in the user request
 
 - Latency: 100 ms to several seconds, plus provider incidents.
 - Rate limits: a burst gets you `429 Too Many Requests`.
 - Retries need minutes of backoff, which a user request can't wait for.
+
+💡 **429 / backoff:** 429 is the HTTP "slow down" status. Backoff = waiting progressively longer between retries.
 
 So: request → enqueue → worker → provider, with [retries and backoff](../concepts/retries-backoff-and-dlq.md) in the worker. See [message queues](message-queues.md).
 
@@ -82,6 +100,9 @@ So: request → enqueue → worker → provider, with [retries and backoff](../c
 |---|---|---|
 | 200 / 202 + provider message ID | Accepted (not yet delivered) | Store ID, status = SENT, ack |
 | 429 Too Many Requests | You exceeded the quota | Back off (honor `Retry-After`), slow the token bucket |
+
+💡 **Token bucket:** a rate-limiting method where a bucket refills with tokens at a fixed rate and each request spends one; when empty you must wait. See the [rate limiter](../../LLD/interviews/rate-limiter/README.md). **Idempotency key:** a unique ID so a repeated request can be recognised and not acted on twice. **Page on-call** = trigger the alert that wakes the on-call engineer.
+
 | 5xx / timeout | Provider trouble, outcome unknown | Retry with backoff; dedupe on idempotency key |
 | 400 invalid number / bad payload | Permanent | Status = FAILED, no retry |
 | APNs 410 / FCM UNREGISTERED | Token dead | Delete token, no retry |
@@ -94,6 +115,8 @@ For SMS and email, run **two providers** behind an interface (`SmsSender`):
 - Route by country (provider A is cheaper/better in India, B in the US).
 - If provider A's error rate or latency crosses a threshold, a **circuit breaker** opens and traffic shifts to B.
 - Danger: a timeout from A doesn't mean A didn't send. Failing over after a timeout can produce a **duplicate OTP**. Usually acceptable for an OTP (the user sees two of the same code), worse for "you were charged $500". See [idempotency](../concepts/idempotency-and-delivery-semantics.md).
+
+💡 **Circuit breaker:** a guard that stops calling a failing dependency for a while (the "open" state) instead of piling more requests on it, then tests it again later.
 
 Push has no failover: only Apple can reach an iPhone.
 
@@ -112,6 +135,9 @@ Push has no failover: only Apple can reach an iPhone.
 |---|---|
 | Calling providers inside the user's HTTP request | Couples your latency and availability to theirs. Queue it. |
 | SMS for marketing to millions | ~$0.01 each, carrier filtering, opt-out regulations (TCPA, GDPR). Use push/email. |
+
+💡 **TCPA / GDPR:** US and EU laws that require consent and opt-out for marketing messages, with large fines.
+
 | Push for something the user must get (OTP) | Permission may be off, token stale, phone offline. Use SMS. |
 | Real-time in-app updates while the app is open | Push is best-effort and can be delayed. Use [WebSockets/SSE](websockets-and-sse.md). |
 | Sending to every stored token every time | Dead tokens waste quota and can get you throttled. Prune on 410/UNREGISTERED. |
@@ -123,6 +149,9 @@ Push has no failover: only Apple can reach an iPhone.
 | | **Use a provider** | **Run your own SMTP / SMS infra** |
 |---|---|---|
 | Setup | API key, verify domain (SPF/DKIM), register sender | Mail servers, IP warm-up over weeks, carrier/SMPP contracts |
+
+💡 **IP warm-up:** slowly raising the volume sent from a new IP over weeks so mailbox providers learn to trust it.
+
 | Deliverability | Provider's established IP reputation | New IPs start in spam |
 | Bounces / complaints | Webhooks out of the box | Parse bounce emails yourself |
 | Cost | Per message | Cheaper per message at huge scale, expensive people |
@@ -140,6 +169,11 @@ Also: **APNs/FCM vs WebSocket.** Push goes through the OS vendor and works when 
 4. **Retrying non-retryable errors** (invalid phone number, 400 bad request, unsubscribed email). Only retry 429/5xx/timeouts.
 5. **Not handling hard bounces and spam complaints.** Keep emailing a dead address and the provider suspends your account (SES reviews accounts above ~5% bounce or ~0.1% complaint rate).
 6. **Putting secrets/PII in push payloads.** Lock screens show them. Send "You have a new message", fetch details in-app.
+
+💡 **Retry storm:** many clients retrying at once after failures, which overloads the provider further and causes more failures.
+
+💡 **PII:** personally identifiable information (name, phone, address). **E2EE** (in Used in) = end-to-end encryption, so even the push provider cannot read the content.
+
 7. **Unsigned webhook endpoints.** Verify the provider's signature (e.g. Twilio `X-Twilio-Signature`), or anyone can mark messages as delivered.
 8. **Forgetting quiet hours and time zones** for non-critical sends.
 

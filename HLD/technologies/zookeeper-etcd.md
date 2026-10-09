@@ -4,6 +4,8 @@
 
 ZooKeeper and etcd are small, **strongly consistent, replicated key-value stores** used by distributed systems to **agree on things**: who the leader is, who holds a lock, what the current config is, which ID range belongs to which server.
 
+💡 **Strongly consistent:** every read returns the latest acknowledged write; there are no stale reads. **Replicated:** the same data is stored on several nodes. **Leader:** the one node that currently coordinates a group.
+
 ---
 
 ## 2. The problem it solves
@@ -15,9 +17,15 @@ ZooKeeper and etcd are small, **strongly consistent, replicated key-value stores
 
 Agreeing over an unreliable network, where any machine can crash or pause (GC!) and messages can be delayed, is genuinely hard. Rolling your own with a DB row or a Redis key works until a network partition or failover, and then two nodes both think they won.
 
+💡 **GC / network partition / failover:** GC (garbage collection) pauses can freeze a Java process for seconds. A network partition is when the network splits so two groups of machines cannot talk to each other but both keep running. Failover = switching to a backup when the primary dies.
+
 **The fix:** run a **small cluster (3 or 5 nodes)** whose only job is to be a **correct, consistent source of truth for small, critical metadata**, using a **consensus algorithm** so that every acknowledged write is agreed by a majority and survives node failures.
 
+💡 **Consensus algorithm:** a procedure by which several machines agree on one value (or one ordered log of changes) even if some crash. **Majority:** more than half of the nodes.
+
 > You already use one: **etcd is the brain of Kubernetes**. Every `kubectl apply` writes the object to etcd via the API server. Controllers *watch* etcd for changes. `kube-scheduler` and `kube-controller-manager` run several replicas but only one is active — they elect a leader via a **Lease** object stored in etcd. That's exactly the pattern this file describes.
+
+💡 **Lease (Kubernetes):** a small object with an expiry time that a leader keeps renewing; if it stops renewing, others take over. **Watch:** a subscription that notifies you when a key changes.
 
 ---
 
@@ -32,6 +40,8 @@ etcd uses **Raft**; ZooKeeper uses **ZAB** (ZooKeeper Atomic Broadcast). Same co
 3. Once a **majority** has stored it, the write is **committed** and acknowledged to the client.
 4. If the leader dies, followers notice missing heartbeats (~hundreds of ms to seconds), hold an election, and a new leader with the most up-to-date log wins. Committed writes are never lost because any majority overlaps with the previous majority.
 5. A minority side of a network split **cannot** elect a leader or commit writes — so you never get two "truths". (It chooses **C over A** in [CAP](../concepts/cap-and-consistency.md) terms.)
+
+💡 **CAP:** when the network splits you must choose between Consistency (refuse to answer rather than risk a wrong answer) and Availability (always answer, maybe stale). "C over A" means it refuses.
 
 ```mermaid
 flowchart LR
@@ -48,6 +58,8 @@ flowchart LR
 
 **Cluster size math:** a cluster of N tolerates `floor((N-1)/2)` failures.
 
+💡 **Heartbeats / election:** the leader sends small "I am alive" messages; if followers stop hearing them, they vote for a new leader. **Log:** an ordered list of changes. **Tolerates N failures:** keeps working with N nodes dead.
+
 | Nodes | Majority | Failures tolerated |
 |---|---|---|
 | 1 | 1 | 0 |
@@ -57,6 +69,8 @@ flowchart LR
 | 7 | 4 | 3 (but every write waits on 4 nodes) |
 
 That's why clusters are odd-sized and **small**: more nodes = more fault tolerance but *slower* writes, since each write needs more acks. Every write goes through one leader, so throughput is limited: etcd handles roughly **a few thousand to ~10k+ writes/s**, latency a few ms (dominated by disk fsync — which is why etcd docs insist on fast SSDs).
+
+💡 **fsync:** forces data onto the physical disk before replying, so an acknowledged write survives power loss; its latency is why fast SSDs matter. **Throughput:** operations handled per second.
 
 ### 3.2 Data model and primitives
 
@@ -70,6 +84,8 @@ That's why clusters are odd-sized and **small**: more nodes = more fault toleran
 | Atomic ops | Versioned `setData` (compare-and-set) | **Transactions**: `if (compare) then {ops} else {ops}` |
 | API | Custom TCP protocol (use Curator in Java) | gRPC / HTTP (jetcd in Java) |
 
+💡 **Table terms:** *znode* = a ZooKeeper node (a small data entry in its tree). *Ephemeral* = tied to the client session and auto-deleted when that session ends. *Compare-and-set (CAS)* = update a value only if it still equals what you last read, otherwise fail. *Revision* = a global counter that increases with every write. *gRPC* = Google's RPC framework over HTTP/2. *Curator / jetcd* = the usual Java client libraries. *TTL* = time to live, an expiry.
+
 These primitives build the classic recipes:
 
 - **Leader election**: everyone tries to create `/service/leader` as an ephemeral key (or with a lease). Exactly one succeeds; others **watch** it. Leader dies → session/lease expires → key disappears → watchers race again. (Curator `LeaderLatch`, etcd `concurrency.Election`, k8s `Lease`.)
@@ -77,9 +93,13 @@ These primitives build the classic recipes:
 - **Configuration / service discovery**: store config at `/config/...`; servers watch and reload on change. Register `/services/redirect/pod-7` with a lease; it disappears when the pod dies.
 - **Group membership**: who's alive = which ephemeral keys exist.
 
+💡 **Leader election / fencing token:** leader election = nodes compete so that exactly one acts as leader. A fencing token is an ever-increasing number issued with each lock grant; the protected resource refuses requests carrying an older number, so a stale lock holder cannot do damage. **Service discovery** = finding the addresses of running instances of a service.
+
 ### 3.3 Example: handing out ID ranges to app servers
 
 The URL shortener needs unique numeric IDs (then base62-encoded into short codes) without asking a central service for every single URL. See [ID generation](../concepts/id-generation.md).
+
+💡 **base62:** writing a number using 62 symbols (0-9, a-z, A-Z), which makes short URL-safe strings. **txn:** short for transaction, here an atomic "if X then do Y".
 
 ```mermaid
 sequenceDiagram
@@ -114,6 +134,8 @@ Why this is a perfect fit:
 - **Config distribution with watches** (push config changes to all servers within ~a second).
 - Real systems: Kubernetes (etcd), older Kafka (ZooKeeper; new Kafka uses its own Raft, "KRaft"), HBase, Hadoop HA, Solr, Patroni (Postgres HA uses etcd/ZK/Consul for leader election).
 
+💡 **HA / Consul:** HA = high availability (stays up when a machine dies). Consul is HashiCorp's service discovery and key-value tool, similar to etcd. **Kafka controller** = the Kafka broker that manages partition leadership.
+
 ## 5. When NOT to use it (and why it's a mistake)
 
 | Situation | Why it's a mistake |
@@ -123,6 +145,8 @@ Why this is a perfect fit:
 | As a general **cache or database** | No query language, small size limits, optimized for consistency not throughput. |
 | Locks just to avoid **duplicate work** (efficiency, not correctness) | A Redis `SET NX PX` is simpler and cheaper; consensus is overkill. |
 | You don't run one and the need is tiny | Operating a ZK/etcd cluster (quorum, disk latency, backups) is real work; a DB row with a conditional update might suffice. |
+
+💡 **Quorum:** the majority needed for a write or a vote.
 
 ---
 
@@ -140,6 +164,8 @@ Why this is a perfect fit:
 
 The famous Kleppmann vs antirez debate over Redlock is the deep version of this row: with process pauses and clock drift, a TTL lock without fencing can't guarantee mutual exclusion.
 
+💡 **Linearizable / Redlock / clock drift:** linearizable = the system behaves as if there were a single copy and every operation happened instantly in one global order. Redlock is Redis author antirez's algorithm for locks across several Redis nodes; Martin Kleppmann argued it is unsafe because of pauses and clocks that run at slightly different speeds (drift).
+
 ---
 
 ## 7. Common mistakes / misuse
@@ -151,6 +177,8 @@ The famous Kleppmann vs antirez debate over Redlock is the deep version of this 
 5. **Forgetting that a lock holder can pause**: a GC pause longer than the session/lease timeout means the lock is gone but the process still thinks it holds it. Use **fencing tokens**.
 6. **Treating watches as a reliable event stream** — ZK watches are one-shot and you can miss intermediate changes; always re-read state after a watch fires.
 7. **Spreading one cluster across distant regions** — every write waits for a cross-region majority (~100 ms+).
+
+💡 **One-shot watch:** ZooKeeper fires a watch once; you must register it again, and changes in the gap are missed unless you re-read the current state.
 
 ---
 

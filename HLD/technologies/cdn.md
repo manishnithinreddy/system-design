@@ -4,11 +4,15 @@
 
 A CDN is a **globally distributed fleet of caching reverse proxies ("edge servers" / PoPs)** run by a provider like CloudFront, Cloudflare, Akamai or Fastly. Users hit the nearest edge, and if it already has the response cached, your servers never see the request.
 
+💡 **Reverse proxy / origin:** a reverse proxy is a server that sits in front of your servers and answers requests on their behalf (nginx is the classic one). The "origin" is your own backend that the CDN fetches from on a miss.
+
 ---
 
 ## 2. The problem it solves
 
 **The pain:** your servers are in `us-east-1`. A user in Mumbai fetching a 2 MB JS bundle pays a round trip of ~200 ms across the world — several times over for TCP + TLS handshakes — and every user worldwide downloads the same file from your origin, burning your bandwidth and CPU.
+
+💡 **Round trip / TCP and TLS handshakes:** a round trip is one request plus its reply across the network. Before any data flows, TCP (the reliable connection protocol) needs 1 round trip to set up and TLS (encryption) needs 1 to 2 more, so a far-away server costs several x 200 ms before the first byte.
 
 **The fix:** copies of cacheable responses live in **hundreds of edge locations (PoPs, points of presence)** close to users:
 - Latency drops from ~200 ms to ~10–30 ms for cache hits (the edge is in the same city / ISP).
@@ -17,6 +21,8 @@ A CDN is a **globally distributed fleet of caching reverse proxies ("edge server
 - The CDN absorbs traffic spikes and many DDoS attacks with its huge capacity.
 
 > Infra analogy: a CDN is "nginx with `proxy_cache`" deployed in 300 cities by someone else, with Anycast/GeoDNS steering each user to the nearest box.
+
+💡 **Terms above:** *cache hit/miss* = the edge does / does not already have the response. *TLS termination* = decrypting HTTPS at the edge so the encryption handshake happens near the user. *DDoS* = an attack that floods a service with traffic to knock it over. *Anycast* and *GeoDNS* are explained in 3.1.
 
 ---
 
@@ -42,6 +48,8 @@ sequenceDiagram
 - **GeoDNS**: `cdn.example.com` resolves to a different IP depending on where the resolver is.
 - **Anycast**: the same IP is announced from every PoP via BGP; the internet routes you to the nearest one (Cloudflare does this).
 
+💡 **DNS resolver / BGP:** a resolver is the DNS server (usually your ISP's) that looks names up on your behalf. BGP is the protocol routers use to announce which IP ranges they can reach; announcing the same range from many cities makes traffic flow to the closest one.
+
 ### 3.2 Cache-Control headers: the origin tells the CDN what to do
 
 | Header | Meaning |
@@ -56,6 +64,8 @@ sequenceDiagram
 | `Vary: Accept-Encoding` | Cache separate copies per header value. `Vary: Cookie` effectively kills caching. |
 
 The **cache key** is normally the URL (host + path + chosen query params). Anything that changes the response but isn't in the key (cookies, auth headers) is a bug waiting to happen — the CDN might serve user A's page to user B.
+
+💡 **Revalidate / 304:** instead of re-downloading, the cache asks the origin "has this changed?" using the ETag (a version fingerprint of the content) or Last-Modified date; if not, the origin answers 304 Not Modified with no body. **Max-age / s-maxage** are time-to-live (TTL) values in seconds: how long a copy may be served without asking again.
 
 ### 3.3 What can and can't be cached at the edge
 
@@ -73,11 +83,15 @@ Once something is cached in 300 PoPs, getting it out is slow and (sometimes) pai
 - Better: **don't invalidate — version the URL**. `app.3f9a2c.js` → new deploy produces `app.81bd07.js`; old file just ages out. Short `max-age` for things that do change (e.g. `index.html`).
 - This is the "cache invalidation is hard" problem at global scale — see [caching strategies](../concepts/caching-strategies.md).
 
+💡 **Invalidation / purge:** telling every cache to throw away a stored copy before its TTL runs out.
+
 ### 3.5 Edge compute
 
 CDNs can now run your code at the edge: **Cloudflare Workers**, **CloudFront Functions / Lambda@Edge**, **Fastly Compute**. Uses: header rewrites, A/B routing, auth token checks, geo-blocking — and **serving redirects from the edge** using a small edge key-value store (Cloudflare Workers KV, CloudFront KeyValueStore). The edge function can also fire an async analytics event, which keeps the latency win without losing click data.
 
 Limits: tight CPU/memory budgets (e.g. a few ms of CPU), eventually consistent edge KV stores (writes take seconds to propagate globally), and a different runtime from your Java services.
+
+💡 **Eventually consistent:** after a write, different locations may return the old value for a short while, but they all converge. **Key-value (KV) store:** a database that only does "get value by key" and "put value at key".
 
 ---
 
@@ -88,6 +102,8 @@ Limits: tight CPU/memory budgets (e.g. a few ms of CPU), eventually consistent e
 - **Public, identical-for-everyone responses** with a tolerable staleness window.
 - **Global audiences** where latency matters.
 - **DDoS protection / WAF** at the edge, TLS termination near users.
+
+💡 **WAF** (web application firewall) = a filter that blocks malicious-looking HTTP requests (SQL injection, bots). **HLS/DASH segments** (in the Large media bullet) = video split into few-second files that players download one after another, which makes video cacheable like any static file.
 
 ## 5. When NOT to use it (and why it's a mistake)
 
@@ -106,6 +122,8 @@ A short URL redirect looks perfectly cacheable: `GET /abc123` → `301 Location:
 - **302 (Found / temporary)** with `Cache-Control: no-store` or a short `s-maxage`: every click reaches your service (or an edge function that logs it). More load, but accurate analytics and control.
 
 The L6 nuance: you can get both via **edge compute** — the edge function looks up the mapping in edge KV, returns a 302, and asynchronously sends a click event to your [Kafka](kafka.md) pipeline. Or cache at the CDN with a short TTL and accept sampled/approximate analytics. Say the trade-off out loud.
+
+💡 **TTL (time to live):** how long a cached copy is considered fresh before it must be refetched or revalidated.
 
 ---
 
@@ -134,6 +152,8 @@ They stack: **User → CDN edge → load balancer → app servers → Redis → 
 5. **`Vary: Cookie` or random query strings** (`?t=timestamp`) → cache key explosion, hit rate near zero.
 6. **"Add a CDN" as a generic speed-up** for a dynamic API with no cacheable responses. It doesn't help (beyond TLS/edge networking).
 7. **Forgetting the origin can still be overwhelmed** by a synchronized expiry or a purge — enable origin shielding / request collapsing.
+
+💡 **Origin shielding / request collapsing:** the CDN puts one mid-tier cache in front of the origin and merges many simultaneous misses for the same URL into a single origin request, so a popular object expiring does not cause a stampede (thundering herd) of requests to your servers.
 
 ---
 

@@ -15,9 +15,11 @@ A load balancer is a **single front door** that receives client traffic and **sp
 - You want to deploy server-by-server without downtime.
 - You want to add 10 more servers on Black Friday without telling anyone.
 
-**The fix:** put a load balancer (LB) in front. Clients talk to one IP/hostname; the LB keeps a list of healthy backends and picks one per connection or request. Adding capacity = add backends to the pool. This is what makes **horizontal scaling** of stateless services possible.
+**The fix:** put a load balancer (LB) in front. Clients talk to one IP/hostname; the LB keeps a list of healthy backends and picks one per connection or request. Adding capacity = add backends to the pool. This is what makes **horizontal scaling** (adding more machines rather than a bigger machine) of **stateless** services (servers that keep no per-user memory between requests) possible.
 
 You already use these daily: a Kubernetes `Service` (kube-proxy / IPVS) is an L4 load balancer across pods; an `Ingress` (nginx-ingress, Envoy, Traefik) is an L7 load balancer; on AWS that's an NLB (L4) or ALB (L7).
+
+💡 **L4 / L7:** the "layers" of the OSI network model. L4 is the transport layer (IP addresses and TCP/UDP ports, no knowledge of HTTP); L7 is the application layer (the LB reads the actual HTTP request). Section 3.1 compares them. **IPVS** is a Linux kernel feature that forwards connections at L4.
 
 ---
 
@@ -53,6 +55,8 @@ The "L" is the OSI layer the LB understands.
 
 A subtle L4 gotcha: with **HTTP/2 or gRPC**, a client opens one long-lived connection and sends thousands of requests on it. An L4 LB balances *connections*, so all those requests hit one pod. You need an L7 LB (Envoy, a service mesh) to balance per request.
 
+💡 **HTTP/2, gRPC, service mesh:** HTTP/2 lets a client multiplex many requests over one long-lived TCP connection; gRPC (Google's RPC framework) builds on it. A service mesh (Istio, Linkerd) runs a small proxy (a "sidecar", often Envoy) next to every pod and handles balancing, retries and mTLS for you.
+
 ### 3.2 Algorithms
 
 | Algorithm | How | Good for | Weakness |
@@ -65,17 +69,23 @@ A subtle L4 gotcha: with **HTTP/2 or gRPC**, a client opens one long-lived conne
 
 For stateless app servers, **round robin or least connections** is almost always the right answer. Consistent hashing is for when the backend *holds* data for that key.
 
+💡 **P2C (power of two choices):** instead of tracking every server, pick two at random and send to the less loaded one; this is almost as good as full least-connections but cheap. **Canary:** sending a small slice of traffic to a new version first to see if it breaks. **Hash / consistent hash:** map a key to a server with a hash function; consistent hashing keeps most keys on the same server when servers are added or removed.
+
 ### 3.3 Health checks
 
 - **Active**: LB calls `GET /healthz` every ~5–10 s; after e.g. 3 failures the backend is removed; after 2 successes it's added back. (Same idea as a k8s readiness probe — in fact, readiness probe failure is exactly what removes a pod from a `Service`'s endpoints.)
 - **Passive**: LB notices real requests failing (5xx, timeouts) and ejects the backend (Envoy "outlier detection").
 - Keep the health check **shallow-ish**: if `/healthz` checks the DB and the DB hiccups, *every* backend fails health checks at once and the LB has nothing to send traffic to. Liveness = "is my process OK", not "is the world OK".
 
+💡 **Liveness vs readiness:** in Kubernetes, a liveness probe asks "is the process alive, restart it if not", a readiness probe asks "can it take traffic right now". **Outlier detection** = Envoy's name for automatically ejecting a backend that keeps returning errors.
+
 ### 3.4 Stateless services and sticky sessions
 
 The LB works best when **any backend can serve any request** — the server keeps no user state in memory between requests. State goes to a shared store (DB, [Redis](redis.md)), or into the request itself (a signed JWT).
 
 **Sticky sessions** (session affinity): the LB pins a user to one backend, via a cookie or IP hash, because that server holds their session in memory.
+
+💡 **Session / JWT:** a session is the server-side record of who is logged in. A JWT (JSON Web Token) is a signed token the client carries, so the server can trust it without looking anything up. **IP hash:** picks a backend from the client IP, so the same client lands on the same server.
 
 Why it's usually a **smell**:
 - Server dies → all its users lose their session.
@@ -85,17 +95,23 @@ Why it's usually a **smell**:
 
 Legitimate uses: WebSocket connections (inherently pinned to a server), or an in-memory cache you deliberately shard by user — but then say "consistent hashing", not "sticky sessions".
 
+💡 **WebSocket:** a long-lived two-way connection between browser and server, used for chat and live updates (see [WebSockets and SSE](websockets-and-sse.md)).
+
 ### 3.5 TLS termination
 
 The LB holds the certificate, decrypts HTTPS, and forwards plain HTTP (or re-encrypted HTTPS / mTLS in a mesh) to backends.
 - **Pros**: one place to manage certs (cert-manager, ACM), backends save CPU, L7 features need plaintext anyway.
 - **Cons**: traffic inside your network is unencrypted unless you re-encrypt. Many companies require mTLS internally (service mesh does this).
 
+💡 **TLS / mTLS / cert-manager:** TLS is the encryption behind HTTPS; the certificate proves the server's identity. mTLS (mutual TLS) makes the client present a certificate too, so both sides authenticate. cert-manager and ACM are tools that issue and renew certificates automatically.
+
 ### 3.6 Who load-balances the load balancer?
 
 An LB is itself a single point of failure unless you run several:
 - **Cloud LBs** (ALB/NLB) are already a distributed fleet behind one DNS name.
 - **Self-hosted**: two nginx/HAProxy boxes sharing a **virtual IP** via keepalived (VRRP) — if the active one dies, the standby takes the IP. Or multiple LBs with **anycast** / **DNS** spreading across them.
+
+💡 **SPOF / VRRP / anycast:** SPOF = single point of failure, a component whose death takes everything down. A virtual IP is an address that can move between machines; VRRP (via keepalived) is the protocol that decides which machine currently owns it. Anycast announces the same IP from several places so traffic goes to the nearest healthy one.
 
 ---
 
@@ -105,6 +121,8 @@ An LB is itself a single point of failure unless you run several:
 - To do **zero-downtime deploys** (drain a backend, deploy, re-add) and canaries (weighted routing).
 - To terminate TLS in one place.
 - Internally between services too (k8s `Service`, or client-side LB in gRPC / a service mesh sidecar).
+
+💡 **Zero-downtime deploy / draining:** take one backend out of rotation, let its in-flight requests finish ("drain"), update it, put it back, then repeat for the next one.
 
 ## 5. When NOT to use it (and why it's a mistake)
 
@@ -129,6 +147,8 @@ An LB is itself a single point of failure unless you run several:
 
 Honest truth: these overlap heavily. **nginx is a reverse proxy that also load-balances**; an API gateway is a reverse proxy with business-y features; an L7 LB is a reverse proxy focused on distribution. In an interview, name the *job* you need: "L7 load balancer for distribution and TLS", "API gateway for auth and per-client rate limits", "geo-DNS to send users to the nearest region".
 
+💡 **TTL:** how long a DNS answer may be cached; resolvers (the DNS servers your ISP runs) keep reusing the old IP until it expires, which is why DNS-based failover is slow. **Reverse proxy:** a server in front of your servers that forwards client requests to them.
+
 DNS LB is good for coarse, global routing (pick a region) but bad for fast failover because of caching — you'd still put a real LB in each region.
 
 ---
@@ -142,6 +162,8 @@ DNS LB is good for coarse, global routing (pick a region) but bad for fast failo
 5. **No connection draining** on deploys: in-flight requests get cut. Use a deregistration delay (ALB default 300 s) / `preStop` hook in k8s.
 6. **Forgetting the client IP.** Behind an L7 LB the backend sees the LB's IP; use `X-Forwarded-For` (or PROXY protocol for L4) for rate limiting and analytics.
 7. **Using an LB to "scale the database".** It doesn't.
+
+💡 **X-Forwarded-For / PROXY protocol:** a header (L7) or a small prefix on the connection (L4) in which the LB passes along the original client IP. **`preStop` hook:** a k8s step that runs before a pod is killed, often a short sleep to let the LB stop sending it traffic.
 
 ---
 

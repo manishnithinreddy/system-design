@@ -2,7 +2,7 @@
 
 ## 1. One-line summary
 
-Apache Cassandra is a **distributed wide-column NoSQL database** built for **huge write throughput and always-on availability** across many nodes and data centers; **Amazon DynamoDB** is its fully managed cousin with the same core idea: *you look data up by key, and you design tables around your queries*.
+Apache Cassandra is a **distributed wide-column NoSQL database** (NoSQL = "not only SQL": stores that skip the relational table-and-join model; wide-column = each row can hold many, sparse columns, grouped under a key) built for **huge write throughput and always-on availability** across many nodes and data centers; **Amazon DynamoDB** is its fully managed cousin with the same core idea: *you look data up by key, and you design tables around your queries*.
 
 ---
 
@@ -16,6 +16,8 @@ Apache Cassandra is a **distributed wide-column NoSQL database** built for **hug
 - Writes are turned into **sequential appends** (LSM tree), so writes are extremely cheap.
 
 The price: you lose joins, ad-hoc queries, and multi-row transactions. You must know your queries up front.
+
+💡 **Replica / leaderless / LSM tree:** a replica is one copy of the data on one node. "Leaderless" means no node is the designated primary, so any copy accepts writes (unlike a Postgres primary + followers). An LSM tree (explained in 3.4) is a storage layout that only ever appends to files, which is why writes are fast.
 
 ---
 
@@ -49,6 +51,8 @@ CREATE TABLE urls_by_user (
 
 DynamoDB is the same with different words: **partition key** (hash key) + optional **sort key** (range key); "GSI" (global secondary index) is essentially a second, automatically maintained table keyed differently.
 
+💡 **Token ring:** the hash of the partition key is a number (a "token"); the cluster lays all possible tokens on a circle and each node owns a slice of it. **GSI** (global secondary index) is a second copy of the table sorted by a different column so you can query by it.
+
 ### 3.2 Query-first data modeling (denormalize on purpose)
 
 In Postgres you model **entities** and then write queries. In Cassandra you list **queries** and create **one table per query**:
@@ -61,6 +65,8 @@ In Postgres you model **entities** and then write queries. In Cassandra you list
 Yes, the same data is written twice. Disk is cheap; cross-node joins are not. The app (or a batch) writes to both.
 
 **Partition size matters:** keep partitions under ~100 MB / ~100k rows. `PRIMARY KEY (country)` would put all of India's data in one partition on 3 nodes — a **hot partition**.
+
+💡 **Hot partition:** one partition receiving far more traffic or data than the others, so the 3 nodes holding it are overloaded while the rest of the cluster idles (like one pod behind a load balancer taking all the requests).
 
 ### 3.3 Ring, replication and tunable consistency
 
@@ -87,9 +93,15 @@ With replication factor **RF = 3**, each write goes to 3 replicas. You choose, *
 
 The rule: **R + W > RF** ⇒ strongly consistent reads. This is a dial between consistency and availability (see [CAP and consistency](../concepts/cap-and-consistency.md)).
 
+💡 **Quorum / replication factor:** RF is how many copies exist. A quorum is a majority of them (2 of 3). Any two majorities share at least one node, which is why a quorum read always meets a node that saw the latest quorum write. "Eventually consistent" means replicas may briefly disagree but converge if no new writes arrive.
+
 Replicas that missed writes catch up via **hinted handoff** (a neighbour stores the write and replays it), **read repair**, and periodic **anti-entropy repair**.
 
+💡 **Catch-up mechanisms:** *hinted handoff* = a node keeps a note ("hint") of a write meant for a dead node and replays it when it returns; *read repair* = a read that notices replicas disagree and fixes the stale one; *anti-entropy repair* = a periodic background job that compares replicas and syncs differences.
+
 DynamoDB hides all of this: 3 replicas across availability zones; reads are **eventually consistent** by default (half the cost) or **strongly consistent** on request.
+
+💡 **Availability zone (AZ):** an isolated data center (or group of them) within a cloud region, with separate power and network, so one failing does not take down the others.
 
 ### 3.4 Why writes are so fast: LSM trees
 
@@ -109,7 +121,9 @@ flowchart TB
 3. Background **compaction** merges SSTables and drops overwritten/deleted data.
 4. Reads may check the memtable + several SSTables (Bloom filters skip files that don't have the key), so **reads are more expensive than writes** — the opposite of a B-tree database like [Postgres](postgresql.md).
 
-Deletes write a **tombstone** marker; lots of deletes + range reads = slow queries until compaction cleans up. (Classic production pain: using Cassandra as a queue.)
+💡 **Terms above:** the *commit log* is an append-only file written first so a crash does not lose data (like a WAL, write-ahead log). A *memtable* is a sorted in-memory buffer. An *SSTable* is an immutable sorted file on disk. *Compaction* merges many SSTables into fewer. A *Bloom filter* is a tiny in-memory structure that answers "definitely not in this file" or "maybe", so most files are skipped without disk reads. A *B-tree* database updates pages in place on disk, which makes writes slower but reads cheaper.
+
+Deletes write a **tombstone** (a "this key is deleted" marker, since immutable files cannot be edited); lots of deletes + range reads = slow queries until compaction cleans up. (Classic production pain: using Cassandra as a queue.)
 
 ### 3.5 Lightweight transactions (LWT) are expensive
 
@@ -121,7 +135,11 @@ INSERT INTO urls_by_code (short_code, long_url) VALUES ('abc123', '...') IF NOT 
 
 This runs **Paxos** (a consensus protocol): ~4 round trips between replicas instead of 1, so ~**4x latency** and much lower throughput. Fine occasionally (custom aliases), bad on the hot path. Better: generate **unique IDs up front** ([ID generation](../concepts/id-generation.md)) so you never need "if not exists".
 
+💡 **Consensus / round trip:** consensus means several nodes agree on one value even if some fail. A round trip is one request plus its response across the network (~0.5 ms inside a data center, ~100+ ms across oceans), so 4 of them add up.
+
 DynamoDB's equivalent: **conditional writes** (`attribute_not_exists(short_code)`), which are cheap per item — a nice advantage — plus `TransactWriteItems` for small multi-item transactions at 2x cost.
+
+💡 **ACID / idempotent:** ACID = a transaction is atomic (all or nothing), consistent, isolated, and durable. An idempotent write gives the same result if it is applied twice, so retries are safe.
 
 ---
 
@@ -142,6 +160,8 @@ DynamoDB's equivalent: **conditional writes** (`attribute_not_exists(short_code)
 | Need multi-row ACID (money transfers, inventory) | Only single-partition atomicity; LWTs are slow and limited. |
 | Read-heavy with complex filters | LSM reads are costlier than writes; no secondary indexes worth relying on at scale. |
 | Small team, self-hosted | Cassandra ops (repairs, compaction tuning, JVM GC, tombstones) are a real burden. Consider DynamoDB/Keyspaces/ScyllaDB Cloud. |
+
+💡 **Ops terms in that last row:** *JVM GC* = the Java garbage collector pausing the process to free memory; long pauses make a node look dead. *Repairs* are the anti-entropy jobs above.
 
 ---
 

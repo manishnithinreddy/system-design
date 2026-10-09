@@ -8,7 +8,11 @@ Design patterns are **named, reusable shapes of code** for recurring problems; i
 
 Without shared vocabulary, "I'll have an interface for the algorithm, and a class that picks which implementation to build from config" takes a paragraph. With it: "Strategy for the algorithm, Factory to create it". Patterns compress design discussions the way "blue-green deploy" or "sidecar" compress infra discussions.
 
+💡 **Blue-green / sidecar:** blue-green deploy = run the new version next to the old one and switch traffic over in one step; a sidecar = a helper container that runs next to your app container in the same pod. Both are names for a common infra shape, just like patterns are for code. **Interface** = a Java contract listing methods without implementation. **Rate limiter** = code that rejects callers who send too many requests per time period; its algorithms (**token bucket**: a bucket refilled at a steady rate where each request takes a token; **fixed/sliding window**: counting requests in a time window that is either fixed or moves with the clock) are covered in the [rate limiter interview](../interviews/rate-limiter/README.md).
+
 They also encode lessons: *program to an interface*, *add behavior by wrapping instead of editing*, *keep creation logic in one place*. The danger is the opposite pain — pattern soup, where a 50-line problem gets six interfaces and a `AbstractRateLimiterFactoryProvider`.
+
+💡 **Pattern soup / AbstractFactoryProvider:** piling on abstractions (interfaces, factories, providers) until a tiny problem needs ten classes to read.
 
 ## 3. How it works
 
@@ -57,6 +61,8 @@ public final class ApiHandler {
 - **Use when:** several interchangeable algorithms exist, chosen by config or at runtime, and callers shouldn't care which. Rate-limit algorithms are the textbook case.
 - **Over-engineering when:** there's one algorithm and no realistic second. An interface with one implementation "for the future" is just indirection (YAGNI — *you aren't gonna need it*). Exception: an interface you need for test fakes is legitimate.
 
+💡 **Dependency on the interface / test fake:** `ApiHandler` only knows the `RateLimiter` type, never a concrete class, so you can hand it any implementation, including a fake one in a unit test that always says yes or no. This is called *injecting* a dependency (passing it in through the constructor instead of creating it inside).
+
 ### Factory — put "which class do I build?" in one place
 
 ```java
@@ -82,6 +88,8 @@ public final class RateLimiterFactory {
 - **Use when:** the concrete type depends on config/input, construction needs shared dependencies (a [clock](../libraries/java/time-and-clock.md), a scheduler), or you want to add a type without touching callers. Pairs naturally with Strategy.
 - **Over-engineering when:** there's one type and `new Foo()` is perfectly clear; or you build an abstract factory hierarchy for a single product family.
 
+💡 **Exhaustive switch / enum / record:** an enum is a fixed set of named constants; a record is a short immutable data class; a Java 21 switch expression over an enum must cover every constant or the code does not compile, so adding a new algorithm forces you to update the factory.
+
 ### Decorator — add behavior by wrapping, same interface
 
 ```java
@@ -105,6 +113,8 @@ RateLimiter limiter = new MetricsRateLimiter(new LoggingRateLimiter(factory.crea
 - **Use when:** cross-cutting add-ons (metrics, logging, fail-open on errors, a per-endpoint allowlist) that should combine freely without touching each algorithm. Java's `BufferedInputStream(new FileInputStream(...))` and Resilience4j's `decorateSupplier` are decorators; so is Express [middleware](../libraries/js/express-middleware.md) in spirit.
 - **Over-engineering when:** there's one fixed add-on that will always be there — just put it in the class. Deep wrapper stacks are also hard to debug (stack traces become onion layers).
 
+💡 **Cross-cutting / fail-open / allowlist / middleware:** cross-cutting = needed by many features (logging, metrics). Fail-open = if the limiter itself breaks, let requests through instead of blocking everyone. An allowlist is a list of callers exempted from limits. Middleware is a chain of functions wrapping each request handler. **Resilience4j** is a Java library for retries, circuit breakers and rate limits. **Delegate** = the wrapped inner object that does the real work.
+
 ### Singleton — exactly one instance
 
 ```java
@@ -118,6 +128,8 @@ public enum GlobalLimiterRegistry {                     // simplest thread-safe 
 
 - **Use when:** something truly must be one-per-process and has no state worth varying in tests — rare. The enum form is lazy-safe and serialization-safe.
 - **Why it's often a smell:** it's a **global variable** with a nicer name. Any class can reach `GlobalLimiterRegistry.INSTANCE`, so dependencies are hidden; tests can't substitute a fake or reset state between runs; and parallel tests leak state into each other. Prefer **"one instance by wiring"**: create one object in `main` (or let Spring create a singleton-scoped bean) and pass it through constructors. You get the "only one" property without the global access.
+
+💡 **Thread-safe / lazy / serialization-safe:** thread-safe = correct when many threads use it at once. Lazy = created only when first needed. Serialization-safe = converting it to bytes and back cannot create a second copy. **Global variable** = state reachable from anywhere. **Spring bean** = an object created and managed by the Spring framework, singleton-scoped by default. **Wiring** = deciding in one place (like `main`) which object gets passed to which.
 
 ### Template Method — fixed skeleton, overridable steps
 
@@ -143,6 +155,8 @@ public abstract class WindowedLimiter implements RateLimiter {
 
 - **Use when:** several classes share the exact same algorithm outline and differ only in steps.
 - **Over-engineering when:** the "shared" flow is two lines, or subclasses start overriding to skip steps. Inheritance couples subclasses to the base; composition (inject a Strategy for the varying step) is usually more flexible. Also note: making a check-then-record template thread-safe needs the lock around the whole template method, not in each step (see [thread-safety-basics](thread-safety-basics.md)).
+
+💡 **Evict / check-then-record / atomic:** evict = remove entries that are no longer needed. "Check-then-record" must run as one unit: if two threads both pass the check before either records, the limit is exceeded (a *race condition*). **Template method** = a method that fixes the order of steps; `final` stops subclasses overriding it. **Inheritance vs composition:** inheritance = "is a" (extends a class); composition = "has a" (holds another object and calls it).
 
 ### Observer — notify subscribers when something changes
 
@@ -177,6 +191,8 @@ public final class DisplayBoard implements AvailabilityListener {
 - **Use when:** one change has several independent reactions that may grow (boards, metrics, notifications) and the subject shouldn't depend on them.
 - **Over-engineering / risky when:** there's exactly one consumer — just call it. Watch for: listeners running **synchronously on the caller's thread** (a slow board slows down `park()`; hand off to an executor or queue if it can block), exceptions from one listener stopping the rest (catch per listener), memory leaks from listeners never removed, and hard-to-follow control flow when listeners trigger further events. Across services, use a message broker instead.
 
+💡 **Observer terms:** a *subject* is the object being watched, *listeners* are callbacks it calls. *Synchronously on the caller's thread* = the call does not return until all listeners are finished. *Executor* = a Java thread pool. *Memory leak* = a forgotten listener keeps its object from being garbage-collected. **Publish/subscribe** = senders announce events and anyone who signed up receives them.
+
 ### State — behaviour depends on a lifecycle state
 
 An object moves through states (ticket: `ACTIVE → PAID → EXITED`) and the allowed operations differ per state. Instead of `if (status == ...)` in every method, each state decides what's legal and what comes next. In Java a small lifecycle fits neatly in an enum (see [enums-and-enummap](../libraries/java/enums-and-enummap.md)):
@@ -198,6 +214,8 @@ The full Gang-of-Four form uses a `State` interface with one class per state, ho
 
 - **Use when:** there are 3+ states, transitions have rules, and invalid transitions must be impossible ("exit without paying").
 - **Over-engineering when:** two states and one transition — a `boolean` or a single `if` is clearer. Also don't spread one lifecycle across a class per state if the states share almost all behaviour; an enum transition table is enough. In concurrent code, the transition itself must be atomic (e.g. `AtomicReference<TicketStatus>.compareAndSet(ACTIVE, PAID)`) or two exit gates could both "exit" the same ticket.
+
+💡 **Lifecycle / atomic / compareAndSet:** a lifecycle is the ordered stages an object passes through. `compareAndSet(expected, new)` (CAS) changes a value only if it still equals `expected`, as one uninterruptible step, so of two gates racing to "exit" the same ticket only one wins. **Gang of Four (GoF)** = the authors of the classic 1994 patterns book. **Invariant** = a rule that must always be true for an object (e.g. one ticket exits once).
 
 ### Facade — one simple entry point over a subsystem
 
@@ -226,6 +244,8 @@ void apply(Command c) {
 
 The classic GoF form gives each command an `execute()` (and maybe `undo()`) method; with Java 21 records + sealed interfaces, keeping commands as **pure data** and the logic in one `switch` is often clearer, and it keeps the commands immutable and safe to pass between threads.
 
+💡 **Sealed interface / immutable / pure data:** a sealed interface lists all permitted implementations, so the compiler knows the full set and can check a switch is exhaustive. Immutable = fields never change after construction, so it is safe to hand to another thread. Pure data = no behaviour, just values.
+
 - **Use when:** requests must cross a thread or process boundary (queue them), be recorded (audit log, replay for tests), be retried, or be undone (editor undo stack, transaction compensation).
 - **Over-engineering when:** the caller and the receiver are on the same thread and the call happens immediately — `elevator.addStop(9)` is clearer than `new AddStopCommand(elevator, 9).execute()`. Also avoid a command class per trivial setter, and don't put mutable state in commands that cross threads.
 
@@ -241,6 +261,8 @@ The classic GoF form gives each command an `execute()` (and maybe `undo()`) meth
 - **Singleton for convenience** — hidden global state, untestable.
 - **Template Method when composition works** — inheritance hierarchies are hard to change later.
 
+💡 **Cargo cult:** copying the outward form of something (using patterns) without understanding why it works. **YAGNI** is explained in the Strategy section.
+
 ## 6. Commonly confused with
 
 | | Strategy | Template Method | Decorator | Factory | Singleton |
@@ -252,6 +274,8 @@ The classic GoF form gives each command an `execute()` (and maybe `undo()`) meth
 
 Also confused: **Decorator vs Proxy** — same shape; Decorator adds behavior, Proxy controls access (lazy loading, remote calls, security). **Factory method vs Abstract Factory** — one creation method vs a family of related products.
 
+💡 **Lazy loading / proxy:** lazy loading = fetching data only when first used. A proxy is a stand-in object with the same interface that decides whether and how to forward a call.
+
 ## 7. Common mistakes / misuse
 
 1. Interface + factory + builder for a single class with no variation.
@@ -260,6 +284,8 @@ Also confused: **Decorator vs Proxy** — same shape; Decorator adds behavior, P
 4. Decorator that breaks the contract (e.g. swallows exceptions the caller relied on).
 5. Factory full of `if/else` on strings — use an enum and an exhaustive `switch`, so adding a value forces a compile error at every switch.
 6. Naming patterns without code that matches — interviewers check the code, not the vocabulary.
+
+💡 **God class** (earlier, in Facade): one huge class that does everything instead of delegating.
 
 ## 8. Interview cheat-sheet
 

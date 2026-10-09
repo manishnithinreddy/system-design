@@ -4,6 +4,8 @@
 
 **WebSocket** is a long-lived, two-way connection between browser/app and server; **Server-Sent Events (SSE)** is a long-lived, one-way HTTP stream from server to client. Both let the server **push** data the moment it happens, instead of the client asking "anything new?" over and over.
 
+💡 **Connection / push:** a connection is an open TCP channel between two machines that stays usable until one side closes it. "Push" = the server sends data without being asked.
+
 ---
 
 ## 2. The problem it solves
@@ -13,6 +15,8 @@
 - HTTP is **request/response**: the server can only answer when the client asks.
 - **Short polling** (`GET /notifications` every 2 s): 10M open tabs ÷ 2 s = **5M requests/s**, almost all returning "nothing new". Huge waste, and still up to 2 s late.
 - Polling every 60 s is cheap but feels broken for chat or live updates.
+
+💡 **Polling:** the client repeatedly asks the server "anything new?". **Idle connection:** open but not currently sending data; it costs a bit of memory for buffers but no CPU.
 
 **The fix:** keep one connection open per client. When an event happens, the server writes it down that connection in milliseconds. Idle connections cost memory, not CPU or requests.
 
@@ -36,6 +40,8 @@
 
 For a **notification bell**, data flows server → client only, so **SSE is enough**. Marking as read is a normal `POST`. Mobile apps often use WebSocket (or MQTT) because they also send presence/typing.
 
+💡 **Upgrade / framed TCP / EventSource / MQTT:** in the table, WebSocket starts as a normal HTTP request with an `Upgrade` header, after which the same TCP connection switches to a message-framed protocol. `EventSource` is the browser API for SSE. MQTT is a lightweight publish/subscribe protocol popular on phones and IoT devices. **Stateful vs stateless:** stateful servers remember per-client data (here, the open socket) between requests.
+
 ### 3.2 Architecture: a connection gateway tier
 
 You separate the **stateful** connection-holding tier from the **stateless** business tier.
@@ -57,9 +63,13 @@ flowchart LR
 
 **Gateway pods** do nothing but hold sockets, authenticate on connect, and forward messages. With an event-loop server (Netty in Java, Node, Go), one pod can hold **~50k-1M idle connections**; memory is the limit (roughly 10-50 KB per connection for buffers and TLS state). Example: 10M concurrent users ÷ 100k per pod = **100 gateway pods**.
 
+💡 **Event loop / Netty / TLS state:** an event-loop server uses a few threads to serve many sockets (Netty is the Java library for that). TLS state is the encryption keys and buffers each HTTPS connection needs in memory. **RPC** = calling a function on another machine over the network. **Heartbeat** = a small periodic "I am alive" message.
+
 ### 3.3 How does a backend find the right gateway?
 
 The notification worker knows `userId`, not which pod holds the socket. Options:
+
+💡 **Registry:** here, a lookup table (in Redis) of which user is connected to which gateway pod.
 
 | Approach | How | Trade-off |
 |---|---|---|
@@ -70,6 +80,8 @@ The notification worker knows `userId`, not which pod holds the socket. Options:
 
 Key rule: the **inbox row in the DB is the source of truth**. The real-time push is a best-effort optimization. If the user is offline or the push is lost, they fetch `GET /inbox?since=...` when they reconnect, and the mobile app falls back to [APNs/FCM](push-email-sms-providers.md).
 
+💡 **Source of truth / best-effort:** the source of truth is the copy that wins any disagreement. Best-effort = tried, but with no guarantee of delivery.
+
 ### 3.4 Reconnect and catch-up
 
 Connections drop all the time (subway tunnel, laptop sleep, gateway deploy). The client must not miss what happened while it was away:
@@ -77,6 +89,8 @@ Connections drop all the time (subway tunnel, laptop sleep, gateway deploy). The
 1. Every inbox item gets a monotonically increasing ID per user (or a timestamp + ID).
 2. The client remembers the last ID it saw. SSE does this for you: the server sends `id: 1042` with each event, and `EventSource` sends `Last-Event-ID: 1042` on reconnect.
 3. On reconnect the gateway (or a normal API call) returns `GET /inbox?after=1042`, then switches to live streaming.
+
+💡 **Monotonically increasing:** only ever goes up, never repeats or goes back, so "give me everything after 1042" is well defined.
 
 ```
 id: 1043
@@ -88,15 +102,26 @@ data: {"title":"Riya commented on your post","unread":4}
 
 The `: ping` line is an SSE comment, used as a heartbeat. Ordering subtlety: subscribe to live events **before** fetching the backlog, then dedupe by ID, otherwise an event arriving between the two steps is lost.
 
+💡 **Dedupe:** drop events you already processed (same ID seen twice).
+
 ### 3.5 Infra angles you already know
 
 - **Sticky routing:** SSE and WebSocket are single long connections, so the LB pins them naturally. Stickiness only matters for long polling or Socket.IO's HTTP fallback (it needs cookie/IP affinity).
 - **LB idle timeouts:** AWS ALB defaults to **60 s** idle timeout; nginx `proxy_read_timeout` defaults to 60 s. A quiet connection gets killed. Send a **heartbeat** (WebSocket ping every 20-30 s, or an SSE comment line `: ping`).
 - **Proxy buffering:** nginx buffers responses by default, which delays SSE. Set `X-Accel-Buffering: no` or `proxy_buffering off`.
 - **Pod draining in k8s:** on a deploy, a gateway pod with 100k connections gets SIGTERM. Mark it NotReady (stop new connections), then close existing ones **gradually** over e.g. 60-120 s with a "please reconnect" message, and set `terminationGracePeriodSeconds` to match. Closing all 100k at once creates a **reconnect storm** on the other pods; clients must reconnect with jittered backoff.
+
+💡 **Sticky / affinity:** the load balancer keeps sending the same client to the same backend (see [load balancer](load-balancer.md)). **Socket.IO** is a popular JS library that uses WebSocket and falls back to HTTP long polling.
+
+💡 **SIGTERM / NotReady / terminationGracePeriodSeconds:** SIGTERM is the Unix signal asking a process to shut down cleanly. NotReady means the pod fails its readiness probe, so Kubernetes stops routing new traffic to it. The grace period is how long k8s waits before force-killing. **Jittered backoff:** each client waits a random, growing delay before retrying, so they do not all return at once.
+
 - **File descriptors and ports:** raise `ulimit -n` (each socket is an fd); watch conntrack tables on nodes.
 - **Autoscaling:** scale on connection count, not CPU (idle sockets use almost no CPU).
 - **HTTP/1.1 limit:** browsers allow ~6 connections per domain over HTTP/1.1, so many SSE tabs can starve each other. HTTP/2 multiplexes and removes this.
+
+💡 **File descriptor (fd) / ulimit / conntrack:** Linux treats every open socket as a file with a numeric handle; `ulimit -n` caps how many a process may have open. conntrack is the kernel table tracking every network connection through the node; it can fill up.
+
+💡 **Multiplexes:** HTTP/2 carries many independent request streams over one connection.
 
 ---
 
@@ -115,6 +140,9 @@ The `: ping` line is an SSE comment, used as a heartbeat. Ordering subtlety: sub
 | Reaching users whose app is closed | No app open = no socket | [APNs/FCM push](push-email-sms-providers.md) |
 | One-off result of a long job | Hold a socket for 1 message | Poll a status endpoint, or a webhook |
 | Guaranteed delivery | Sockets drop silently | DB inbox + sync on reconnect |
+
+💡 **Webhook:** the other side calls a URL you registered when something happens, instead of you polling.
+
 | Server → client only, but you pick WebSocket | Extra protocol, custom reconnect, LB upgrade config | SSE |
 
 ---
