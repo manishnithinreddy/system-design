@@ -75,18 +75,18 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U7 | ✅ [**Content-defined chunking**](under-the-hood/content-defined-chunking.md) | How do Dropbox-style systems dedupe files that shift? | Done |
 | U8 | ✅ [**Double-entry ledgers in databases**](under-the-hood/double-entry-ledgers.md) | How do payment systems make money impossible to lose? | Done |
 | U9 | ✅ [**Kafka's speed tricks**](under-the-hood/kafka-speed-tricks.md) | Sequential I/O, page cache, zero-copy: how millions of messages/s fit on one disk | Done |
-| U10 | **Kubernetes scheduler** | How does Kubernetes pick a node for your pod? | With #16 |
-| U11 | **TLS 1.3 / QUIC** | How is an encrypted connection set up in one round trip? | Later |
-| U12 | **Containers: namespaces & cgroups** | What is a container, really? | Later |
-| U13 | **JVM garbage collectors** | How does ZGC pause for under a millisecond? | Later |
+| U10 | ✅ [**Kubernetes scheduler**](under-the-hood/kubernetes-scheduler.md) | How does Kubernetes pick a node for your pod? | Done |
+| U11 | ✅ [**TLS 1.3 handshake**](under-the-hood/tls-1-3-handshake.md) | How is an encrypted connection set up in one round trip? | Done |
+| U12 | ✅ [**Containers: namespaces & cgroups**](under-the-hood/containers-namespaces-cgroups.md) | What is a container, really? | Done |
+| U13 | ✅ [**JVM garbage collectors**](under-the-hood/jvm-garbage-collectors.md) | How does ZGC pause for under a millisecond? | Done |
 | U14 | ✅ [**Video compression**](under-the-hood/video-compression.md) | I/P/B frames and motion vectors | Done (reader request) |
-| U15 | **Shazam's audio fingerprints** | How is a song recognised in 3 seconds? | Later |
+| U15 | ✅ [**Shazam's audio fingerprints**](under-the-hood/shazam-audio-fingerprinting.md) | How is a song recognised in 3 seconds in a noisy café? | Done |
 | U16 | **Route planning** | How does a maps app find a route across a country in milliseconds? | Later |
 | U17 | ✅ [**Adaptive bitrate in the player**](under-the-hood/adaptive-bitrate-player.md) | Why does your video drop to 360p, and how does it decide to climb back? | Done |
 | U18 | ✅ [**Erasure coding**](under-the-hood/erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? | Done |
 | U19 | ✅ [**UPI under the hood**](under-the-hood/upi.md) | What happens between "Pay" and "₹ debited" in about 2 seconds? | Done |
 | U20 | **Anycast** | How does one IP address (1.1.1.1, 8.8.8.8) live in hundreds of cities? | Later |
-| U21 | **Password hashing (bcrypt / Argon2)** | How do you make cracking stolen passwords deliberately slow? | Later |
+| U21 | ✅ [**Password hashing**](under-the-hood/password-hashing.md) | How do you make cracking stolen passwords deliberately slow? | Done |
 | U22 | **QR codes and Reed–Solomon** | How does a QR code still scan with a corner torn off? | Later |
 | U23 | **Maglev hashing** | How do load balancers spread connections evenly and survive a server dying? | Later |
 | U24 | **Signal's double ratchet** | How does stealing today's key not reveal yesterday's messages? | Later |

@@ -32,9 +32,15 @@ Each page follows the same shape: the hook question → life before it → the c
 | [Erasure coding](erasure-coding.md) | How do storage systems survive lost disks with 1.5× overhead instead of 3 copies? |
 | [Double-entry ledgers](double-entry-ledgers.md) | How do payment systems make money impossible to lose? |
 | [Kafka's speed tricks](kafka-speed-tricks.md) | How does Kafka push millions of messages a second through ordinary disks? |
+| [Kubernetes scheduler](kubernetes-scheduler.md) | How does Kubernetes pick a node for your pod? |
+| [Containers: namespaces & cgroups](containers-namespaces-cgroups.md) | What is a container, really? |
+| [JVM garbage collectors](jvm-garbage-collectors.md) | How does ZGC pause for under a millisecond? |
+| [TLS 1.3 handshake](tls-1-3-handshake.md) | How is an encrypted connection set up in one round trip? |
+| [Password hashing](password-hashing.md) | How do you make cracking stolen passwords deliberately slow? |
+| [Shazam's audio fingerprints](shazam-audio-fingerprinting.md) | How is a song recognised in 3 seconds in a noisy café? |
 | [UPI](upi.md) | What happens in the ~2 seconds between "Pay" and "₹ debited"? |
 
-More are planned (the Kubernetes scheduler, TLS 1.3, containers, JVM garbage collectors, Shazam, route planning): see the [roadmap](../ROADMAP.md).
+More ideas (route planning, QR codes, anycast, Maglev hashing, Signal's double ratchet) are listed in the [roadmap](../ROADMAP.md).
 
 Runnable demos live in [`code/`](code/).
 
