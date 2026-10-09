@@ -148,4 +148,5 @@ Also: **read repair vs anti-entropy repair**. Read repair is opportunistic and o
 ## 9. Used in
 
 - [Distributed key-value store](../interviews/distributed-kv-store/README.md): **anti-entropy** deep dive: Merkle trees per token range, how they combine with read repair and hinted handoff, and why repair must run within the tombstone grace period.
+- 📚 [Case study: Amazon Dynamo → DynamoDB](../../case-studies/amazon-dynamo-to-dynamodb.md): where this technique came from (the 2007 Dynamo paper) and whether DynamoDB kept it.
 - Related: [hinted handoff and sloppy quorum](hinted-handoff-and-sloppy-quorum.md), [LSM trees and storage engines](lsm-trees-and-storage-engines.md) (tombstones), [vector clocks and conflict resolution](vector-clocks-and-conflict-resolution.md) (which version wins), [consistent hashing](consistent-hashing.md) (token ranges), [Cassandra](../technologies/cassandra.md), [Bloom filters](bloom-filters.md).

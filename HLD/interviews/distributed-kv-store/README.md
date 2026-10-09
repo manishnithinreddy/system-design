@@ -39,7 +39,7 @@ This is the interview where you build the **database itself**, not use one. It b
 
 **See it work:** [Hash ring + quorums + hinted handoff](../../../see-it-work/hash-ring-quorum/README.md): a ~190-line simulation of L4/L5 you can run and break. [Raft leader election](../../../see-it-work/raft-leader-election/README.md): the CP side from L6, with a partitioned leader.
 
-**Case study:** [Discord: Cassandra → ScyllaDB in production](../../../case-studies/discord-message-storage.md): hot partitions, tombstones, GC pauses and request coalescing at 177 nodes.
+**Case study:** [Discord: Cassandra → ScyllaDB in production](../../../case-studies/discord-message-storage.md): hot partitions, tombstones, GC pauses and request coalescing at 177 nodes. And [Amazon: from the Dynamo paper to DynamoDB](../../../case-studies/amazon-dynamo-to-dynamodb.md): the design this interview is based on, and why the managed service changed it (single leader per partition, predictable latency).
 
 **Related LLD:** [In-memory KV store with transactions](../../../LLD/interviews/kv-store/README.md): the single-node engine (WAL, recovery, transactions).
 
