@@ -171,4 +171,5 @@ Also: **state machine vs workflow/saga** — a saga coordinates a multi-step pro
 - [LLD: Design an In-Memory Key-Value Store with Transactions](../interviews/kv-store/README.md) — session transaction state: no transaction → in transaction (depth n) via `BEGIN`, back down via `COMMIT`/`ROLLBACK`; `ROLLBACK`/`COMMIT` with no transaction is an error state to handle explicitly.
 - [Vending Machine](../interviews/vending-machine/README.md): the **State pattern** done properly (Idle, HasMoney, AwaitingUpi, Dispensing, SoldOut, Maintenance), with every invalid event refused instead of crashing.
 - [Payment system (HLD)](../../HLD/interviews/payment-system/README.md): payment and refund state machines with conditional transitions and a PENDING state for unknown outcomes.
+- [ATM / Digital Wallet](../interviews/digital-wallet/README.md): ATM session states (idle → card → PIN → transaction), PIN lockout counted at the bank, hold states.
 - Related: [design-patterns](design-patterns.md) (State), [enums-and-enummap](../libraries/java/enums-and-enummap.md), [single-writer-principle](single-writer-principle.md).

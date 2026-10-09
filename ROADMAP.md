@@ -23,12 +23,12 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 11 | [Metrics & Monitoring](HLD/interviews/metrics-monitoring/README.md) | Time-series storage, compression, cardinality, downsampling, SLO alerting | [Thread Pool / Connection Pool](LLD/interviews/thread-pool/README.md) | Pools from scratch, rejection policies, sizing, fair borrowing, leak detection |
 | 12 | [Collaborative Editor](HLD/interviews/collaborative-editor/README.md) | OT vs CRDTs, one sequencer per doc, op log + snapshots, presence | [Text Editor](LLD/interviews/text-editor/README.md) | Command undo/redo, coalescing, gap buffer / piece table / rope |
 | 13 | [File Storage & Sync](HLD/interviews/file-storage-sync/README.md) | Metadata vs blocks, dedup, journal + cursor, conflicts, erasure coding | [In-memory File System](LLD/interviews/file-system/README.md) | Composite, path resolution, symlinks, permissions, locking |
+| 14 | [Payment System](HLD/interviews/payment-system/README.md) | State machine, idempotency end to end, unknown outcomes, double-entry ledger, outbox + saga, reconciliation, payouts, multi-PSP routing, fraud | [ATM / Digital Wallet](LLD/interviews/digital-wallet/README.md) | ATM states, note planning, reversals, idempotent transfers, lock ordering, holds |
 
 ## 🔜 Next (in order)
 
 | # | HLD | New ideas it brings | LLD | New ideas it brings |
 |---|---|---|---|---|
-| 14 | **Payment System** | Double-entry ledgers at scale, PSP integration, reconciliation, exactly-once money | **ATM / Digital Wallet** | State machines with money, idempotent transfers, auditing |
 | 15 | **Distributed Message Queue** (Kafka internals) | Log segments, partitions, replication (ISR), consumer groups, retention | **Pub-Sub Broker** (in-memory) | Observer at scale, back-pressure, delivery guarantees in code |
 | 16 | **Distributed Job Scheduler** | Leader election, exactly-once execution, sharding schedules, time zones | **Chess** | Rich OOP modelling, rules engines, move validation, undo |
 | 17 | **Ad Click Aggregation / Real-time Analytics** | Lambda vs Kappa, windowed aggregation, dedup at scale, reconciliation | **Hotel / Meeting-Room Booking** | Interval overlap, availability search, overbooking rules |

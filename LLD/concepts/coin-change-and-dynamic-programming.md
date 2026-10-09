@@ -272,4 +272,5 @@ DP returns "impossible" (`null`/∞) cleanly, which a greedy loop can't tell apa
 ## 9. Used in
 
 - [LLD: Vending Machine](../interviews/vending-machine/README.md): computing change from a limited cash box, deciding whether to accept a sale, and why greedy isn't enough.
+- [ATM / Digital Wallet](../interviews/digital-wallet/README.md): bounded note planning for the cash dispenser.
 - Related: [greedy algorithms](greedy-algorithms.md), [Big-O complexity](big-o-complexity.md), [splitting money and rounding](splitting-money-and-rounding.md), [state machines](state-machines.md).

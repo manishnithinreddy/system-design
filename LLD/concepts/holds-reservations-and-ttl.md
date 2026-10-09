@@ -150,4 +150,5 @@ A hold is **data** (a row, a record with `expiresAt`); a lock is a **runtime mec
 - [LLD: Design a Movie Ticket Booking System](../interviews/movie-booking/README.md) — `holdSeats` (all-or-nothing, 10-minute TTL, lazy expiry with an injected `Clock`), idempotent `confirmBooking`, `releaseHold`, holds stored in the DB at L6.
 - [LLD: Design a Parking Lot](../interviews/parking-lot/README.md) — reservations held past start time, then released; overbooking as a business decision (L6).
 - [HLD: Ride-sharing](../../HLD/interviews/ride-sharing/README.md) — driver offers that expire after 15 s (a lease).
+- [ATM / Digital Wallet](../interviews/digital-wallet/README.md): wallet holds with capture, void and expiry.
 - Related: [state-machines](state-machines.md), [optimistic-vs-pessimistic-locking](optimistic-vs-pessimistic-locking.md), [HLD: distributed locks and leases](../../HLD/concepts/distributed-locks-and-leases.md), [time-and-clock](../libraries/java/time-and-clock.md).
