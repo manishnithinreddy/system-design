@@ -92,6 +92,11 @@ Curiosity-driven deep dives into one specific invention: the problem before it, 
 | U24 | ✅ [**Signal's double ratchet**](under-the-hood/signal-double-ratchet.md) | How does stealing today's key not reveal yesterday's messages? | Done |
 | U25 | ✅ [**Upscaling & super-resolution**](under-the-hood/upscaling-and-super-resolution.md) | Can you really turn a blurry 360p video into HD? | Done (reader request) |
 | U26 | ✅ [**How a voice is stored in a file**](under-the-hood/how-sound-is-stored.md) | What in the numbers is the pitch, and what makes a voice yours? | Done (reader request) |
+| U27 | ✅ [**TCP**](under-the-hood/tcp.md) | Why is the first request on a new connection slow, and what is TCP actually doing? | Done (networking batch) |
+| U28 | ✅ [**HTTP/1.1 → 2 → 3**](under-the-hood/http-1-2-3.md) | Why did HTTP need versions 2 and 3? | Done (networking batch) |
+| U29 | ✅ [**Kubernetes networking**](under-the-hood/kubernetes-networking.md) | How does a request reach your pod? | Done (networking batch) |
+| U30 | ✅ [**NAT & conntrack**](under-the-hood/nat-and-conntrack.md) | How do 10 phones share one public IP, and why do k8s nodes drop packets? | Done (networking batch) |
+| U31 | ✅ [**What happens when you type a URL**](under-the-hood/what-happens-when-you-type-a-url.md) | Everything between pressing Enter and seeing the page | Done (networking batch) |
 
 ## 🗺️ Learning path pages
 

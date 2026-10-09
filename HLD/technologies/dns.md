@@ -201,4 +201,5 @@ dig @1.1.1.1 example.com           # ask a specific resolver (Cloudflare)
 
 - [Web Crawler](../interviews/web-crawler/README.md): **DNS resolution as a crawler bottleneck**: local caching resolver, asynchronous pre-resolution per host, politeness grouped by IP (see the [L4](../interviews/web-crawler/L4-mid.md), [L5](../interviews/web-crawler/L5-senior.md) and [L6](../interviews/web-crawler/L6-staff.md) answers).
 - [Search autocomplete](../interviews/search-autocomplete/README.md): GeoDNS/anycast to send each keystroke to the nearest region, because network round trips dominate the latency budget.
+- 🔍 [Under the Hood: what happens when you type a URL](../../under-the-hood/what-happens-when-you-type-a-url.md): DNS as step one of the full request journey.
 - Related: [URL frontier and politeness](../concepts/url-frontier-and-politeness.md), [content fingerprinting and dedup](../concepts/content-fingerprinting-and-dedup.md), [CDN](cdn.md) (GeoDNS / anycast routing to edges), [load balancer](load-balancer.md), [service discovery](../concepts/service-discovery.md), [caching strategies](../concepts/caching-strategies.md).

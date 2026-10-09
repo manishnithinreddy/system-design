@@ -43,6 +43,11 @@ Each page follows the same shape: the hook question → life before it → the c
 | [Route planning](route-planning.md) | How does a maps app find a route across a country in milliseconds? |
 | [QR codes and Reed–Solomon](qr-codes-reed-solomon.md) | How does a QR code still scan with a corner torn off? |
 | [Maglev hashing](maglev-hashing.md) | How do load balancers spread connections evenly and survive a server dying? |
+| [TCP](tcp.md) | Why is the first request on a new connection slow, and what is TCP actually doing? |
+| [HTTP/1.1 → 2 → 3](http-1-2-3.md) | Why did HTTP need versions 2 and 3? |
+| [Kubernetes networking](kubernetes-networking.md) | How does a request reach your pod? |
+| [NAT & conntrack](nat-and-conntrack.md) | How do 10 phones share one public IP, and why do k8s nodes drop packets? |
+| [What happens when you type a URL](what-happens-when-you-type-a-url.md) | Everything between pressing Enter and seeing the page |
 | [UPI](upi.md) | What happens in the ~2 seconds between "Pay" and "₹ debited"? |
 
 Every planned page is done; new ideas go in the [roadmap](../ROADMAP.md).

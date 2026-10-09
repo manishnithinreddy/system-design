@@ -43,6 +43,7 @@
 | [DNS](technologies/dns.md) | Turning names into IPs; TTLs, GeoDNS, why DNS failover is slow, DNS as a crawler bottleneck |
 | [Service mesh & Envoy](technologies/service-mesh-and-envoy.md) | Programmable proxies for routing, mTLS, retries and telemetry |
 | [Payment gateways & PSPs](technologies/payment-gateways-and-psps.md) | Accepting cards and UPI without integrating every bank: authorisation, capture, settlement, webhooks, tokens |
+| [gRPC & Protocol Buffers](technologies/grpc-and-protobuf.md) | Fast typed service-to-service calls over HTTP/2, with schema evolution rules |
 
 ## Concepts (ideas)
 | | Question it answers |
