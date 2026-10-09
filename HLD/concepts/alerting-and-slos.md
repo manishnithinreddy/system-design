@@ -211,4 +211,5 @@ Also: **burn-rate alert vs threshold alert** ("error rate > 1% for 5m" fires the
 
 - [Metrics & Monitoring](../interviews/metrics-monitoring/README.md): the alerting half of the design: rule evaluation as a scheduled, sharded job, notification routing, grouping, dedup and silences, SLO burn-rate alerts, and how to avoid paging the on-call for noise.
 - [Payment system](../interviews/payment-system/README.md): alerting on PENDING payments older than 5 minutes per PSP, outbox lag, and unmatched reconciliation value.
+- [Distributed message queue](../interviews/distributed-message-queue/README.md): consumer lag in time, under-replicated and offline partitions, ISR shrink rate as platform SLIs (L6 §5).
 - Related: [observability](observability.md), [Prometheus and TSDBs](../technologies/prometheus-and-time-series-databases.md), [time-series compression and downsampling](time-series-compression-and-downsampling.md), [resilience patterns](resilience-patterns.md), [retries, backoff and DLQ](retries-backoff-and-dlq.md) (re-sending failed notifications).

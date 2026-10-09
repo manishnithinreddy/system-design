@@ -156,4 +156,5 @@ Also confused with **rendezvous (highest-random-weight) hashing**: for each key,
 - [Search autocomplete](../interviews/search-autocomplete/README.md): spreading `prefix → top-k` entries across shards by hash of the full prefix, so hot letters don't overload one shard.
 - [Metrics & monitoring](../interviews/metrics-monitoring/README.md): assigning series to ingesters and rule groups to rulers, so adding a node moves only a share of the work.
 - 📚 [Case study: Amazon Dynamo → DynamoDB](../../case-studies/amazon-dynamo-to-dynamodb.md): where this technique came from (the 2007 Dynamo paper) and whether DynamoDB kept it.
+- [Distributed message queue](../interviews/distributed-message-queue/README.md): contrast: why a log can't use consistent hashing to grow partitions (old messages stay where they are, L4 §5.1).
 - Related: [Redis](../technologies/redis.md) (hash slots), [Cassandra](../technologies/cassandra.md) (token ring), [Load balancer](../technologies/load-balancer.md) (ring-hash / Maglev), [Sharding and replication](sharding-and-replication.md), [Caching strategies](caching-strategies.md).

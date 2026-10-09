@@ -107,7 +107,7 @@ Replication factor 3 (three copies) is the usual production setting. Here is wha
 With RF=3 and `min.insync.replicas=2`:
 
 - 1 broker down → ISR = 2 → writes and reads continue.
-- 2 brokers down → ISR = 1 → `acks=all` producers get `NotEnoughReplicas`; consumers can still read committed data. The partition **chooses consistency over availability** for writes ([CAP](cap-and-consistency.md)).
+- 2 brokers down → ISR = 1 → `acks=all` producers get `NotEnoughReplicas`; consumers can still read committed data. The partition **chooses consistency over availability** for writes ([CAP](cap-and-consistency.md): when machines can't all be reached, a system must pick between refusing requests and risking wrong or lost data).
 - Setting `min.insync.replicas=3` with RF=3 is a classic mistake: any single broker restart blocks all writes.
 
 ### 3.5 What "committed" really means
@@ -115,7 +115,7 @@ With RF=3 and `min.insync.replicas=2`:
 Committed = **below the high watermark** = present on every replica that was in sync at that moment. Three consequences people often miss:
 
 1. **Consumers never see uncommitted records.** A consumer fetching from the leader gets only offsets below HW. Otherwise a consumer could read offset 118, the leader could die, the new leader might not have 118, and the consumer would have seen data that "never existed".
-2. **Committed is not the same as fsynced.** Kafka by default does not force each write to disk (it leaves flushing to the OS; the `flush.messages` / `flush.ms` settings are effectively off). Durability comes from **copies on several machines**, not from the disk of one. A simultaneous power loss of all ISR brokers could lose acked data that was still in RAM. That's why replicas are spread across racks or availability zones (`broker.rack`).
+2. **Committed is not the same as fsynced.** Kafka by default does not force each write to disk (it leaves flushing to the OS; the `flush.messages` / `flush.ms` settings are effectively off). Durability comes from **copies on several machines**, not from the disk of one. A simultaneous power loss of all ISR brokers could lose acked data that was still in RAM. That's why replicas are spread across racks or availability zones (💡 separate data-center buildings with their own power and network inside one cloud region), configured with `broker.rack`.
 3. **Producer ack and commit are linked but not identical.** With `acks=all`, the leader replies once HW passes your record. With `acks=1`, you get the reply earlier, and the record may never become committed.
 
 💡 *Page cache*: the part of RAM where the OS keeps recently read or written file data. A write "to a file" first lands here and reaches the physical disk later. *fsync*: the system call that forces those pages to the disk now (~0.1–2 ms on an SSD), see [durability, WAL and snapshots](../../LLD/concepts/durability-wal-and-snapshots.md).

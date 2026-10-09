@@ -158,4 +158,5 @@ FOR UPDATE SKIP LOCKED;   -- other workers skip rows I locked, no blocking
 
 - [Notification system](../interviews/notification-system/README.md): the **per-channel, per-priority queues** (push / SMS / email / in-app, critical vs marketing) between the Notification API and the channel workers, with retries, DLQs and autoscaling on queue depth.
 - [Video streaming](../interviews/video-streaming/README.md): the **transcoding job/task queue** with priority lanes, visibility timeouts for crashed encoders, and a DLQ for poison videos.
+- [Distributed message queue](../interviews/distributed-message-queue/README.md): queue vs log semantics as the first clarifying question, and when a job queue shouldn't be forced onto a log (L6 §7).
 - Related: [Kafka](kafka.md) (log vs queue), [Redis](redis.md) (lists/streams), [PostgreSQL](postgresql.md) (`SKIP LOCKED`, outbox), [retries, backoff and DLQ](../concepts/retries-backoff-and-dlq.md), [idempotency and delivery semantics](../concepts/idempotency-and-delivery-semantics.md), [fan-out](../concepts/fan-out.md).

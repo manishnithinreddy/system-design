@@ -174,4 +174,5 @@ Also confused: **idempotency** (doing it twice has the same effect as once) vs *
 - [Metrics & monitoring](../interviews/metrics-monitoring/README.md): a standby ruler takes over a rule group through a lease when the active one dies.
 - [Collaborative editor](../interviews/collaborative-editor/README.md): a lease per document so exactly one session server orders its edits, with a fencing token on log appends after failover.
 - [Payment system](../interviews/payment-system/README.md): fencing the old primary during ledger database failover (L6 §5).
+- [Distributed message queue](../interviews/distributed-message-queue/README.md): leader epochs fence zombie leaders and zombie transactional producers.
 - Related: [ZooKeeper / etcd](../technologies/zookeeper-etcd.md), [Redis](../technologies/redis.md) (`SET NX PX`), [PostgreSQL](../technologies/postgresql.md) (row locks, `SKIP LOCKED`), [idempotency and delivery semantics](idempotency-and-delivery-semantics.md), [CAP and consistency](cap-and-consistency.md), [sagas and distributed transactions](sagas-and-distributed-transactions.md), [Kafka](../technologies/kafka.md) (consumer generations).
