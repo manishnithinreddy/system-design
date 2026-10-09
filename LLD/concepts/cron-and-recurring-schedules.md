@@ -219,4 +219,5 @@ This is the **thundering herd**: many clients waking at the same moment and stam
 ## 9. Used in
 
 - [LLD: Task Scheduler](../interviews/task-scheduler/README.md): **recurring jobs**: parsing cron expressions, computing the next fire time in the job's time zone, misfire and overlap policies, jitter.
+- [Distributed job scheduler (HLD)](../../HLD/interviews/distributed-job-scheduler/README.md): the same cron + DST rules for 50M schedules.
 - Related: [timers, delay queues and timing wheels](timers-delay-queues-and-timing-wheels.md) (running each computed time), [java.time API](../libraries/java/java-time-api.md), [time and clock](../libraries/java/time-and-clock.md), [ScheduledExecutorService](../libraries/java/scheduled-executor-service.md), [distributed locks and leases](../../HLD/concepts/distributed-locks-and-leases.md).

@@ -237,4 +237,5 @@ See [Big-O complexity](big-o-complexity.md) for the notation.
 ## 9. Used in
 
 - [LLD: Task Scheduler](../interviews/task-scheduler/README.md): the **in-memory delay queue** (min-heap + waiting worker, wake-up on earlier task), monotonic clock for delays, and the timing-wheel alternative for very many timers.
+- [Distributed job scheduler (HLD)](../../HLD/interviews/distributed-job-scheduler/README.md): near-term jobs loaded into a timing wheel per shard (L5 §3.2).
 - Related: [cron and recurring schedules](cron-and-recurring-schedules.md) (computing the *next* due time), [ScheduledExecutorService](../libraries/java/scheduled-executor-service.md), [holds, reservations and TTL](holds-reservations-and-ttl.md), [retries, backoff and DLQ](../../HLD/concepts/retries-backoff-and-dlq.md), [URL frontier and politeness](../../HLD/concepts/url-frontier-and-politeness.md) (a per-host next-allowed-time heap is the same structure).
