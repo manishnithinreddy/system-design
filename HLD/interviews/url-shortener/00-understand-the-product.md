@@ -79,13 +79,13 @@ That's a **custom alias**: the user picks the code instead of the system generat
 | Looks trustworthy (you can guess where it goes) | `bit.ly/acme-careers` vs `bit.ly/x7Qp2` |
 | Branding | `go/oncall` at your company |
 
-**The catch:** only **one** person in the whole world can own `diwali-shoes`. If another store tries to take it, they must get an error: "*this alias is taken*" (HTTP `409 Conflict`).
+**The catch:** only **one** person in the whole world can own `diwali-shoes`. If another store tries to take it, they must get an error: "*this alias is taken*" (HTTP `409 Conflict`, the status code a server returns when your request clashes with existing data).
 - 👉 In the interview: *how do you guarantee two people can't grab the same alias at the same moment?* (Uniqueness, race conditions, DB constraints.)
 
 ### 3.3 Expiry: "this link should stop working later"
 Priya's Diwali sale ends on 15 November. After that, the link should stop sending people to a sale page that no longer exists. She sets **expires on: 15 Nov**.
 
-After that date, clicking the link shows "*This link has expired*" (HTTP `410 Gone`) instead of the page.
+After that date, clicking the link shows "*This link has expired*" (HTTP `410 Gone`, a status code meaning "this existed but is deliberately gone") instead of the page.
 
 | Why people want it | Example |
 |---|---|
@@ -93,7 +93,7 @@ After that date, clicking the link shows "*This link has expired*" (HTTP `410 Go
 | Security | A link to a shared document that should only work for 7 days |
 | Cleanup | Free-tier links that nobody has clicked in 2 years |
 
-- 👉 In the interview: *how do you delete billions of expired links efficiently, and make sure an expired link is never served from a cache?*
+- 👉 In the interview: *how do you delete billions of expired links efficiently, and make sure an expired link is never served from a cache (a fast in-memory copy of recently used data)?*
 
 ### 3.4 Analytics: "how many people clicked?"
 Priya creates **three different short links to the same product page**:
@@ -114,14 +114,14 @@ diwali-poster  ██                      380 clicks
 
 Now she knows SMS works best, and her boss gets the answer. **This is why businesses pay for URL shorteners.** Shortening is free; *analytics* is the product.
 
-- 👉 In the interview: *how do you record every click without slowing down the redirect?* (Async processing, Kafka.) And it's the reason for the **302 vs 301** question below.
+- 👉 In the interview: *how do you record every click without slowing down the redirect?* (Async processing, i.e. doing the slow work later in the background; Kafka, a message log that buffers events between services.) And it's the reason for the **302 vs 301** question below.
 
 ### 3.5 Edit / disable a link
 Priya printed 5,000 posters with `bit.ly/diwali-shoes`, then noticed the product page URL had a typo. With a normal link, she'd reprint everything. With a short link, she just **changes where it points**, and every poster is fixed instantly.
 
 Same idea in reverse: if someone uses the service to spread a **phishing** link ("Your bank account is locked, click bit.ly/xyz"), the service must be able to **disable** that link immediately.
 
-- 👉 In the interview: *how fast can a change reach every server and cache worldwide?* And: *abuse prevention*.
+- 👉 In the interview: *how fast can a change reach every server and cache worldwide?* And: *abuse prevention* (stopping bad actors, such as phishers, from using the service).
 
 ---
 
@@ -187,11 +187,11 @@ Imagine the simplest possible version: one server process, links kept in a `Hash
 
 | Naive choice | What goes wrong | Interview topic |
 |---|---|---|
-| Links stored in memory (`HashMap`) | Server restarts → every link ever shared is broken | Durable **database** |
-| One server | It crashes → links printed on posters stop working | **Replicas, load balancer** |
+| Links stored in memory (`HashMap`) | Server restarts → every link ever shared is broken | Durable **database** (data survives restarts because it is written to disk) |
+| One server | It crashes → links printed on posters stop working | **Replicas** (extra copies of the server/data), **load balancer** (spreads requests across servers) |
 | Counter `1, 2, 3…` inside that one server | Add a second server → both hand out code `1` for different URLs | **Unique ID generation across servers** |
 | Codes are `1, 2, 3` | Anyone can try `/4`, `/5`… and see other people's private links | **Non-guessable codes** |
-| Handles 10 requests/second | Millions of clicks when a link goes viral | **Caching, scaling, estimates** |
+| Handles 10 requests/second | Millions of clicks when a link goes viral | **Caching, scaling, estimates** (back-of-the-envelope maths for traffic and storage) |
 | Count the click inside the redirect | A slow analytics write slows every click | **Async analytics (Kafka)** |
 
 ---
@@ -207,8 +207,8 @@ When the interviewer says "design a URL shortener", this is how the product turn
 | Choose `diwali-shoes` | Custom alias, globally unique | Functional |
 | Link stops working after the sale | Expiry | Functional |
 | "How many clicked?" | Click analytics | Functional |
-| Click feels instant | Redirect latency < ~50–100 ms | Non-functional |
-| Posters printed with the link must work for years | **High availability + durability** (never lose a link) | Non-functional |
+| Click feels instant | Redirect latency (time to answer the click) < ~50–100 ms | Non-functional |
+| Posters printed with the link must work for years | **High availability** (stays up) **+ durability** (never lose a link) | Non-functional |
 | My link never opens someone else's page | Codes are **unique** | Non-functional (correctness) |
 | Nobody can guess my private links | Codes are **not predictable** | Non-functional (security) |
 | Way more clicks than new links | **Read-heavy** (~100 reads : 1 write) | Shapes the whole design |

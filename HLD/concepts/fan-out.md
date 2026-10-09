@@ -4,6 +4,8 @@
 
 **Fan-out** is turning **one event into many deliveries**: one "new post" into a write to every follower's feed, or one "flash sale starts" campaign into 10 million push notifications. The design question is **when** you do the multiplication (on write or on read) and **how** you do it without melting your queues, database or providers.
 
+> 💡 **Provider:** the external service that actually delivers a message to a phone: FCM (Firebase Cloud Messaging, Google's push service for Android) and APNs (Apple Push Notification service, Apple's equivalent). **Push notification:** a message the OS shows on the phone even when the app isn't open.
+
 ---
 
 ## 2. The problem it solves
@@ -17,11 +19,11 @@ for (User u : userRepo.findAll()) {   // 10M rows into memory
 ```
 
 - The HTTP request times out after 30 s, having sent maybe 20k pushes. Retrying restarts from zero: duplicates.
-- Loading 10M rows OOMs the pod.
-- If it did work, FCM would get 10M calls in a burst and answer with 429s.
+- Loading 10M rows OOMs the pod (out of memory: the process is killed).
+- If it did work, FCM would get 10M calls in a burst and answer with 429s (the HTTP status "Too Many Requests", i.e. you are being rate limited).
 - OTPs triggered at the same moment wait behind 10M marketing messages.
 
-**The fix:** treat the broadcast as a **job**: store the campaign, have a **batch expansion** process walk the audience in chunks (e.g. 1,000 users), enqueue each chunk on a low-priority queue, and let throttled workers drain it at the provider's allowed rate. Progress is checkpointed, so a crash resumes instead of restarting.
+**The fix:** treat the broadcast as a **job**: store the campaign, have a **batch expansion** process walk the audience in chunks (e.g. 1,000 users), enqueue each chunk on a low-priority queue (a buffer between producers and consumers), and let throttled (deliberately rate-limited) workers drain it at the provider's allowed rate. Progress is checkpointed (saved to durable storage), so a crash resumes instead of restarting.
 
 > Infra analogy: a rolling deploy to 1,000 nodes. You don't SSH into all of them at once from one shell loop. You batch (maxSurge), checkpoint progress, and throttle so the system stays healthy.
 
@@ -36,7 +38,7 @@ for (User u : userRepo.findAll()) {   // 10M rows into memory
 | When the work happens | At event time: copy the event to every recipient's inbox/feed | At read time: each reader gathers events from the sources they follow |
 | Write cost | High: 1 event × N recipients | Low: 1 write |
 | Read cost | Low: read your own precomputed inbox | High: merge from many sources on every read |
-| News feed example | Post written into each follower's feed cache | Timeline built by querying the people you follow |
+| News feed example | Post written into each follower's feed cache (a precomputed list of post IDs kept in memory) | Timeline built by querying the people you follow |
 | Notification example | Insert a row per user into the inbox, send push to each | Store one "global announcement" row; every client's inbox query also reads active broadcasts |
 | Breaks on | **Celebrities** (one post → 100M writes) | Users who follow thousands of accounts |
 
@@ -60,10 +62,10 @@ flowchart LR
 
 Steps:
 
-1. **Store the campaign** with an ID (that's the idempotency key for the whole broadcast).
-2. **Expansion job** pages through the audience with **keyset pagination** (`WHERE user_id > :last ORDER BY user_id LIMIT 1000`, not `OFFSET`, which gets slower each page). After each page it saves `last_user_id` so a restart resumes there.
+1. **Store the campaign** with an ID (that's the idempotency key for the whole broadcast: a unique label so that doing the same thing twice has the effect of doing it once).
+2. **Expansion job** pages through the audience with **keyset pagination** (`WHERE user_id > :last ORDER BY user_id LIMIT 1000`, not `OFFSET`, which gets slower each page because the DB must count and skip all earlier rows). After each page it saves `last_user_id` so a restart resumes there.
 3. Each page becomes **one chunk message** (`{campaignId, userIds[1000]}`), not 1,000 messages: 10M users ÷ 1,000 = **10,000 queue messages**.
-4. **Chunk workers** load preferences and device tokens for the 1,000 users in one batch query, drop opted-out users and those in quiet hours, then send. FCM supports up to 500 messages per batch request.
+4. **Chunk workers** load preferences and device tokens (the address FCM/APNs gave each app install for pushing to it) for the 1,000 users in one batch query, drop opted-out users and those in quiet hours, then send. FCM supports up to 500 messages per batch request.
 5. **Per-message idempotency** key `campaignId:userId`, so redelivered chunks don't double-send.
 
 ### 3.3 Throttling to provider limits
@@ -76,13 +78,13 @@ How long does the blast take? Suppose we self-limit push to **5,000/s** to stay 
 
 For SMS with an aggregate 500 msg/s across sender numbers: `10M ÷ 500 = 20,000 s ≈ 5.6 hours` (and ~$100k, which is why nobody SMSes 10M users). Email at 1,000/s: ~2.8 hours.
 
-Throttling is a **token bucket per provider** shared by all workers (e.g. in Redis), see the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md). Bulk traffic gets its own queue and a **reserved slice** of the provider quota so OTPs always have headroom. Also spread the blast: 10M users opening the app within 60 s is a self-inflicted DDoS on your own API ("thundering herd from a push").
+Throttling is a **token bucket per provider** shared by all workers (e.g. in Redis, an in-memory key-value store). A token bucket is a counter refilled at a fixed rate: each send takes a token and must wait if none are left. See the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md). Bulk traffic gets its own queue and a **reserved slice** of the provider quota so OTPs always have headroom. Also spread the blast: 10M users opening the app within 60 s is a self-inflicted DDoS on your own API ("thundering herd from a push": many clients reacting at the same instant).
 
 ### 3.4 Celebrity / hot-key problem
 
 A celebrity with 50M followers posts. Fan-out on write means 50M inbox inserts in seconds, all triggered by **one key**:
 
-- One Kafka partition (keyed by `authorId`) and one consumer do all the work: a **hot partition**.
+- One Kafka partition (keyed by `authorId`) and one consumer do all the work: a **hot partition**. (Kafka splits a topic into partitions; messages with the same key land in the same partition, and one consumer reads each partition.)
 - Fixes: key the fan-out tasks by **recipient chunk**, not author, so work spreads across partitions; treat accounts above a follower threshold (e.g. 1M) with **fan-out on read**; rate-limit celebrity-triggered notifications ("X and 4,000 others liked..."), i.e. **aggregate** instead of sending one per event.
 
 ### 3.5 Transactional outbox
@@ -91,9 +93,9 @@ Fan-out usually starts from a DB change ("order shipped" row updated). How do yo
 
 - Write DB, then publish to the queue: crash between them = event lost.
 - Publish, then write DB: crash = event for a change that never happened.
-- Both in a distributed transaction (2PC): slow, rarely supported by brokers.
+- Both in a distributed transaction (2PC, two-phase commit: every system votes "ready", then all commit): slow, rarely supported by brokers.
 
-**Outbox pattern:** in the **same local DB transaction**, update the business row **and** insert an `outbox` row. A separate **relay** (a poller using `SELECT ... FOR UPDATE SKIP LOCKED`, or CDC like Debezium reading the DB's write-ahead log) publishes outbox rows to [Kafka](../technologies/kafka.md) or a [queue](../technologies/message-queues.md) and marks them sent.
+**Outbox pattern:** in the **same local DB transaction**, update the business row **and** insert an `outbox` row. A separate **relay** (a poller using `SELECT ... FOR UPDATE SKIP LOCKED`, which lets several pollers grab different unlocked rows; or CDC, change data capture, like Debezium reading the DB's write-ahead log, the file where the DB records every change before applying it) publishes outbox rows to [Kafka](../technologies/kafka.md) or a [queue](../technologies/message-queues.md) and marks them sent.
 
 ```sql
 BEGIN;
@@ -102,7 +104,7 @@ INSERT INTO outbox(id, topic, payload) VALUES (gen_random_uuid(), 'order-events'
 COMMIT;
 ```
 
-The relay may publish a row twice (crash after publish, before marking), so it is **at-least-once**: consumers must be [idempotent](idempotency-and-delivery-semantics.md), using the outbox row ID as the key.
+The relay may publish a row twice (crash after publish, before marking), so it is **at-least-once** (a message may arrive more than once, never zero times): consumers must be [idempotent](idempotency-and-delivery-semantics.md), using the outbox row ID as the key.
 
 ---
 
@@ -129,7 +131,7 @@ The relay may publish a row twice (crash after publish, before marking), so it i
 | | **Fan-out** | **Fan-in** | **Pub/Sub** | **Batching** |
 |---|---|---|---|---|
 | Meaning | 1 event → N deliveries | N results → 1 aggregate | Delivery mechanism: subscribers each get a copy | Group many items per call |
-| Example | Campaign → 10M pushes | "4,000 people liked your post" digest | SNS topic → 3 SQS queues; Redis Pub/Sub to gateways | 500 FCM messages per request |
+| Example | Campaign → 10M pushes | "4,000 people liked your post" digest | SNS topic → 3 SQS queues (AWS's pub/sub and queue services); Redis Pub/Sub to gateways | 500 FCM messages per request |
 | Relation | Pub/Sub implements small fan-outs to a few services; user-level fan-out needs a job | Used to tame celebrity fan-out | Fan-out to services, not to millions of users | Used inside fan-out workers |
 
 ---

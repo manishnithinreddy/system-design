@@ -4,11 +4,13 @@
 
 When a call fails, **retry** only if the error is temporary, wait **exponentially longer with random jitter** between attempts, stop after a budget, stop calling a clearly broken dependency (**circuit breaker**), and park messages that keep failing in a **dead-letter queue (DLQ)** so they don't block everything else.
 
+> 💡 **Exponential backoff:** wait 1 s, then 2 s, 4 s, 8 s... doubling each time. **Jitter:** a random amount added/chosen so that many clients don't all wake up at the same moment. **Circuit breaker:** like an electrical one, it "trips" and stops calls to a failing dependency for a while. **DLQ:** a side queue where undeliverable messages are parked for a human.
+
 ---
 
 ## 2. The problem it solves
 
-**The pain:** an SMS provider has a 2-minute blip and returns 503. Your 200 SMS workers each retry immediately, in a tight loop:
+**The pain:** an SMS provider has a 2-minute blip and returns 503 (HTTP "Service Unavailable"). Your 200 SMS workers each retry immediately, in a tight loop:
 
 - 200 workers × ~20 retries/s = **4,000 requests/s** at a provider that is already struggling. You prolong its outage (a **retry storm**).
 - When it recovers, every worker retries at the same instant (**thundering herd**) and knocks it over again.
@@ -41,17 +43,17 @@ flowchart TD
 
 | Retry (transient) | Don't retry (permanent) |
 |---|---|
-| Timeouts, connection reset | 400 Bad Request, validation errors |
-| 429 Too Many Requests (honor `Retry-After`) | 401/403 auth errors (alert a human: rotated key?) |
-| 500, 502, 503, 504 | 404 / provider "invalid phone number" |
-| Provider "temporarily unavailable" codes | APNs 410 / FCM UNREGISTERED (delete token instead) |
-| | User unsubscribed, email hard bounce |
+| Timeouts, connection reset (the other side dropped the TCP connection) | 400 Bad Request, validation errors |
+| 429 Too Many Requests (honor `Retry-After`, a response header saying how long to wait) | 401/403 auth errors (alert a human: rotated key?) |
+| 500, 502, 503, 504 (server-side errors: internal error, bad gateway, unavailable, gateway timeout) | 404 / provider "invalid phone number" |
+| Provider "temporarily unavailable" codes | APNs 410 / FCM UNREGISTERED (the app was uninstalled; delete the device token instead) |
+| | User unsubscribed, email hard bounce (the address doesn't exist) |
 
 A timeout is ambiguous: the provider may have sent it. Retrying is still right, but only with [idempotency](idempotency-and-delivery-semantics.md) in place.
 
 ### 3.2 Exponential backoff with jitter
 
-Formula ("full jitter", recommended by the AWS architecture blog):
+Formula ("full jitter", recommended by the AWS architecture blog; `cap` is the maximum wait, `base` the first wait):
 
 ```
 delay = random(0, min(cap, base × 2^attempt))
@@ -100,7 +102,7 @@ public final class Backoff {
 }
 ```
 
-Where the delay lives: with SQS, set `ChangeMessageVisibility` to the delay (message reappears later); with RabbitMQ, publish to a delay/retry queue with a TTL that dead-letters back to the main queue. **Never `Thread.sleep()` inside a worker** for minutes: it holds a worker slot and the message lease.
+Where the delay lives: with SQS (AWS's managed queue), set `ChangeMessageVisibility` to the delay (message stays hidden, reappears later); with RabbitMQ (an open-source message broker), publish to a delay/retry queue with a TTL that dead-letters back to the main queue. **Never `Thread.sleep()` inside a worker** for minutes: it holds a worker slot and the message lease (your exclusive right to process it).
 
 ### 3.3 Retry budgets and storms
 
@@ -118,11 +120,11 @@ A small state machine per dependency (e.g. per provider):
 | **Open** | Fail fast, don't call (or **fail over** to provider B) | After 30 s → Half-open |
 | **Half-open** | Let a few trial calls through | Success → Closed; failure → Open |
 
-In Java, Resilience4j provides this. Breaker + DLQ + second provider = graceful degradation instead of an outage.
+In Java, Resilience4j (a fault-tolerance library) provides this. Breaker + DLQ + second provider = graceful degradation instead of an outage.
 
 ### 3.5 DLQ and redrive
 
-- After `maxReceiveCount` (SQS) or N rejections (RabbitMQ), the broker moves the message to the DLQ with its error context.
+- After `maxReceiveCount` (SQS: how many deliveries are allowed) or N rejections (RabbitMQ), the broker moves the message to the DLQ with its error context.
 - **Alert when DLQ depth > 0** (or above a small threshold). A DLQ nobody watches is a silent data-loss bin.
 - After a fix (bad template deployed, provider back up), **redrive**: move DLQ messages back to the main queue (SQS has a built-in redrive). First check whether they are still relevant: don't redrive 6-hour-old OTPs.
 - A **poison message** (crashes or always fails due to its content) is exactly what the DLQ isolates.
@@ -154,9 +156,9 @@ In Java, Resilience4j provides this. Breaker + DLQ + second provider = graceful 
 | Protects against | Transient failures of one call | A dependency that is broadly down | Overloading a dependency / abusing users | Messages that can never succeed |
 | Scope | Per request/message | Per dependency | Per user / per provider / per key | Per queue |
 | Action | Wait and try again | Stop calling for a while | Delay or reject excess calls | Park for humans |
-| Example | 503 → retry in 0-4 s | Twilio 60% errors → switch to provider B | FCM ≤ 10k/s; ≤ 3 marketing pushes/user/day | Malformed template |
+| Example | 503 → retry in 0-4 s | Twilio (SMS provider) 60% errors → switch to provider B | FCM ≤ 10k/s; ≤ 3 marketing pushes/user/day | Malformed template |
 
-See the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md) for token bucket details.
+See the [rate limiter LLD](../../LLD/interviews/rate-limiter/README.md) for token bucket details (a counter refilled at a fixed rate; each call spends a token).
 
 ---
 

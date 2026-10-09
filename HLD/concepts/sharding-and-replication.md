@@ -4,13 +4,15 @@
 
 **Replication** = keeping copies of the *same* data on several machines (for availability and read scaling); **sharding** (partitioning) = splitting *different* data across machines (for write throughput and storage that one machine can't hold).
 
+> 💡 **Primary / leader:** the node that accepts writes. **Replica / follower:** a copy that receives those writes from the leader. **Throughput:** how much work (here, writes per second) a system handles.
+
 ## 2. The problem it solves
 
 A single database server eventually hits one of these walls:
 - **It dies** → the whole product is down. (Single point of failure.)
 - **Too many reads** → CPU/IO saturated.
-- **Too many writes** → one primary can only commit so many transactions per second.
-- **Too much data** → it doesn't fit on one disk, or backups/restores take a day.
+- **Too many writes** → one primary can only commit (permanently save) so many transactions per second.
+- **Too much data** → it doesn't fit on one disk, or backups/restores take a day. (IO = input/output, i.e. disk reads and writes.)
 
 Step one is usually **vertical scaling**: buy a bigger box. When that stops being enough (or affordable), you scale **horizontally**:
 - Reads and availability problems → **replication**.
@@ -34,7 +36,7 @@ Don't underrate vertical: a single modern Postgres server comfortably handles th
 
 ### 3.2 Replication models
 
-**Leader-follower (primary-replica)** — one leader takes all writes and streams its change log to followers; followers serve reads. Default in Postgres, MySQL, MongoDB, Redis.
+**Leader-follower (primary-replica)** — one leader takes all writes and streams its change log (a sequential record of every change) to followers; followers serve reads. Default in Postgres, MySQL, MongoDB, Redis.
 
 ```mermaid
 flowchart LR
@@ -46,13 +48,13 @@ flowchart LR
     C -->|reads needing fresh data| L
 ```
 
-- **Synchronous** replication: leader waits for the follower before acknowledging → no data loss on failover, but slower and blocked if the follower is down.
+- **Synchronous** replication: leader waits for the follower before acknowledging → no data loss on failover (promoting a follower when the leader dies), but slower and blocked if the follower is down.
 - **Asynchronous**: leader acks immediately → fast, but a failover can lose the last few writes. Common compromise: one sync follower + others async ("semi-sync").
-- **Failover**: promote a follower when the leader dies (Patroni, RDS Multi-AZ). Danger: **split brain** — two nodes both think they're leader. Prevented with consensus/leases (e.g., via [etcd](../technologies/zookeeper-etcd.md)).
+- **Failover**: promote a follower when the leader dies (Patroni, a Postgres failover tool; RDS Multi-AZ, AWS's managed DB with a standby in another datacenter). Danger: **split brain** — two nodes both think they're leader. Prevented with consensus (nodes agreeing on one answer) or leases (time-limited leadership) (e.g., via [etcd](../technologies/zookeeper-etcd.md)).
 
-**Multi-leader** — several nodes accept writes (typically one per region) and replicate to each other. Good for multi-region writes and offline clients. The cost: **write conflicts** (two regions edit the same row) must be resolved — last-write-wins (loses data), merge logic, or CRDTs. Avoid unless you truly need it.
+**Multi-leader** — several nodes accept writes (typically one per region) and replicate to each other. Good for multi-region writes and offline clients. The cost: **write conflicts** (two regions edit the same row) must be resolved — last-write-wins (loses data), merge logic, or CRDTs (conflict-free replicated data types: structures designed so concurrent edits always merge cleanly). Avoid unless you truly need it.
 
-**Leaderless** — any replica accepts writes; client (or coordinator) writes to N replicas and reads from several, using quorums (`R + W > N`, see [CAP and consistency](cap-and-consistency.md)). Background repair (read repair, anti-entropy) fixes divergence. Used by Dynamo, [Cassandra](../technologies/cassandra.md), Riak.
+**Leaderless** — any replica accepts writes; client (or coordinator) writes to N replicas and reads from several, using quorums (`R + W > N`, see [CAP and consistency](cap-and-consistency.md)). Background repair (read repair: fixing a stale copy when a read notices it; anti-entropy: periodic comparison of replicas) fixes divergence. Used by Dynamo, [Cassandra](../technologies/cassandra.md), Riak.
 
 ### 3.3 Replication lag and read-your-writes
 
@@ -61,7 +63,7 @@ With async followers, a follower may be milliseconds to seconds behind. Classic 
 Fixes for **read-your-writes** consistency:
 - Read from the **leader** for a short time after a user writes (e.g., 10 s, tracked by a cookie/session timestamp).
 - Read the user's *own* data from the leader; everyone else's from followers.
-- Track the replication position (LSN in Postgres): the client remembers the LSN of its write and only reads from a follower that has caught up to it.
+- Track the replication position (LSN, log sequence number, in Postgres): the client remembers the LSN of its write and only reads from a follower that has caught up to it.
 - Return the created object in the write response so the client doesn't need to re-read.
 
 Related guarantees: **monotonic reads** (don't go backwards in time — pin a user to one follower) and **consistent prefix** (see causes before effects).
@@ -70,7 +72,7 @@ Related guarantees: **monotonic reads** (don't go backwards in time — pin a us
 
 **Range-based** — shard by key ranges: `a–f` → shard 1, `g–m` → shard 2... or by date.
 - Range scans are efficient ("all events from March").
-- Risk: **hot ranges** — sequential keys (timestamps, auto-increment ids) send *all* new writes to the last shard.
+- Risk: **hot ranges** (a slice getting most of the traffic) — sequential keys (timestamps, auto-increment ids) send *all* new writes to the last shard.
 - Used by HBase, Bigtable, Spanner, CockroachDB (they split ranges automatically).
 
 **Hash-based** — `shard = hash(key) % N` or [consistent hashing](consistent-hashing.md).
@@ -96,7 +98,7 @@ flowchart TB
 The most important sharding decision. A good key:
 1. **High cardinality** — many distinct values (user_id good; country bad; boolean terrible).
 2. **Even distribution of load**, not just data — no single value receives a huge share of traffic.
-3. **Matches the main query pattern** — most queries should include the shard key so they hit **one** shard. Queries without it become **scatter-gather** across all shards (slow, and the slowest shard sets your latency).
+3. **Matches the main query pattern** — most queries should include the shard key so they hit **one** shard. Queries without it become **scatter-gather** (ask every shard, then merge the answers) across all shards (slow, and the slowest shard sets your latency).
 4. **Keeps related data together** — e.g., shard orders by `customer_id` so a customer's orders + items are on one shard and can be joined/transacted locally.
 
 URL shortener: shard by **short code** (hash). Every redirect lookup has the code → single-shard read. "List my links" by user_id becomes scatter-gather — fix with a secondary table keyed by user_id.
@@ -105,20 +107,20 @@ URL shortener: shard by **short code** (hash). Every redirect lookup has the cod
 
 Even with a good key, one value can be hot: a celebrity's user_id, a viral short link, "today's" date in a time-range key.
 - **Cache** the hot reads (most common fix for read hotspots).
-- **Key salting / splitting**: write to `key#0..key#9` across 10 shards, read and merge all 10 (for write hotspots like counters).
+- **Key salting / splitting** (adding a random suffix to spread one key): write to `key#0..key#9` across 10 shards, read and merge all 10 (for write hotspots like counters).
 - **Replicate** hot keys to more nodes.
 - Detect them: per-partition metrics (DynamoDB/Cassandra expose these) — just like finding the one noisy pod.
 
 ### 3.7 Resharding pain
 
-Going from 4 to 8 shards on a live system means: copy data while writes continue, keep the copies in sync (dual-writes or change-data-capture), switch routing atomically, verify, clean up — without downtime. It's weeks of careful work and a common source of incidents.
+Going from 4 to 8 shards on a live system means: copy data while writes continue, keep the copies in sync (dual-writes: writing to both old and new places; or change-data-capture: streaming every row change to the new place), switch routing atomically, verify, clean up — without downtime. It's weeks of careful work and a common source of incidents.
 
 Ways to reduce the pain:
 - **Many logical shards up front** (e.g., 1,024 logical partitions mapped onto 4 physical servers); later you move whole logical partitions, never re-hash keys.
 - Consistent hashing / hash slots.
-- Use a store that reshards for you (DynamoDB, Cassandra, Spanner, Vitess for MySQL, Citus for Postgres).
+- Use a store that reshards for you (DynamoDB, Cassandra, Spanner, Vitess for MySQL, Citus for Postgres: tools that add sharding on top).
 
-Cross-shard costs to mention: no cheap **joins** across shards, no simple **transactions** across shards (needs 2PC or sagas), **global unique constraints** and **auto-increment ids** stop working (see [ID generation](id-generation.md)).
+Cross-shard costs to mention: no cheap **joins** across shards, no simple **transactions** across shards (needs 2PC, two-phase commit, or sagas, i.e. a chain of local transactions with undo steps), **global unique constraints** and **auto-increment ids** stop working (see [ID generation](id-generation.md)).
 
 ## 4. When to use it
 
@@ -143,7 +145,7 @@ Cross-shard costs to mention: no cheap **joins** across shards, no simple **tran
 | Each node holds | Same data | Different subset |
 | Fixes | Availability, read scaling, durability | Write scaling, storage size |
 | Adds | Replication lag, failover complexity | Routing, cross-shard queries, resharding |
-| Usually combined? | Yes — each shard is replicated (e.g., RF=3) | Yes |
+| Usually combined? | Yes — each shard is replicated (e.g., RF=3, replication factor: 3 copies) | Yes |
 
 | | Leader-follower | Multi-leader | Leaderless |
 |---|---|---|---|

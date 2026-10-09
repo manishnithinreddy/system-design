@@ -4,6 +4,8 @@
 
 A way to spread keys across a changing set of servers so that **adding or removing a server moves only ~1/N of the keys**, instead of nearly all of them.
 
+> 💡 **Hash function:** turns any input (a string, a user ID) into a number that looks random but is always the same for the same input. `%` is the remainder operator (`7 % 4 = 3`).
+
 ## 2. The problem it solves
 
 The naive way to pick a server for a key is:
@@ -12,7 +14,7 @@ The naive way to pick a server for a key is:
 server = hash(key) % N
 ```
 
-It spreads keys evenly — until N changes. Say you have 4 cache nodes and add a 5th:
+It spreads keys evenly — until N changes. Say you have 4 cache nodes (servers holding frequently read data in memory so the database isn't hit) and add a 5th:
 
 ```
 hash("user:42") = 1234
@@ -23,10 +25,10 @@ hash("user:42") = 1234
 For a key to stay put, `hash % 4` must equal `hash % 5`, which is true for only about **1 in 5** keys. So **~80% of keys move** when going from 4 to 5 nodes (in general, ~N/(N+1) of keys move).
 
 What that means in practice:
-- **Cache cluster:** 80% of lookups suddenly miss → all that traffic falls through to the database at once → the DB falls over. Scaling up the cache *caused* an outage.
+- **Cache cluster:** 80% of lookups suddenly miss (the key is now asked of a node that doesn't have it) → all that traffic falls through to the database at once → the DB falls over. Scaling up the cache *caused* an outage.
 - **Data store:** 80% of the data has to be copied between machines just to add one node.
 
-Infra analogy: imagine a load balancer with sticky sessions where adding one backend re-shuffled almost every user to a different backend and blew away their in-memory sessions. Consistent hashing is the fix for that shape of problem.
+Infra analogy: imagine a load balancer with sticky sessions (the same user always goes to the same backend) where adding one backend re-shuffled almost every user to a different backend and blew away their in-memory sessions. Consistent hashing is the fix for that shape of problem.
 
 ## 3. How it works
 
@@ -52,7 +54,7 @@ Here `x` → B, `y` and `z` → C, `w` → A (wraps around).
 
 On average, adding the (N+1)-th node moves only **~1/(N+1)** of keys — the minimum possible.
 
-Implementation: store server positions in a sorted structure; lookup is "smallest position ≥ hash(key), else wrap to the first". In Java that's a `TreeMap<Long, String>` with `ceilingEntry(hash)` — O(log N).
+Implementation: store server positions in a sorted structure; lookup is "smallest position ≥ hash(key), else wrap to the first". In Java that's a `TreeMap<Long, String>` with `ceilingEntry(hash)` — O(log N) (lookup time grows only with the logarithm of the node count).
 
 ### 3.2 Virtual nodes (vnodes)
 
@@ -75,19 +77,19 @@ Benefits:
 
 ### 3.3 Replication on the ring
 
-Data stores usually keep each key on the next **R distinct physical nodes** clockwise (e.g., R = 3). That list is called the key's *preference list*. This is how Dynamo and Cassandra place replicas. See [Sharding and replication](sharding-and-replication.md).
+Data stores usually keep each key on the next **R distinct physical nodes** clockwise (e.g., R = 3). That list is called the key's *preference list*. This is how Dynamo and Cassandra place replicas (*replicas* = copies of the data on other nodes, for fault tolerance). See [Sharding and replication](sharding-and-replication.md).
 
 ### 3.4 Who uses it — and the "hash slots" alternative
 
 | System | Approach |
 |---|---|
 | **Amazon Dynamo** (2007 paper) / **DynamoDB** | Consistent hashing ring with virtual nodes; DynamoDB manages partitions for you |
-| **Apache Cassandra** | Token ring; each node owns token ranges, default vnodes (`num_tokens`, 16 in recent versions); Murmur3 partitioner. See [Cassandra](../technologies/cassandra.md) |
+| **Apache Cassandra** | Token ring; each node owns token ranges, default vnodes (`num_tokens`, 16 in recent versions); Murmur3 partitioner (the hash function that picks a key's token). See [Cassandra](../technologies/cassandra.md) |
 | **Memcached clients** (ketama) | Client-side consistent hashing over cache servers |
 | **Load balancers** (Envoy ring hash / Maglev, Nginx `hash ... consistent`) | Pick a backend so the same key sticks to the same backend. See [Load balancer](../technologies/load-balancer.md) |
 | **Redis Cluster** | **Not** a ring — uses **16,384 fixed hash slots** |
 
-**Redis Cluster hash slots:** `slot = CRC16(key) mod 16384`. The number 16,384 never changes. Each master node owns a set of slots (e.g., node 1: 0–5460, node 2: 5461–10922, node 3: 10923–16383). Adding a node means **moving some slots** (and their keys) to it; the key→slot mapping is untouched.
+**Redis Cluster hash slots:** `slot = CRC16(key) mod 16384` (CRC16 is a cheap checksum-style hash function). The number 16,384 never changes. Each master node owns a set of slots (e.g., node 1: 0–5460, node 2: 5461–10922, node 3: 10923–16383). Adding a node means **moving some slots** (and their keys) to it; the key→slot mapping is untouched.
 
 Why this still avoids the `% N` problem: the modulus is a fixed constant (16,384), not the server count. Only the slot→node table changes, and you move whole slots explicitly.
 
@@ -96,12 +98,12 @@ Differences from a ring:
 | | Consistent hash ring | Fixed hash slots (Redis Cluster) |
 |---|---|---|
 | Key → bucket | Position on ring, depends on node positions | `CRC16(key) % 16384`, never changes |
-| Bucket → node | Implicit (next node clockwise) | Explicit table, gossiped to clients |
+| Bucket → node | Implicit (next node clockwise) | Explicit table, gossiped (nodes pass it to each other by chatting, like rumours) to clients |
 | Rebalancing | Add node, it takes over adjacent ranges automatically | Operator/tool migrates chosen slots |
 | Control | Less (placement is hash-random) | More (move exactly the slots you want) |
-| Multi-key ops | Hard | Hash tags `{user42}:cart` force keys into the same slot |
+| Multi-key ops | Hard | Hash tags `{user42}:cart` force keys into the same slot (so multi-key operations work) |
 
-Many systems (Couchbase vbuckets, Elasticsearch shards, Kafka partitions) use the same "fixed number of logical partitions, map partitions to nodes" idea. It's arguably simpler to operate than a pure ring. See [Redis](../technologies/redis.md).
+Many systems (Couchbase vbuckets, Elasticsearch shards, Kafka partitions; a *shard/partition* is one slice of the data) use the same "fixed number of logical partitions, map partitions to nodes" idea. It's arguably simpler to operate than a pure ring. See [Redis](../technologies/redis.md).
 
 ## 4. When to use it
 
@@ -115,8 +117,8 @@ Many systems (Couchbase vbuckets, Elasticsearch shards, Kafka partitions) use th
 - **N never changes, or changes only during planned maintenance.** A fixed number of shards with `% N` (or a directory table) is simpler and easier to debug. Building a ring is a mistake here because you add complexity (vnodes, ring membership, rebalancing logic) for a problem you don't have.
 - **You're using a managed store that already does it** (DynamoDB, Cassandra, Redis Cluster, Kafka). Say "Cassandra partitions by consistent hashing of the partition key" — don't design your own ring on top.
 - **A single node is enough.** The URL shortener's ~35 GB cache fits on one Redis node; the 3 TB DB fits on one big Postgres. Consistent hashing is overkill until you actually need multiple nodes.
-- **You need range scans** (e.g., "all orders from last week"). Hashing destroys key order; use range partitioning instead.
-- **Small, stable pools behind a load balancer** where requests are stateless — round-robin or least-connections is better; hashing just creates hot spots.
+- **You need range scans** (e.g., "all orders from last week": reading a contiguous run of keys). Hashing destroys key order; use range partitioning instead.
+- **Small, stable pools behind a load balancer** where requests are stateless — round-robin (take turns) or least-connections (pick the least busy backend) is better; hashing just creates hot spots.
 
 ## 6. Commonly confused with
 
@@ -134,10 +136,10 @@ Also confused with **rendezvous (highest-random-weight) hashing**: for each key,
 
 - **Forgetting virtual nodes** → uneven load and a single neighbour absorbing a dead node's traffic.
 - **Saying Redis Cluster uses consistent hashing.** It uses 16,384 hash slots; be precise.
-- **Thinking consistent hashing solves hot keys.** It spreads *keys*, not *traffic*. One celebrity key still hits one node — fix with replication of that key, caching, or key splitting.
+- **Thinking consistent hashing solves hot keys** (a hot key = one key getting a huge share of traffic). It spreads *keys*, not *traffic*. One celebrity key still hits one node — fix with replication of that key, caching, or key splitting.
 - **Reaching for it by reflex** in a design that has one cache node.
 - **Ignoring data movement:** consistent hashing *minimises* movement, it doesn't eliminate it. Moving 1/N of 3 TB is still a big copy job — throttle it.
-- **Clients with different views of the ring** (stale membership) send the same key to different nodes. Membership must be propagated (gossip, ZooKeeper/etcd, or a config service).
+- **Clients with different views of the ring** (stale membership) send the same key to different nodes. Membership must be propagated (gossip, ZooKeeper/etcd (coordination services that store small, strongly consistent config), or a config service).
 
 ## 8. Interview cheat-sheet
 

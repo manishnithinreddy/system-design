@@ -14,6 +14,8 @@ Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note*
 
 **Non-functional, with numbers:**
 
+> 💡 **p99:** the latency within which 99% of requests complete; only the slowest 1% take longer. It shows tail behaviour that an average hides. **Priority class:** a label deciding which lane a message uses (critical, transactional, bulk).
+
 | Property | Critical (OTP, security, payments) | Transactional (order updates) | Bulk (marketing) |
 |---|---|---|---|
 | End-to-end latency (accept → handed to provider) | p99 **< 2 s** | p99 < 30 s | minutes are fine |
@@ -29,16 +31,16 @@ Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note*
 
 ## 2. Estimates that drive decisions
 
-Base: 50M DAU × 10/day = **500M/day ≈ 6k/s**, peak ~**30k/s** (see [L4](L4-mid.md#2-back-of-the-envelope-estimates)).
+Base: 50M DAU (daily active users) × 10/day = **500M/day ≈ 6k/s**, peak ~**30k/s** (see [L4](L4-mid.md#2-back-of-the-envelope-estimates)).
 
 | Metric | Value | **Design consequence** |
 |---|---|---|
-| Peak 30k/s | ~30k msgs/s through the pipeline | Partitioned log/queues; horizontally scaled stateless workers |
+| Peak 30k/s | ~30k msgs/s through the pipeline | Partitioned log/queues (the stream is split into independent lanes that are read in parallel); horizontally scaled (add more machines) stateless workers |
 | Broadcast: 10M users in ≤ 15 min | 10M / 900 s ≈ **11k/s** extra | Bulk lane needs its own capacity *and* must be throttled so it can't eat critical capacity |
-| SMS 25M/day ≈ 290/s avg, ~1.5k/s peak | Providers cap per-account throughput (often ~100s–1,000s msg/s) | **Per-provider token bucket**; multiple providers |
-| Preferences lookup per send | 30k/s reads | Redis cache, ~100% hit rate. Preferences change rarely |
-| Status events | ~3 events per notification (sent, delivered, opened) → ~1.5B/day | Append-only, write-optimised store ([Cassandra](../../technologies/cassandra.md)), TTL 30–90 days |
-| Inbox | ~50 items/user kept, 90 days | Partition by `user_id`, cluster by time desc |
+| SMS 25M/day ≈ 290/s avg, ~1.5k/s peak | Providers cap per-account throughput (often ~100s–1,000s msg/s) | **Per-provider token bucket** (a counter refilled at the allowed rate; sending spends a token); multiple providers |
+| Preferences lookup per send | 30k/s reads | Redis cache (in-memory key-value store), ~100% hit rate (almost every lookup finds the data in the cache). Preferences change rarely |
+| Status events | ~3 events per notification (sent, delivered, opened) → ~1.5B/day | Append-only, write-optimised store ([Cassandra](../../technologies/cassandra.md), a distributed database built for heavy writes), TTL (time to live: rows auto-delete) 30–90 days |
+| Inbox | ~50 items/user kept, 90 days | Partition by `user_id` (all of a user's rows live together), cluster by time desc (rows sorted newest first inside the partition) |
 
 ---
 
@@ -93,8 +95,8 @@ flowchart TB
 **🧑‍💻 Candidate:** The main decisions:
 
 1. **Two kinds of messaging, chosen deliberately:**
-   - **[Kafka](../../technologies/kafka.md)** for the high-volume *streams*: incoming requests and status events. High throughput, replayable, multiple consumers (router, analytics, audit) read the same data.
-   - **[Message queues](../../technologies/message-queues.md)** (SQS / RabbitMQ) for the per-channel *delivery work*: per-message ack, visibility timeouts, delayed redelivery and built-in DLQs are exactly what retries need. In Kafka, one slow or retrying message blocks its whole partition (head-of-line blocking) unless you build retry topics yourself.
+   - **[Kafka](../../technologies/kafka.md)** for the high-volume *streams*: incoming requests and status events. High throughput, replayable (a consumer can re-read old messages), multiple consumers (router, analytics, audit) read the same data. A Kafka *topic* is a named stream, split into *partitions*; ordering is guaranteed only within one partition.
+   - **[Message queues](../../technologies/message-queues.md)** (SQS / RabbitMQ) for the per-channel *delivery work*: per-message ack (acknowledgement), visibility timeouts (a taken message is hidden from others for a while), delayed redelivery and built-in DLQs (dead-letter queues: parking queues for messages that keep failing) are exactly what retries need. In Kafka, one slow or retrying message blocks its whole partition (head-of-line blocking: one stuck item at the front holds up everything behind it) unless you build retry topics yourself.
 2. **Router is separate from ingest.** Ingest does the minimum (validate, dedupe, append to Kafka) so it's fast and almost never fails. All the logic that can be slow (prefs, rendering, caps) happens after the request is durable.
 3. **Lanes by priority × channel**, each with its own workers and its own share of the provider quota.
 
@@ -127,9 +129,9 @@ SET idem:{tenant}:{key} {notificationId} NX EX 86400
   OK   → new request: append to Kafka, return 202 {notificationId}
   nil  → duplicate: GET the stored notificationId, return 202 with it (same response as the first time)
 ```
-Redis alone could lose keys on failover, so the critical path also writes `(idempotency_key)` with a unique constraint into a small durable table. Redis is the fast path, the DB is the guarantee.
+Redis alone could lose keys on failover (when a replica takes over after a crash), so the critical path also writes `(idempotency_key)` with a unique constraint into a small durable table. Redis is the fast path, the DB is the guarantee.
 
-**Producer side, the outbox:** what if the *orders service* commits the order but crashes before calling us? The notification is lost. Fix on their side: **transactional outbox**. Write the "notify" row in the same DB transaction as the order; a relay publishes outbox rows to us and retries until acknowledged. ([Fan-out & outbox](../../concepts/fan-out.md).)
+**Producer side, the outbox:** what if the *orders service* commits the order but crashes before calling us? The notification is lost. Fix on their side: **transactional outbox** (a pattern for never losing an event). Write the "notify" row in the same DB transaction as the order; a relay publishes outbox rows to us and retries until acknowledged. ([Fan-out & outbox](../../concepts/fan-out.md).)
 
 **Worker side (queue redelivery):** a worker sends the SMS, then crashes before acking → the queue redelivers → duplicate SMS. Mitigation: before sending, check the status store for `(notificationId, channel) = SENT`; after the provider accepts, write `SENT` and then ack. That leaves a window of milliseconds between "provider accepted" and "we wrote SENT", which is the irreducible gap. **That's why the guarantee is at-least-once, and why OTP templates say "ignore if you received this already."**
 
@@ -161,15 +163,15 @@ flowchart LR
     TB -->|no token| D[Delay message<br/>visibility timeout]
 ```
 
-Since we run many worker instances, the token bucket must be **shared** → a Redis-backed limiter, exactly the [LLD rate limiter L6 design](../../../LLD/interviews/rate-limiter/L6-staff.md) (Lua script, atomic). Same mechanism for **per-user frequency caps** ("max 3 promos/day"), checked in the router.
+Since we run many worker instances, the token bucket must be **shared** → a Redis-backed limiter, exactly the [LLD rate limiter L6 design](../../../LLD/interviews/rate-limiter/L6-staff.md) (a Lua script, a small program that Redis runs as one indivisible step, so concurrent workers can't interleave). Same mechanism for **per-user frequency caps** ("max 3 promos/day"), checked in the router.
 
 ### 5.5 Scheduling and quiet hours
 
 **🧑‍💻 Candidate:** Two needs: `sendAt` in the future, and holding non-critical messages during the user's night.
 
 - Store scheduled items in a **time-bucketed table**: `scheduled(bucket_minute, notification_id, payload)`. A scheduler polls the *current* minute bucket every few seconds and pushes due items into Kafka. Many schedulers can split buckets by hash to scale.
-- Alternative for small scale: a Redis sorted set scored by fire time (`ZRANGEBYSCORE 0 now`). Simple, but memory-bound and you must handle Redis durability.
-- **Quiet hours** reuse this: the router sees `22:00–08:00` in the user's timezone for a non-critical message and reschedules it for 08:00 local, **plus a random spread of a few minutes**, so we don't fire 5M notifications at exactly 08:00:00.
+- Alternative for small scale: a Redis sorted set (a collection kept ordered by a numeric score) scored by fire time (`ZRANGEBYSCORE 0 now` returns everything due). Simple, but memory-bound and you must handle Redis durability.
+- **Quiet hours** reuse this: the router sees `22:00–08:00` in the user's timezone for a non-critical message and reschedules it for 08:00 local, **plus a random spread of a few minutes**, so we don't fire 5M notifications at exactly 08:00:00 (jitter: a small random offset).
 
 ### 5.6 Broadcast fan-out
 
@@ -197,9 +199,9 @@ sequenceDiagram
 
 ### 5.7 Delivery tracking and the inbox
 
-- Providers call our **webhook** with `providerMsgId → delivered/failed`. The callback API verifies the provider's signature (otherwise anyone can fake receipts) and appends to the status Kafka topic.
+- Providers call our **webhook** with `providerMsgId → delivered/failed`. The callback API verifies the provider's signature (a cryptographic stamp proving the call really came from them; otherwise anyone can fake receipts) and appends to the status Kafka topic.
 - **Status store** in [Cassandra](../../technologies/cassandra.md): partition `(notification_id)` for lookups; a second table partitioned by `(user_id, day)` for "show me what we sent this user" (support). TTL 90 days.
-- **Inbox:** `inbox(user_id, created_at DESC, …)` in Cassandra, one partition per user, a natural fit. Unread count kept as a counter in Redis. Live delivery to open apps via a [WebSocket gateway](../../technologies/websockets-and-sse.md); apps that are closed just fetch on open.
+- **Inbox:** `inbox(user_id, created_at DESC, …)` in Cassandra, one partition per user, a natural fit. Unread count kept as a counter in Redis (`INCR`, an atomic add). Live delivery to open apps via a [WebSocket gateway](../../technologies/websockets-and-sse.md); apps that are closed just fetch on open.
 
 ---
 
@@ -210,10 +212,10 @@ sequenceDiagram
 | SMS provider A down | SMS retries pile up | Circuit breaker → provider B; critical first; alert |
 | Bulk campaign much larger than expected | Bulk queues back up for hours | Fine by design; critical lanes unaffected. Alert on queue age, not depth |
 | Redis (prefs cache) down | Router falls back to Postgres | Postgres sized for cache-miss load or router degrades: critical only |
-| Router bug sends wrong text | Millions of bad messages | Template versioning + canary rollout of template changes; broadcast kill switch |
+| Router bug sends wrong text | Millions of bad messages | Template versioning + canary rollout (release to a tiny share first) of template changes; broadcast kill switch |
 | Webhook endpoint down | Delivery status delayed | Providers retry webhooks; status eventually correct; nothing user-facing breaks |
 | Device token churn | Wasted calls, provider throttling | Delete on `unregistered`; periodic cleanup of tokens not seen in 60 days |
-| Kafka partition lag | Delays for users hashed to that partition | Monitor consumer lag per partition; enough partitions for parallelism |
+| Kafka partition lag | Delays for users hashed to that partition | Monitor consumer lag (how far behind the newest message a consumer is) per partition; enough partitions for parallelism |
 
 > 📝 **Note:** "Alert on **queue age** (how old is the oldest message), not queue depth" is a classic production lesson. A queue of 1M bulk messages is normal; one OTP waiting 30 s is an incident.
 
@@ -227,11 +229,11 @@ sequenceDiagram
 
 **🧑‍💼 Interviewer:** But the per-channel queues aren't ordered. Couldn't "picked up" arrive before "confirmed"?
 
-**🧑‍💻 Candidate:** Yes, after retries anything can reorder. Two cheap mitigations: put a sequence/timestamp in the payload so the app shows the inbox in the right order, and for push use **collapse keys** (APNs/FCM can replace an older notification with the same key), so "Rider picked up" simply replaces "Order confirmed" on the lock screen. Strict ordering across retries would cost far more than it's worth.
+**🧑‍💻 Candidate:** Yes, after retries anything can reorder. Two cheap mitigations: put a sequence/timestamp in the payload so the app shows the inbox in the right order, and for push use **collapse keys** (APNs/FCM, Apple's and Google's push services, can replace an older notification with the same key), so "Rider picked up" simply replaces "Order confirmed" on the lock screen. Strict ordering across retries would cost far more than it's worth.
 
 **🧑‍💼 Interviewer:** How do you test this whole thing in production?
 
-**🧑‍💻 Candidate:** Synthetic canaries: every minute, send a real OTP-class notification to a test phone/number we own and measure end-to-end time. That's the most honest signal that critical delivery works, because it includes the provider.
+**🧑‍💻 Candidate:** Synthetic canaries (fake but real-path test traffic): every minute, send a real OTP-class notification to a test phone/number we own and measure end-to-end time. That's the most honest signal that critical delivery works, because it includes the provider.
 
 ---
 

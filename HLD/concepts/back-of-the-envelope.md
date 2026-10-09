@@ -4,6 +4,8 @@
 
 Quick, rounded arithmetic (QPS, storage, bandwidth, memory) done in the first few minutes of an HLD interview to find out **which parts of the design will actually be under pressure**.
 
+> 💡 **QPS** = queries (requests) per second, the same number you see on a Grafana traffic panel. **DAU** = daily active users, how many distinct people use the product on a given day. **HLD** = high-level design, the "boxes and arrows" interview round.
+
 ## 2. The problem it solves
 
 Without numbers, every design looks the same: "a service, a database, maybe a cache." You can't tell whether you need one Postgres box or a 50-node Cassandra cluster, whether the cache fits on one Redis node, or whether bandwidth matters at all.
@@ -26,7 +28,7 @@ The fix: a small toolkit of memorised constants plus a fixed recipe (users → r
 | 2^40 | ~1.1 trillion | 10^12 | trillion | 1 TB |
 | 2^50 | ~1.13 quadrillion | 10^15 | quadrillion | 1 PB |
 
-Handy byte sizes: `int` = 4 B, `long` / timestamp = 8 B, UUID = 16 B (36 as a string), a typical URL ≈ 100 B, a tweet-sized text row ≈ 300 B–1 KB, a thumbnail ≈ 10–50 KB, a photo ≈ 200 KB–2 MB, 1 minute of HD video ≈ 50–100 MB.
+Handy byte sizes (B = byte, KB/MB/GB/TB/PB = thousand/million/billion/trillion/quadrillion bytes): `int` = 4 B, `long` / timestamp = 8 B, UUID = 16 B (36 as a string), a typical URL ≈ 100 B, a tweet-sized text row ≈ 300 B–1 KB, a thumbnail ≈ 10–50 KB, a photo ≈ 200 KB–2 MB, 1 minute of HD video ≈ 50–100 MB.
 
 **Time:**
 
@@ -67,6 +69,8 @@ Lessons to say out loud:
 - **A same-DC network hop (~0.5 ms) is cheap; a cross-region hop (~150 ms) is not.** Never put a synchronous cross-region call in the hot path of a user request.
 - Sequential reads are much faster than random reads → why Kafka and LSM-tree databases (Cassandra) append to logs.
 
+> 💡 **LSM-tree** (log-structured merge tree): a database storage layout that never edits data in place. Writes go to memory first and are later flushed to disk as sorted, append-only files. **Kafka** is a distributed, append-only log that services use to pass messages.
+
 ### 3.3 The recipe
 
 ```mermaid
@@ -81,8 +85,10 @@ flowchart LR
 ```
 
 1. **QPS from DAU.** `requests/day = DAU × actions per user per day`. `avg QPS = requests/day ÷ 86,400 (≈10^5)`. **Peak** = 2–3× average (10× for spiky events like flash sales).
-2. **Read:write ratio.** Most consumer systems are read-heavy (social feed 100:1, URL shortener 100:1). Write-heavy ones exist too (metrics/logging, IoT, chat). The ratio tells you whether to optimise with caches/replicas (read-heavy) or with partitioning/append-only storage (write-heavy).
-3. **Storage over N years.** `writes/day × bytes per record × 365 × N`. Add ~2–3× for replication (e.g., replication factor 3) and indexes if relevant.
+
+> 💡 **Why divide by ~10^5?** One day has 86,400 seconds, and 10^5 is an easy round number to divide by in your head.
+2. **Read:write ratio.** Most consumer systems are read-heavy (social feed 100:1, URL shortener 100:1; a URL shortener turns a long link into a short code like `sho.rt/aZ3k9Q` and redirects visitors back). Write-heavy ones exist too (metrics/logging, IoT, chat). The ratio tells you whether to optimise with caches/replicas (read-heavy) or with partitioning/append-only storage (write-heavy). A **replica** is a read-only copy of a database; **partitioning** (sharding) splits data across machines.
+3. **Storage over N years.** `writes/day × bytes per record × 365 × N`. Add ~2–3× for replication (e.g., replication factor 3, meaning every record is stored on 3 machines so one can die) and indexes (extra lookup structures the DB keeps) if relevant.
 4. **Bandwidth.** `QPS × payload size`, separately for ingress (writes) and egress (reads).
 5. **Cache memory (80/20 rule).** Traffic is skewed: roughly 20% of items get 80% of requests. Caching 20% of a day's read set usually gives a very high hit rate. `cache = 0.2 × daily reads × bytes per item` (this over-counts because the same hot item is read many times — a safe upper bound).
 
@@ -112,7 +118,7 @@ Bytes:   6 × 10^9 × 500 B   = 3 × 10^12 B = 3 TB
 With replication factor 3   ≈ 9 TB raw disk
 ```
 
-**Key space check** (feeds into [ID generation](id-generation.md)):
+**Key space check** (feeds into [ID generation](id-generation.md)). *Base62* = using 62 symbols (a–z, A–Z, 0–9) per character, so a 7-character code has 62^7 possibilities:
 
 ```
 Need ≥ 6 billion codes.
@@ -137,7 +143,7 @@ Cache 20%: 0.2 × 350M × 500 B = 3.5 × 10^10 B = 35 GB
 35 GB fits in one large Redis node (or a small 3-shard cluster for headroom and HA).
 
 **What the numbers tell us about the design:**
-- 40 writes/s is tiny → a single Postgres primary handles writes easily. No need to shard for write throughput.
+- 40 writes/s is tiny → a single Postgres primary (the one node that accepts writes) handles writes easily. No need to shard (split data across nodes) for write throughput.
 - 4K–10K reads/s is moderate → cache in front of the DB and/or read replicas.
 - 3 TB over 5 years → fits on one big DB server, but sharding or a horizontally scalable store (Cassandra/DynamoDB) becomes reasonable at L5/L6 for growth and ops.
 - Bandwidth is irrelevant here — say so and move on.

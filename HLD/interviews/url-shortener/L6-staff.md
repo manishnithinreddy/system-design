@@ -2,6 +2,8 @@
 
 > **Level expectation:** the core design (L5) is assumed — you'll cover it quickly. The interview is about **judgement**: challenging requirements, designing for global scale and failure, abuse, cost, operability, and how the system *evolves* and is *owned*. A staff engineer also knows what **not** to build. Read [L5-senior.md](L5-senior.md) first.
 
+> 💡 **Staff (L6)** = the level above senior: expected to set direction across teams, question requirements and weigh cost, risk and operations. **Edge** = servers spread worldwide, close to users (a CDN: content delivery network). **PoP** (point of presence) = one such edge location.
+
 Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note** = commentary for you.
 
 ---
@@ -14,20 +16,20 @@ Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note*
 
 | Context | What changes |
 |---|---|
-| **Public product** (bit.ly) | Abuse is the #1 operational cost. Custom domains, analytics are the paid features. Multi-tenant. |
+| **Public product** (bit.ly) | Abuse is the #1 operational cost. Custom domains, analytics are the paid features. Multi-tenant (many customers share one system). |
 | **Platform feature** (Twitter's t.co, all links auto-wrapped) | Write volume = every post. Codes needn't be pretty. **Security scanning at click time** is the main purpose. |
-| **Internal tool** (go/links) | Tiny scale, SSO, human-readable aliases are the whole feature. One Postgres. Done. |
+| **Internal tool** (go/links) | Tiny scale, SSO (single sign-on: log in once with the company account), human-readable aliases are the whole feature. One Postgres. Done. |
 
 **🧑‍💼 Interviewer:** Public product, global users, think bit.ly.
 
 **🧑‍💻 Candidate:** Then my requirements, with what I'd push back on:
 
-- **Redirect: 99.99% availability, p99 < 50 ms *as experienced by the user, globally*.** That last part matters — 50 ms server-side means nothing if the server is 200 ms away. → implies **multi-region / edge**.
-- **Create: 99.9%, single-digit-second global visibility.** Fine to be eventually consistent for reads.
+- **Redirect: 99.99% availability, p99 < 50 ms *as experienced by the user, globally*** (p99 = 99% of requests are at least this fast)**.** That last part matters — 50 ms server-side means nothing if the server is 200 ms away. → implies **multi-region / edge** (running in several geographic locations).
+- **Create: 99.9%, single-digit-second global visibility.** Fine to be eventually consistent for reads (a fresh write may take a moment to be visible everywhere).
 - **Uniqueness of codes: strict, globally.** Non-negotiable.
 - **Analytics: near-real-time (minutes), may lose < 0.1% of events.** I'd confirm with product — exact counting would cost a lot more and nobody makes decisions on the 0.1%.
 - **Abuse: phishing/malware links must be disabled within minutes of detection globally.**
-- **Compliance:** analytics store IPs / user agents → personal data under GDPR. Need retention limits and deletion.
+- **Compliance:** analytics store IPs / user agents → personal data under GDPR (the EU privacy law). Need retention limits and deletion.
 
 **🧑‍💻 Candidate:** And what I'd **push back on**: "links never expire". Storing every link forever is fine cost-wise (~3 TB / 5 yrs), but *serving* dead links of free anonymous users forever is a liability for abuse. I'd propose: free anonymous links expire after N years of zero clicks; paid links never expire.
 
@@ -42,7 +44,7 @@ Base numbers from L5: ~40 creates/s, ~4k redirects/s avg, ~20k+ peak, 6B links /
 **🧑‍💻 Candidate:** Additional staff-level lens:
 
 - **Geography:** assume ~40% Americas, 30% Europe, 30% Asia. A single region in us-east means ~150–250 ms extra for Asian users *per redirect*. That violates the SLO → we need presence in at least 3 regions, or the edge.
-- **Cost (order of magnitude):** storage ~9 TB replicated is cheap (low thousands $/month). Redis ~35 GB ×3 regions — cheap. **The big costs are**: the app fleet sized for viral peaks, cross-region replication traffic, and the analytics pipeline (billions of events/month, stored raw). Analytics is likely >50% of the infra bill — so that's where to economise (aggregate early, keep raw events 30 days only).
+- **Cost (order of magnitude):** storage ~9 TB replicated (3 copies of 3 TB) is cheap (low thousands $/month). Redis ~35 GB ×3 regions — cheap. **The big costs are**: the app fleet sized for viral peaks, cross-region replication traffic (data copied between regions), and the analytics pipeline (billions of events/month, stored raw). Analytics is likely >50% of the infra bill — so that's where to economise (aggregate early, keep raw events 30 days only).
 - **Peak vs average:** viral spikes can be 50–100× average for a single link. Designing for average is how this system pages people at 3 am.
 
 > 📝 **Note:** You don't need precise dollar numbers. Knowing *which component dominates cost* is the staff signal.
@@ -97,7 +99,7 @@ flowchart TB
 
 ### 3.1 The redirect path lives at the edge
 
-- A **[CDN](../../technologies/cdn.md) edge function** handles `GET /{code}`. Hot codes are cached at the edge (short TTL, e.g. 60 s). A cache hit is answered from a PoP ~10–20 ms from the user — that's how we meet "50 ms p99 globally".
+- A **[CDN](../../technologies/cdn.md) edge function** handles `GET /{code}`. Hot codes are cached at the edge (short TTL, i.e. time to live: entries expire after e.g. 60 s). A cache hit (the answer was already stored there) is answered from a PoP ~10–20 ms from the user — that's how we meet "50 ms p99 globally".
 - Edge miss → nearest region's redirect service → [Redis](../../technologies/redis.md) → regional KV replica.
 - **But wait — caching at the edge breaks analytics?** Not if analytics comes from **edge request logs** instead of origin hits. Every request is logged at the edge, including cache hits. So we get both: edge caching *and* full click data.
 - Still return **302**, never 301. 301 is cached by the *browser*, which we can't purge — and we need to be able to kill phishing links instantly. The CDN cache, on the other hand, *we* control and can purge.
@@ -106,9 +108,9 @@ flowchart TB
 
 ### 3.2 Storage: multi-region KV with careful consistency
 
-**🧑‍💻 Candidate:** I'd use a multi-region KV store (DynamoDB Global Tables, or [Cassandra](../../technologies/cassandra.md) with multi-DC replication). Reads are local in every region.
+**🧑‍💻 Candidate:** I'd use a multi-region KV store (key-value database; DynamoDB Global Tables, or [Cassandra](../../technologies/cassandra.md) with multi-DC, i.e. multi-datacenter, replication). Reads are local in every region.
 
-The trap: **multi-region replication in these stores is asynchronous and last-writer-wins.** A conditional write ("only if code doesn't exist") is checked *only in the region that receives it*. So:
+The trap: **multi-region replication in these stores is asynchronous and last-writer-wins.** (Asynchronous = copies arrive later; last-writer-wins = on a clash the later timestamp survives and the other write is silently dropped.) A conditional write ("only if code doesn't exist") is checked *only in the region that receives it*. So:
 
 ```text
 t=0  us-east: PutIfAbsent("summer-sale") → OK (customer A)
@@ -121,13 +123,13 @@ This is the most important correctness bug in a global design. (Background: [CAP
 **Fixes, in order of preference:**
 1. **Generated codes can't conflict by construction** — each region gets disjoint ID space (see 3.3). No coordination needed. That covers ~99% of creates.
 2. **Custom aliases** are rare (~1% of creates) → route *all* alias creates to **one home region** where the conditional write is the single source of truth. Cross-region latency (~100–200 ms) on a rare, non-critical write is a perfectly fine price.
-3. If we ever needed multi-region strong consistency for everything, use a globally consistent store (Spanner / CockroachDB) — but that buys a lot of latency and cost for a problem we've already solved for 1% of writes.
+3. If we ever needed multi-region strong consistency for everything, use a globally consistent store (Spanner / CockroachDB: databases that coordinate writes across regions) — but that buys a lot of latency and cost for a problem we've already solved for 1% of writes.
 
 > 📝 **Note:** This is the kind of insight that differentiates staff: knowing a tool's exact guarantee (conditional write is *regional*) and designing around it with the cheapest correct solution.
 
 ### 3.3 ID generation without cross-region coordination
 
-**🧑‍💻 Candidate:** Extend L5's counter-range scheme. Split the 41-bit ID space (fits in 7 Base62 chars — see [ID generation](../../concepts/id-generation.md)):
+**🧑‍💻 Candidate:** Extend L5's counter-range scheme (each server leases a block of IDs and hands them out from memory). Split the 41-bit ID space (fits in 7 Base62 chars — see [ID generation](../../concepts/id-generation.md)):
 
 ```text
 | region (3 bits) | counter (38 bits) |
@@ -136,7 +138,7 @@ This is the most important correctness bug in a global design. (Background: [CAP
 
 - Each region has its own range allocator ([etcd/ZooKeeper](../../technologies/zookeeper-etcd.md) in that region) handing out blocks to API servers.
 - No cross-region call on any create. A region being down doesn't block other regions creating links.
-- Then apply the Feistel shuffle so codes aren't sequential and don't leak the region.
+- Then apply the Feistel shuffle (a reversible scrambler) so codes aren't sequential and don't leak the region.
 
 ### 3.4 Abuse is a system, not a checkbox
 
@@ -153,9 +155,9 @@ flowchart LR
     T --> P[Set disabled flag in KV<br/>+ purge Redis + purge CDN]
 ```
 
-- Cheap checks synchronously (so create stays fast), expensive checks async.
+- Cheap checks synchronously (so create stays fast), expensive checks async (in the background). ASN (autonomous system number) identifies a network such as one ISP or hosting provider; limiting per ASN catches abusers who rotate IPs inside one provider.
 - **Re-scan on click spikes** — phishers create a clean link, then swap the destination page. A link that suddenly gets 10k clicks from email referrers is worth re-checking.
-- **Takedown must be global and fast**: flag in KV (replicates in ~1 s), Redis `DEL` in every region, CDN purge API. Target < 1 minute. That's why our edge TTL is short.
+- **Takedown must be global and fast**: flag in KV (replicates in ~1 s), Redis `DEL` (delete the cached key) in every region, CDN purge API (a call that evicts content from all edge caches). Target < 1 minute. That's why our edge TTL is short.
 
 ---
 
@@ -164,8 +166,8 @@ flowchart LR
 **🧑‍💻 Candidate:** Being infra-minded, here's what I'd want before launch:
 
 **SLOs & alerting**
-- SLI for redirects: % of `GET /{code}` that return 3xx/404/410 within 100 ms, measured **at the edge** (the user's experience), not at the origin.
-- 99.99% → error budget of ~4.3 minutes/month. Page on fast burn rate (e.g. 2% of monthly budget in 1 hour), ticket on slow burn.
+- SLI (service level indicator: the measured number behind an SLO) for redirects: % of `GET /{code}` that return 3xx/404/410 within 100 ms, measured **at the edge** (the user's experience), not at the origin.
+- 99.99% → error budget (the allowed amount of failure) of ~4.3 minutes/month. Page on fast burn rate (how quickly the budget is consumed, e.g. 2% of the monthly budget in 1 hour), ticket on slow burn.
 
 **Degraded modes (decide them in advance)**
 | Dependency down | Behaviour |
@@ -174,15 +176,15 @@ flowchart LR
 | Redis in a region | Fall through to KV; local in-process cache absorbs hot keys; KV autoscaled for miss storms |
 | KV in a region | Edge fails over to another region's redirect service (higher latency, still correct) |
 | Range allocator in a region | Servers drain current ranges (sized for ~30 min), then route creates to another region |
-| Safety service | Fail **open** for create (accept, scan later), not closed — but tighten rate limits. Product/security decision, documented. |
+| Safety service | Fail **open** for create (accept, scan later), not closed (closed would reject creates) — but tighten rate limits. Product/security decision, documented. |
 
 **Blast radius**
 - Redirect and create are separate services, separate deploys, separate autoscaling.
 - Deploys roll region by region with automated rollback on SLO burn.
-- Cell-based isolation for big tenants: an enterprise customer with a viral campaign can't starve everyone else's capacity.
+- Cell-based isolation (separate self-contained copies of the stack) for big tenants: an enterprise customer with a viral campaign can't starve everyone else's capacity.
 
 **Capacity**
-- Load test to 10× peak. Autoscaling alone is too slow for viral spikes (minutes to start pods) → keep headroom + edge caching does the real work.
+- Load test to 10× peak. Autoscaling (adding servers automatically under load) alone is too slow for viral spikes (minutes to start pods) → keep headroom + edge caching does the real work.
 
 ---
 
@@ -190,8 +192,8 @@ flowchart LR
 
 - **Link data:** small, keep. Expire inactive free links per policy (native TTL).
 - **Raw click events:** keep 30 days for debugging/fraud, then only aggregates. This is the dominant storage cost and the main privacy risk.
-- **IP addresses:** truncate (/24 for IPv4) or derive country at ingestion and drop the IP. Don't store what you don't need — you can't leak it.
-- **Right to erasure:** user deletes account → delete their links (tombstone + cache purge), and their aggregates.
+- **IP addresses:** truncate (/24 for IPv4: keep only the first 3 of the 4 numbers) or derive country at ingestion and drop the IP. Don't store what you don't need — you can't leak it.
+- **Right to erasure** (a GDPR right to have your data deleted)**:** user deletes account → delete their links (tombstone, a marker saying "deleted", + cache purge), and their aggregates.
 
 ---
 
@@ -205,9 +207,9 @@ flowchart LR
 2. **v2 (when global latency or scale demands it):** move mappings to a multi-region KV store via dual-write migration; add regions; alias writes pinned to a home region.
 3. **v3:** dedicated abuse platform, cell isolation for enterprise tenants.
 
-**Buy vs build:** CDN, edge compute, KV store, Kafka, OLAP — all managed. The only things worth building are the code generation scheme, the redirect logic, and abuse detection, because those are the product.
+**Buy vs build:** CDN, edge compute, KV store, Kafka (a durable message log), OLAP (databases built for fast analytical queries over huge event tables) — all managed (run by a cloud vendor). The only things worth building are the code generation scheme, the redirect logic, and abuse detection, because those are the product.
 
-> 📝 **Note:** The decisions that are expensive to change later (ID format, code length, 302 semantics) are made carefully in v1. Everything else is deferred. That's the core of staff-level judgement: **know which decisions are one-way doors.**
+> 📝 **Note:** The decisions that are expensive to change later (ID format, code length, 302 semantics) are made carefully in v1. Everything else is deferred. That's the core of staff-level judgement: **know which decisions are one-way doors** (very hard to reverse later)**.**
 
 ---
 
@@ -219,11 +221,11 @@ flowchart LR
 
 **🧑‍💼 Interviewer:** Our CDN vendor has a global outage.
 
-**🧑‍💻 Candidate:** DNS failover to regional origins directly (a low-TTL DNS record, pre-tested). Latency gets worse, availability holds — *if* the origins are sized to handle traffic the edge was absorbing. That's an expensive amount of idle capacity; the honest answer is we'd accept degraded latency and possibly shed analytics, and we'd have **run this failover as a game day** before it happened for real.
+**🧑‍💻 Candidate:** DNS failover to regional origins directly (a low-TTL DNS record, i.e. one cached only briefly so you can repoint it quickly, pre-tested). Latency gets worse, availability holds — *if* the origins are sized to handle traffic the edge was absorbing. That's an expensive amount of idle capacity; the honest answer is we'd accept degraded latency and possibly shed analytics, and we'd have **run this failover as a game day** (a rehearsal where you deliberately break things) before it happened for real.
 
 **🧑‍💼 Interviewer:** Could someone use our service to do a DDoS on a third party?
 
-**🧑‍💻 Candidate:** Yes — they can't amplify bandwidth (we only send a redirect), but they can launder the source. Rate limits per destination domain on *creates*, and anomaly detection on redirect volume per destination domain, with the ability to temporarily interstitial ("You're being redirected to X, continue?") instead of a blind redirect.
+**🧑‍💻 Candidate:** Yes — they can't amplify bandwidth (we only send a redirect), but they can launder the source (hide who the real attacker is). Rate limits per destination domain on *creates*, and anomaly detection on redirect volume per destination domain, with the ability to temporarily interstitial ("You're being redirected to X, continue?") instead of a blind redirect.
 
 ---
 

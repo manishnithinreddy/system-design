@@ -1,6 +1,6 @@
 # URL Shortener — L4 (Mid-level / SDE2) Interview
 
-> **Level expectation:** produce a correct, complete, *working* design in ~40 minutes. You are not expected to discover every edge case alone, but you should handle them well when the interviewer raises them. Clarity beats cleverness.
+> **Level expectation:** produce a correct, complete, *working* design in ~40 minutes (SDE2 = software development engineer 2; HLD = high-level design). You are not expected to discover every edge case alone, but you should handle them well when the interviewer raises them. Clarity beats cleverness.
 
 > 🆕 New to URL shorteners? Read [00-understand-the-product.md](00-understand-the-product.md) first. It explains custom aliases, expiry, analytics and redirects through real use.
 
@@ -29,8 +29,8 @@ Legend: **🧑‍💼 Interviewer** · **🧑‍💻 Candidate** · **📝 Note*
 
 Non-functional:
 
-1. **Redirects must be fast** — say under ~100 ms — because it sits between the user and the page they wanted.
-2. **Highly available** — if redirects break, every link anyone has ever shared breaks.
+1. **Redirects must be fast** — say under ~100 ms (ms = milliseconds) — because it sits between the user and the page they wanted.
+2. **Highly available** (the service stays up, ideally ~99.9%+ of the time) — if redirects break, every link anyone has ever shared breaks.
 3. **Short codes must be unique** — two different long URLs must never get the same code.
 4. Short codes shouldn't be trivially guessable (nice to have).
 
@@ -47,13 +47,13 @@ Non-functional:
 | What | Calculation | Result |
 |---|---|---|
 | Seconds per month | 30 × 86,400 ≈ 2.6M | ~2.5 × 10⁶ s |
-| Write QPS | 100M / 2.5M | **~40 writes/s** (peak ×2–3 ≈ 100/s) |
+| Write QPS (queries per second) | 100M / 2.5M | **~40 writes/s** (peak ×2–3 ≈ 100/s; peak = the busiest period) |
 | Read QPS | 40 × 100 | **~4,000 reads/s** (peak ≈ 10k/s) |
 | URLs over 5 years | 100M × 12 × 5 | **6 billion** |
 | Storage per URL | long URL ~100 B + code + timestamps + overhead → round up | ~500 B |
 | Total storage | 6B × 500 B | **~3 TB** |
 
-**🧑‍💻 Candidate:** Takeaways: writes are tiny; reads are moderate; 3 TB is large for one machine but not crazy. **The system is read-heavy, so caching will matter most.**
+**🧑‍💻 Candidate:** Takeaways: writes are tiny; reads are moderate; 3 TB is large for one machine but not crazy. **The system is read-heavy, so caching will matter most** (a cache is a fast in-memory copy of data so we skip the slower database).
 
 > 📝 **Note:** At L4 the interviewer mostly checks that you *can* do this and that you draw a conclusion ("read-heavy → cache"). Round aggressively.
 
@@ -93,7 +93,7 @@ GET /api/v1/urls/{code}/stats
 → 200 OK  { "clicks": 1234 }
 ```
 
-Errors: `400` invalid URL, `409` alias already taken, `404` unknown code, `410 Gone` expired code.
+Errors (HTTP status codes): `400` invalid URL, `409` alias already taken (a clash with existing data), `404` unknown code, `410 Gone` expired code (it existed but is deliberately gone).
 
 **🧑‍💼 Interviewer:** Why 302 and not 301?
 
@@ -123,10 +123,10 @@ flowchart LR
 
 **🧑‍💻 Candidate:** Components:
 
-- **[Load balancer](../../technologies/load-balancer.md)** — spreads traffic across app servers and removes unhealthy ones.
+- **[Load balancer](../../technologies/load-balancer.md)** — spreads traffic across app servers and removes unhealthy ones (it probes each server and stops sending traffic to failed ones).
 - **App servers** — *stateless*, so we can add more behind the LB when traffic grows. All state lives in the DB/cache.
-- **[PostgreSQL](../../technologies/postgresql.md)** — the source of truth. Primary takes writes; read replicas take reads.
-- **[Redis](../../technologies/redis.md)** — cache of `code → longUrl` for the redirect path.
+- **[PostgreSQL](../../technologies/postgresql.md)** — the source of truth. Primary takes writes; read replicas (read-only copies kept in sync) take reads.
+- **[Redis](../../technologies/redis.md)** — an in-memory key-value store used as a cache of `code → longUrl` for the redirect path.
 
 ### Data model
 
@@ -141,7 +141,7 @@ CREATE TABLE urls (
 );
 ```
 
-The `UNIQUE` index on `code` is what makes lookups fast (B-tree index) and also guarantees no duplicates.
+The `UNIQUE` index on `code` is what makes lookups fast (B-tree index: a sorted tree structure the database walks in a few steps instead of scanning every row) and also guarantees no duplicates.
 
 ### Write flow (shorten)
 
@@ -159,7 +159,7 @@ sequenceDiagram
     A-->>C: 201 {shortUrl: sho.rt/21}
 ```
 
-Getting the ID from the sequence *first* means we can compute the code and do a single `INSERT`, instead of inserting, then updating the row with its code.
+Getting the ID from the sequence (a DB counter that hands out 1, 2, 3...) *first* means we can compute the code and do a single `INSERT`, instead of inserting, then updating the row with its code.
 
 ### Read flow (redirect)
 
@@ -181,7 +181,7 @@ sequenceDiagram
     A-->>C: 302 Location: longUrl
 ```
 
-This read pattern is called **cache-aside** — the app checks the cache, falls back to the DB, then fills the cache. See [caching strategies](../../concepts/caching-strategies.md).
+This read pattern is called **cache-aside** — the app checks the cache, falls back to the DB, then fills the cache. A *hit* means the cache had the answer; a *miss* means it didn't. See [caching strategies](../../concepts/caching-strategies.md).
 
 ---
 
@@ -191,9 +191,9 @@ This read pattern is called **cache-aside** — the app checks the cache, falls 
 
 **🧑‍💻 Candidate:** Two main options (more in [ID generation](../../concepts/id-generation.md)):
 
-**Option A — Hash the URL.** `MD5(longUrl)` → take the first 7 Base62 characters.
-- ✅ Same long URL always gives the same code (natural dedup).
-- ❌ Truncating a hash means **collisions are possible**. We'd have to check the DB, and on collision, append something and re-hash. Extra round trips.
+**Option A — Hash the URL.** `MD5(longUrl)` (MD5 is a hash function: any input goes in, a fixed-size scrambled number comes out) → take the first 7 Base62 characters.
+- ✅ Same long URL always gives the same code (natural dedup: duplicates collapse into one entry).
+- ❌ Truncating a hash means **collisions are possible** (two different URLs ending up with the same code). We'd have to check the DB, and on collision, append something and re-hash. Extra round trips.
 
 **Option B — Counter + Base62 encoding.** Use the DB's auto-increment `id`, convert it to Base62.
 - ✅ **No collisions ever** — every ID is unique by definition.
@@ -221,13 +221,13 @@ static String toBase62(long n) {
 
 **🧑‍💼 Interviewer:** You said sequential codes are guessable. Does that matter?
 
-**🧑‍💻 Candidate:** It can — people shorten private Google Docs links assuming nobody can find them. A cheap fix: start the counter at a large number so codes are 7 characters, and **shuffle the bits** of the ID with a fixed reversible function (or encrypt the ID with a small block cipher) before Base62. Codes look random but remain unique because the function is one-to-one.
+**🧑‍💻 Candidate:** It can — people shorten private Google Docs links assuming nobody can find them. A cheap fix: start the counter at a large number so codes are 7 characters, and **shuffle the bits** of the ID with a fixed reversible function (or encrypt the ID with a small block cipher, a scrambler that maps each number to a unique other number) before Base62. Codes look random but remain unique because the function is one-to-one.
 
 > 📝 **Note:** At L4, recognising the trade-off is enough. The full bit-shuffling scheme is an L5+ detail.
 
 ### Custom alias
 
-**🧑‍💻 Candidate:** If a custom alias is given, we skip generation and `INSERT` with `code = alias`. The `UNIQUE` constraint rejects duplicates atomically — we catch the violation and return `409 Conflict`. **Don't** do "SELECT to check, then INSERT" — two users could both pass the check at the same time (a race condition).
+**🧑‍💻 Candidate:** If a custom alias is given, we skip generation and `INSERT` with `code = alias`. The `UNIQUE` constraint rejects duplicates atomically (as one indivisible step) — we catch the violation and return `409 Conflict`. **Don't** do "SELECT to check, then INSERT" — two users could both pass the check at the same time (a race condition: the result depends on who wins a timing coin-flip).
 
 ---
 
@@ -235,11 +235,11 @@ static String toBase62(long n) {
 
 **🧑‍💼 Interviewer:** How big should the cache be?
 
-**🧑‍💻 Candidate:** Reads per day ≈ 4,000 × 86,400 ≈ 350M. Popularity is skewed — roughly 20% of links get 80% of clicks. If we cache 20% of a day's requests: 0.2 × 350M × 500 B ≈ **35 GB**. That fits in one Redis node with a replica. Use the **LRU eviction policy** so popular links stay, old ones fall out, and a **TTL** (e.g. 24 h) so the cache doesn't hold stale data forever.
+**🧑‍💻 Candidate:** Reads per day ≈ 4,000 × 86,400 ≈ 350M. Popularity is skewed — roughly 20% of links get 80% of clicks. If we cache 20% of a day's requests: 0.2 × 350M × 500 B ≈ **35 GB**. That fits in one Redis node with a replica. Use the **LRU eviction policy** (least recently used: when full, drop the entry untouched the longest) so popular links stay, old ones fall out, and a **TTL** (time to live: entries auto-expire after, e.g., 24 h) so the cache doesn't hold stale data forever.
 
 **🧑‍💼 Interviewer:** What if Redis goes down?
 
-**🧑‍💻 Candidate:** Redirects still work — they just fall through to the DB, which is slower. Redis is a cache, not the source of truth. We should have a Redis replica for failover and make sure the read replicas can absorb a spike for a few minutes.
+**🧑‍💻 Candidate:** Redirects still work — they just fall through to the DB, which is slower. Redis is a cache, not the source of truth. We should have a Redis replica for failover (a standby copy that takes over if the primary dies) and make sure the read replicas can absorb a spike for a few minutes.
 
 ---
 
@@ -247,7 +247,7 @@ static String toBase62(long n) {
 
 **🧑‍💼 Interviewer:** How do you count clicks?
 
-**🧑‍💻 Candidate:** Simplest: `UPDATE urls SET click_count = click_count + 1` on each redirect. But at 4,000 reads/s that's 4,000 writes/s on hot rows — row locks on popular links. Better: `INCR clicks:{code}` in Redis (fast, atomic), and a background job flushes counts to the DB every minute. We might lose up to a minute of counts if Redis crashes, which is fine for a click counter.
+**🧑‍💻 Candidate:** Simplest: `UPDATE urls SET click_count = click_count + 1` on each redirect. But at 4,000 reads/s that's 4,000 writes/s on hot rows — row locks on popular links (concurrent updates to one row must wait in line). Better: `INCR clicks:{code}` in Redis (a fast, atomic add-one command), and a background job flushes counts to the DB every minute. We might lose up to a minute of counts if Redis crashes, which is fine for a click counter.
 
 **🧑‍💼 Interviewer:** How do expired links get handled?
 
@@ -259,7 +259,7 @@ static String toBase62(long n) {
 
 **🧑‍💼 Interviewer:** What happens when 3 TB doesn't fit on one Postgres?
 
-**🧑‍💻 Candidate:** We'd shard by `code` — hash the code to pick a shard. But honestly, at 3 TB over 5 years, a single large Postgres instance with read replicas can carry us for a long time, and sharding brings a lot of operational pain, so I'd delay it. (See [sharding & replication](../../concepts/sharding-and-replication.md).)
+**🧑‍💻 Candidate:** We'd shard by `code` (split the data across several databases) — hash the code to pick a shard. But honestly, at 3 TB over 5 years, a single large Postgres instance with read replicas can carry us for a long time, and sharding brings a lot of operational pain, so I'd delay it. (See [sharding & replication](../../concepts/sharding-and-replication.md).)
 
 ---
 
@@ -282,7 +282,7 @@ static String toBase62(long n) {
 | "I'll use Kafka, Cassandra, Kubernetes, microservices…" for 40 writes/s | Signals buzzword-driven design. Every component needs a reason. |
 | Hash + truncate without mentioning collisions | Correctness bug in the core feature |
 | Check-then-insert for custom aliases | Race condition |
-| Updating click count synchronously in the DB on every redirect | Turns the read path into a write path; hot-row contention |
+| Updating click count synchronously in the DB on every redirect | Turns the read path into a write path; hot-row contention (many writers fighting over one row) |
 | Making the cache the source of truth | Redis restart = all links lost |
 | Spending 15 minutes on estimation | Leaves no time for the design |
 

@@ -35,8 +35,8 @@ Every one of those is a real interview topic. Keep them in mind.
 ## 2. The company's side: why build a *central* system?
 
 Without a central notification system, each of those 6 teams would:
-- integrate with Apple's and Google's push services, an SMS provider and an email provider **themselves**, six times over,
-- each store the user's phone number, email and device tokens separately,
+- integrate with Apple's and Google's push services, an SMS provider and an email provider **themselves** (a *provider* is the outside company that actually delivers the message), six times over,
+- each store the user's phone number, email and device tokens (the per-install address Apple/Google give a phone, explained in section 4) separately,
 - each implement retries when the SMS provider times out,
 - and **none of them** would know that Rahul turned off marketing or that he already got 5 notifications today.
 
@@ -71,7 +71,7 @@ flowchart LR
 With a platform, a team just says **"send template `ORDER_CONFIRMED` to user 42 with `{eta: 35}`"**. The platform handles the rest: which channels, the user's language, opt-outs, quiet hours, retries, deduplication, tracking.
 
 > 🛠️ **You already know a system like this from infra: Prometheus Alertmanager (or PagerDuty / Opsgenie).**
-> Alerts come in from many sources, and Alertmanager decides *who* to notify, on *which channel* (Slack, email, PagerDuty), **deduplicates** repeated alerts, **groups** related ones into one message, respects **silences** and **inhibition**, and retries when Slack is down.
+> Alerts come in from many sources, and Alertmanager decides *who* to notify, on *which channel* (Slack, email, PagerDuty), **deduplicates** repeated alerts, **groups** related ones into one message, respects **silences** (temporary mute rules) and **inhibition** (suppress alert B while alert A is already firing), and retries when Slack is down.
 > A user-facing notification system is the same idea for customers instead of on-call engineers:
 >
 > | Alertmanager | Notification system |
@@ -103,44 +103,44 @@ The OTP must arrive in **seconds**. "50% off biryani" can arrive in 10 minutes a
 👉 Interview: *separate queues / lanes per priority so bulk traffic can never block critical traffic.*
 
 ### 3.3 User preferences and opt-outs
-Phone settings → your app → **Notifications**. On Android you'll see separate toggles like "Order updates", "Offers", "Chat". Each toggle is a **preference** the backend must check before sending. Plus legal rules: marketing SMS in India must respect DND/TRAI rules, and marketing emails need an unsubscribe link (CAN-SPAM, GDPR).
+Phone settings → your app → **Notifications**. On Android you'll see separate toggles like "Order updates", "Offers", "Chat". Each toggle is a **preference** the backend must check before sending. Plus legal rules: marketing SMS in India must respect DND/TRAI rules (the Do-Not-Disturb registry run by the telecom regulator), and marketing emails need an unsubscribe link (CAN-SPAM in the US, GDPR in the EU: privacy and anti-spam laws).
 
 👉 Interview: *where are preferences stored, and how do you check them fast for every notification?*
 
 ### 3.4 Templates and languages
 Teams don't send raw text. They send a **template ID + variables**: `ORDER_CONFIRMED {eta: 35}`. The platform renders "Order confirmed! Arriving in 35 min" in English, or the Hindi version for a user whose app language is Hindi.
 
-👉 Interview: *template service, caching templates, versioning.*
+👉 Interview: *template service, caching templates (keeping rendered copies in fast memory), versioning.*
 
 ### 3.5 Don't send it twice (deduplication)
-The orders service sends "Order delivered", times out waiting for a reply, and **retries**. Now the platform has two requests. Without care, Rahul gets two notifications. Worse: a payment SMS sent twice looks like he was charged twice.
+The orders service sends "Order delivered", times out waiting for a reply (it can't tell whether the platform got it), and **retries**. Now the platform has two requests. Without care, Rahul gets two notifications. Worse: a payment SMS sent twice looks like he was charged twice.
 
-👉 Interview: ***idempotency keys***. The caller attaches a unique ID, and the platform drops duplicates.
+👉 Interview: ***idempotency keys***. The caller attaches a unique ID, and the platform drops duplicates. (*Idempotent* = doing it twice has the same effect as doing it once.)
 
 ### 3.6 Providers fail. Retry, but carefully
-The SMS provider returns `503 Service Unavailable`. Retry? Yes, after a pause. Retry immediately 10 times? No, that's how you turn a provider hiccup into an outage (a **retry storm**). And some errors should never be retried: "invalid phone number" will be invalid forever.
+The SMS provider returns `503 Service Unavailable`. Retry? Yes, after a pause. Retry immediately 10 times? No, that's how you turn a provider hiccup into an outage (a **retry storm**: all your clients hammering an already struggling service). `503` is the HTTP code for "temporarily unavailable". And some errors should never be retried: "invalid phone number" will be invalid forever.
 
-👉 Interview: *exponential backoff, retryable vs permanent errors, dead-letter queue, failover to a second SMS provider.*
+👉 Interview: *exponential backoff (waits that double: 1 s, 2 s, 4 s...), retryable vs permanent errors, dead-letter queue (a parking queue for messages that keep failing), failover to a second SMS provider.*
 
 ### 3.7 Don't spam (rate limits and frequency caps)
 If 4 teams each send Rahul "just one" notification an hour, he gets 4 per hour and uninstalls the app. The platform enforces **"max N marketing notifications per user per day"**. It also respects the *providers'* limits: an SMS provider may only accept, say, 1,000 messages/second from your account.
 
-👉 Interview: *per-user and per-provider rate limiting*. That's literally the [LLD Rate Limiter](../../../LLD/interviews/rate-limiter/README.md).
+👉 Interview: *per-user and per-provider rate limiting* (capping how many requests are allowed per time window). That's literally the [LLD Rate Limiter](../../../LLD/interviews/rate-limiter/README.md).
 
 ### 3.8 Scheduling and quiet hours
 "Send at 9 am in each user's local time." "Don't send marketing between 10 pm and 8 am." So notifications sometimes need to **wait**.
 
-👉 Interview: *delayed delivery, scheduler design, time zones.*
+👉 Interview: *delayed delivery, scheduler design (a component that fires jobs at a chosen time, like cron), time zones.*
 
 ### 3.9 Broadcasts (one message → millions of users)
-Marketing clicks "Send to all 10M users in Bangalore". One API call becomes **10 million** individual notifications, each needing preference checks and rendering, and it must not melt the providers or delay OTPs.
+Marketing clicks "Send to all 10M users in Bangalore". One API call becomes **10 million** individual notifications, each needing preference checks and rendering, and it must not melt the providers (the SMS/push/email services have request limits) or delay OTPs.
 
 👉 Interview: ***fan-out***. Expanding one request into millions, in batches, throttled.
 
 ### 3.10 Tracking: was it delivered? opened?
 Marketing wants to know: sent → delivered → opened → clicked. Support wants to answer "the user says they never got the OTP". Providers report delivery status back via **webhooks** (they call *our* URL later).
 
-👉 Interview: *status tracking, an append-heavy event store, analytics.*
+👉 Interview: *status tracking, an append-heavy event store (a database that mostly adds new rows and rarely edits), analytics.*
 
 ---
 
@@ -165,7 +165,7 @@ sequenceDiagram
 ```
 
 Key facts:
-- **We never talk to the phone directly.** Apple (APNs) and Google (FCM) keep one connection open to every phone. Apps can't each keep their own (battery!). We hand the message to them.
+- **We never talk to the phone directly.** Apple (APNs, Apple Push Notification service) and Google (FCM, Firebase Cloud Messaging) keep one connection open to every phone. Apps can't each keep their own (battery!). We hand the message to them.
 - A user can have **several devices**, so several tokens.
 - Tokens **expire or change** (app reinstalled, phone reset). The provider tells us "invalid token" and we must delete it.
 - SMS and email work similarly: we hand messages to a **provider** (Twilio, MSG91, Amazon SES, SendGrid…), which delivers them.
@@ -189,7 +189,7 @@ sequenceDiagram
     P-->>W: accepted / error → retry later
 ```
 
-`202 Accepted` means "got it, will do it later". The **queue** is the buffer that absorbs spikes and failures. More in [message queues](../../technologies/message-queues.md).
+`202 Accepted` means "got it, will do it later" (it's an HTTP status code; `200 OK` would mean "done"). The **queue** is the buffer that absorbs spikes and failures; the **worker** is a process that takes messages off it and does the job. More in [message queues](../../technologies/message-queues.md).
 
 ---
 

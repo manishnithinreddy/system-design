@@ -4,6 +4,8 @@
 
 It sounds trivial, and that's exactly why it's a favourite: the *feature* is tiny, so the whole interview is about **scale, ID generation, caching, storage choice, and trade-offs**. The same question is asked at every level — what changes is how deep you go and what you notice without being prompted.
 
+> 💡 **HLD** (high-level design) = the boxes-and-arrows round: services, databases, caches and how they talk. **Redirect** = the server answers "go to this other address" and the browser follows.
+
 ## How to read this folder
 
 > 👉 **Never used a URL shortener, or not sure why anyone needs "custom aliases" or "analytics"? Start with [00-understand-the-product.md](00-understand-the-product.md).** It explains the product from a user's point of view, where you've already seen it, and what happens when a short link is clicked.
@@ -11,7 +13,7 @@ It sounds trivial, and that's exactly why it's a favourite: the *feature* is tin
 | File | Who it's for | What "good" looks like |
 |---|---|---|
 | [00-understand-the-product.md](00-understand-the-product.md) | Everyone, first | Know the product as a user: features, why they exist, how a redirect works |
-| [L4-mid.md](L4-mid.md) | Mid-level / SDE2 (2–4 yrs) | A correct, working design. Sensible components, clean API, a reasonable code-generation scheme, a cache. Answers follow-ups when asked. |
+| [L4-mid.md](L4-mid.md) | Mid-level / SDE2 (software development engineer 2; 2–4 yrs) | A correct, working design. Sensible components, clean API, a reasonable code-generation scheme, a cache. Answers follow-ups when asked. |
 | [L5-senior.md](L5-senior.md) | Senior (5+ yrs) | Numbers drive decisions. Compares 2–3 options for each hard part and picks one with reasons. Handles custom aliases, expiry, analytics, failure modes **without being asked**. |
 | [L6-staff.md](L6-staff.md) | Staff | Questions the requirements, designs for multi-region, abuse, cost, operability and evolution. Talks about SLOs, blast radius, migration paths and what *not* to build. |
 
@@ -30,6 +32,8 @@ It sounds trivial, and that's exactly why it's a favourite: the *feature* is tin
 | Failure | Mentions replicas | Redis down, DB down, ID service down — what happens | Region down, degraded modes, blast radius, runbooks |
 
 ## Building blocks used (read these if a term is unfamiliar)
+
+> 💡 **Quick glossary:** *Read replica* = a read-only copy of the database. *Cache-aside* = the app checks a fast cache first and fills it from the database on a miss. *Hot key* = one key getting a disproportionate share of traffic. *Stampede* = many requests all missing the cache at once and hitting the database together. *Negative caching* = caching "not found" answers too. *CDN* = servers around the world caching content near users. *Multi-region* = running in several geographic locations. *SLO* = a measurable reliability target. *Blast radius* = how much breaks when one part fails. *Enumeration* = guessing codes one by one to discover other people's links.
 
 **Technologies:** [Load balancer](../../technologies/load-balancer.md) · [Redis](../../technologies/redis.md) · [PostgreSQL](../../technologies/postgresql.md) · [Cassandra / DynamoDB](../../technologies/cassandra.md) · [Kafka](../../technologies/kafka.md) · [CDN](../../technologies/cdn.md) · [ZooKeeper / etcd](../../technologies/zookeeper-etcd.md)
 

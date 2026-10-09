@@ -11,7 +11,7 @@ Unlike the URL shortener (one tiny read path), this is a **write-heavy, asynchro
 | File | Who it's for | What "good" looks like |
 |---|---|---|
 | [00-understand-the-product.md](00-understand-the-product.md) | Everyone, first | Know the product from the user's and the company's side |
-| [L4-mid.md](L4-mid.md) | Mid-level / SDE2 | Async design with a queue per channel, workers, providers, preferences, basic retries and a status table |
+| [L4-mid.md](L4-mid.md) | Mid-level / SDE2 (software development engineer 2, roughly 2-5 years' experience) | Async design with a queue per channel, workers, providers, preferences, basic retries and a status table |
 | [L5-senior.md](L5-senior.md) | Senior | Priority isolation, idempotency, backoff + DLQ, provider rate limits and failover, scheduling, broadcast fan-out, failure modes |
 | [L6-staff.md](L6-staff.md) | Staff | Delivery guarantees stated honestly, multi-tenant fairness, cost (SMS dominates), SMS fraud, compliance, SLOs per priority, build vs buy |
 
@@ -34,6 +34,8 @@ Unlike the URL shortener (one tiny read path), this is a **write-heavy, asynchro
 **Technologies:** [Message queues (SQS/RabbitMQ)](../../technologies/message-queues.md) · [Kafka](../../technologies/kafka.md) · [Push / email / SMS providers](../../technologies/push-email-sms-providers.md) · [WebSockets & SSE](../../technologies/websockets-and-sse.md) · [Redis](../../technologies/redis.md) · [PostgreSQL](../../technologies/postgresql.md) · [Cassandra / DynamoDB](../../technologies/cassandra.md) · [Load balancer](../../technologies/load-balancer.md)
 
 **Concepts:** [Idempotency & delivery semantics](../../concepts/idempotency-and-delivery-semantics.md) · [Retries, backoff & DLQ](../../concepts/retries-backoff-and-dlq.md) · [Fan-out](../../concepts/fan-out.md) · [Back-of-the-envelope](../../concepts/back-of-the-envelope.md) · [Caching strategies](../../concepts/caching-strategies.md) · [Sharding & replication](../../concepts/sharding-and-replication.md)
+
+> 💡 **Quick glossary:** *Multi-tenant* = many teams/customers share one platform. *SLO* (service level objective) = a measurable target, e.g. "99.9% of OTPs delivered in 10 s". *Canary* = a small synthetic test message sent continuously to detect problems early. *Token bucket* = a rate limiter that refills a counter at a fixed rate. *Transactional outbox* = write the event into the same DB transaction as the data change, then publish it later, so none is lost. *SMS pumping* = fraudsters triggering floods of SMS to numbers they profit from. *Data residency* = legal rules on which country data may be stored in.
 
 **Related LLD:** [Rate Limiter](../../../LLD/interviews/rate-limiter/README.md), used here for per-user caps and provider quotas.
 

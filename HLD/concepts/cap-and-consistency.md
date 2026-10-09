@@ -4,6 +4,8 @@
 
 When the network between your replicas breaks, a distributed system must choose between **answering anyway (maybe with stale data)** or **refusing to answer until it can be sure** — and even without failures, it trades **latency against consistency**.
 
+> 💡 **Replica:** a copy of the same data on another machine, kept for speed and fault tolerance. **Network partition:** the network splits so some nodes can't talk to others, even though every node is still running.
+
 ## 2. The problem it solves
 
 As soon as data lives on more than one machine (see [replication](sharding-and-replication.md)), copies can disagree. Two users reading the same key from two replicas might see different values. You need a vocabulary to decide, per feature, **how wrong is acceptable** and **what happens during failures**:
@@ -12,13 +14,13 @@ As soon as data lives on more than one machine (see [replication](sharding-and-r
 - Can two users be handed the same short code? Absolutely not.
 - Can a bank balance go negative because two replicas each approved a withdrawal? No.
 
-CAP, PACELC and consistency models are that vocabulary. In an interview, they let you justify "this part can be eventually consistent, this part must be strongly consistent" instead of hand-waving.
+CAP, PACELC and consistency models are that vocabulary (PACELC is explained in 3.3). In an interview, they let you justify "this part can be eventually consistent, this part must be strongly consistent" instead of hand-waving.
 
 ## 3. How it works
 
 ### 3.1 CAP in plain words
 
-- **C — Consistency** (here: *linearizability*): every read sees the most recent completed write, as if there were one copy of the data.
+- **C — Consistency** (here: *linearizability*, the strictest form: the system behaves as if there were one copy and operations happened one at a time): every read sees the most recent completed write, as if there were one copy of the data.
 - **A — Availability**: every request to a non-failed node gets a (non-error) response.
 - **P — Partition tolerance**: the system keeps operating when the network drops or delays messages between nodes.
 
@@ -39,12 +41,12 @@ There is no third option. That's all CAP says.
 
 ### 3.2 Why "pick 2 of 3" is misleading
 
-- **P is not optional.** Networks *will* partition (switch failure, a misconfigured security group, a GC pause long enough to look like a dead node). A "CA" system just means "a system that breaks in undefined ways when the network fails" — or a single-node system, which isn't distributed.
+- **P is not optional.** Networks *will* partition (switch failure, a misconfigured security group, a GC pause, i.e. the JVM freezing while it cleans memory, long enough to look like a dead node). A "CA" system just means "a system that breaks in undefined ways when the network fails" — or a single-node system, which isn't distributed.
 - So the real choice is **C or A *during a partition*.** When the network is healthy, you can have both.
 - It's not a whole-system switch. Different operations in the same product can choose differently (the URL shortener does — see 3.6), and many databases let you choose per query (Cassandra consistency levels, DynamoDB `ConsistentRead`).
 - "Consistency" in CAP is very strict (linearizability); "availability" is very strict (every node answers). Real systems sit in between.
 
-Infra analogy: etcd in your k8s cluster is **CP** — if the control plane loses quorum, `kubectl apply` fails rather than risk two conflicting states. DNS is **AP** — it'll happily serve you a cached, stale record rather than fail.
+Infra analogy: etcd (the key-value store holding all k8s cluster state) in your k8s cluster is **CP** — if the control plane loses quorum (a majority of its nodes can't talk to each other), `kubectl apply` fails rather than risk two conflicting states. DNS (the internet's name-to-IP lookup system) is **AP** — it'll happily serve you a cached, stale record rather than fail.
 
 ### 3.3 PACELC
 
@@ -63,7 +65,7 @@ Why "else latency": to be strongly consistent, a write must reach other replicas
 
 ### 3.4 Strong vs eventual consistency (and in between)
 
-- **Strong (linearizable):** behaves like a single copy. After a write is acknowledged, every subsequent read anywhere sees it. Needs coordination (leader, consensus like Raft/Paxos, or quorums).
+- **Strong (linearizable):** behaves like a single copy. After a write is acknowledged, every subsequent read anywhere sees it. Needs coordination (leader, consensus like Raft/Paxos, or quorums). *Consensus* = a protocol by which nodes agree on one value even if some crash; Raft and Paxos are the two well-known ones.
 - **Eventual:** if writes stop, all replicas *eventually* converge. Meanwhile, reads may be stale or out of order. Cheap, fast, highly available.
 - **In between** (often what users actually need):
   - **Read-your-writes** — you always see your own writes.
@@ -72,7 +74,7 @@ Why "else latency": to be strongly consistent, a write must reach other replicas
 
 ### 3.5 Quorums: R + W > N
 
-In a leaderless store with replication factor **N** (each key on N nodes):
+In a leaderless store (any replica can accept writes; there's no single primary) with replication factor **N** (each key on N nodes). A *quorum* is just "enough replicas to overlap with each other":
 - A write is acknowledged after **W** replicas confirm.
 - A read queries **R** replicas and takes the newest version.
 
@@ -92,7 +94,7 @@ flowchart LR
     B -->|newest: v2| R
 ```
 
-Write hit A and B; read hit B and C. They overlap at B, so the read sees v2. (Then *read repair* updates C.)
+Write hit A and B; read hit B and C. They overlap at B, so the read sees v2. (Then *read repair*, i.e. fixing the stale copy when a read notices it's behind, updates C.)
 
 | N | W | R | R + W > N? | Behaviour |
 |---|---|---|---|---|
@@ -101,21 +103,21 @@ Write hit A and B; read hit B and C. They overlap at B, so the read sees v2. (Th
 | 3 | 1 | 3 | 4 > 3 yes | Fast writes, any node down blocks reads |
 | 3 | 1 | 1 | 2 > 3 no | Fastest, most available, **eventual** — reads may be stale |
 
-Caveat: quorum overlap gives "newest acknowledged value" in the simple case, but edge cases (sloppy quorums, concurrent writes resolved by last-write-wins with skewed clocks) mean it's not full linearizability. Say "R + W > N gives strong-ish consistency" and mention LWW conflicts if pushed. See [Cassandra](../technologies/cassandra.md).
+Caveat: quorum overlap gives "newest acknowledged value" in the simple case, but edge cases (sloppy quorums, where stand-in nodes accept writes when the real owners are unreachable; concurrent writes resolved by last-write-wins (LWW: the write with the newest timestamp wins) with skewed clocks) mean it's not full linearizability. Say "R + W > N gives strong-ish consistency" and mention LWW conflicts if pushed. See [Cassandra](../technologies/cassandra.md).
 
 ### 3.6 URL shortener: where eventual is fine, where it isn't
 
 | Operation | Consistency needed | Why |
 |---|---|---|
-| Redirect lookup `GET /abc1234` | **Eventual is fine** | Mapping is immutable once created. A new link might 404 for a few hundred ms on a lagging replica/cache — acceptable, and fixable with read-your-writes for the creator. |
+| Redirect lookup `GET /abc1234` | **Eventual is fine** | Mapping is immutable once created. A new link might 404 (HTTP "not found") for a few hundred ms on a lagging replica/cache — acceptable, and fixable with read-your-writes for the creator. |
 | Click counts / analytics | **Eventual is fine** | Nobody notices a count that's 5 s behind. Batch via [Kafka](../technologies/kafka.md). |
-| Link deletion / expiry | Eventual, bounded | Cache TTL bounds how long a deleted link keeps working. Tighten for abuse takedowns (explicit cache delete). |
+| Link deletion / expiry | Eventual, bounded | Cache TTL (time to live) bounds how long a deleted link keeps working. Tighten for abuse takedowns (explicit cache delete). |
 | **Short code uniqueness** | **Strong** | If two replicas each accept `abc1234` for different long URLs during a partition, one user's link silently points somewhere else. That's a correctness and potentially security bug. |
 | Custom alias claim ("/my-brand") | **Strong** | Same: two users must not both "win" the same alias. |
 
 How to get strong uniqueness without making *everything* strong:
-- **Avoid the race entirely**: generate codes from non-overlapping ranges (counter + Base62, range allocation via a CP store like [etcd/ZooKeeper](../technologies/zookeeper-etcd.md) or a DB ticket table). Each server owns its range, so uniqueness needs no per-write coordination. See [ID generation](id-generation.md).
-- For custom aliases / hash-based codes: a single-leader DB with a **unique constraint** ([Postgres](../technologies/postgresql.md)), or a conditional write (`INSERT ... IF NOT EXISTS` in Cassandra uses Paxos — lightweight transactions; DynamoDB `attribute_not_exists` condition).
+- **Avoid the race entirely**: generate codes from non-overlapping ranges (counter + Base62, i.e. writing a number using 62 characters a–z A–Z 0–9; range allocation via a CP store like [etcd/ZooKeeper](../technologies/zookeeper-etcd.md) or a DB ticket table). Each server owns its range, so uniqueness needs no per-write coordination. See [ID generation](id-generation.md).
+- For custom aliases / hash-based codes: a single-leader DB (one node accepts all writes) with a **unique constraint** (the DB rejects a second row with the same value) ([Postgres](../technologies/postgresql.md)), or a conditional write (`INSERT ... IF NOT EXISTS` in Cassandra uses Paxos — "lightweight transactions", a slower consensus round for one row; DynamoDB `attribute_not_exists` condition).
 
 So the system is **CP for writes of new codes, AP for reads** — which is exactly the "it's per operation, not per system" point.
 
@@ -130,16 +132,16 @@ So the system is **CP for writes of new codes, AP for reads** — which is exact
 - **Don't demand strong consistency everywhere.** It costs latency on every request (PACELC) and availability during partitions. Making a like counter linearizable across regions is a mistake: users pay ~100+ ms per click for a guarantee nobody can perceive.
 - **Don't accept eventual consistency where duplicates or lost updates break invariants.** "It'll converge" doesn't help when two people were already given the same code or the same seat.
 - **Don't invoke CAP for single-node systems** or when there's no partition scenario under discussion — it adds jargon without content. Talk about replication lag or isolation levels instead.
-- **Don't confuse with ACID "C"** (see below) — it's a different concept.
+- **Don't confuse with ACID "C"** (ACID = the classic database transaction guarantees: atomic, consistent, isolated, durable; see below) — it's a different concept.
 
 ## 6. Commonly confused with
 
 | Term | Means | Not to be confused with |
 |---|---|---|
 | CAP "Consistency" | Linearizability across replicas | ACID "Consistency" (DB constraints/invariants hold after a transaction) |
-| CAP "Availability" | Every live node responds | "99.99% uptime" SLA availability |
+| CAP "Availability" | Every live node responds | "99.99% uptime" SLA (service level agreement) availability |
 | Eventual consistency | Replicas converge if writes stop | "Eventually correct" — it doesn't fix logic bugs or conflicts by itself |
-| Strong consistency | Single-copy illusion across replicas | Serializable isolation (about concurrent *transactions*, can exist on one node) |
+| Strong consistency | Single-copy illusion across replicas | Serializable isolation (the strictest DB transaction setting: concurrent *transactions* behave as if run one after another; can exist on one node) |
 
 | | CAP | PACELC |
 |---|---|---|

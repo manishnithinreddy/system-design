@@ -4,17 +4,19 @@
 
 **Delivery semantics** describe how many times a message may be processed when things crash: **at-most-once** (maybe zero), **at-least-once** (maybe twice), or **"exactly-once"**. **Idempotency** means doing the same operation twice has the same effect as doing it once, which is how real systems turn at-least-once into **effectively-once**.
 
+> 💡 **Queue / ack:** a queue holds messages between a sender and a worker. When a worker finishes a message it sends an *ack* (acknowledgement: "done, you can delete it"); without an ack the queue assumes the worker failed and hands the message to someone else.
+
 ---
 
 ## 2. The problem it solves
 
-**The pain:** an SMS worker takes a message off the queue, calls Twilio, Twilio sends the OTP, and then the worker pod is OOM-killed **before it acks**. The queue's visibility timeout expires and another worker sends the OTP **again**. Or: the Payments service calls `POST /notify` with "You were charged $500", gets a timeout, retries, and the user gets two scary messages.
+**The pain:** an SMS worker takes a message off the queue, calls Twilio (an SMS-sending service), Twilio sends the OTP (one-time password, the login code you get by text), and then the worker pod is OOM-killed (out of memory) **before it acks**. The queue's visibility timeout (the period a taken message is hidden from other workers; when it runs out the message reappears) expires and another worker sends the OTP **again**. Or: the Payments service calls `POST /notify` with "You were charged $500", gets a timeout, retries, and the user gets two scary messages.
 
-Every retry (client retry, queue redelivery, provider webhook resend) can create a duplicate. You can't remove retries, because without them you lose messages.
+Every retry (client retry, queue redelivery, provider webhook resend; a webhook is an HTTP call the provider makes to your server to report an event, such as "SMS delivered") can create a duplicate. You can't remove retries, because without them you lose messages.
 
 **The fix:** keep the retries (at-least-once), and make the processing **idempotent** with an **idempotency key**: a unique ID for "this logical notification". Before doing the side effect, check whether that key was already handled.
 
-> Infra analogy: `kubectl apply -f deploy.yaml` is idempotent: run it 5 times, you get one Deployment. `kubectl create` is not: the second run fails or, for a non-unique resource, creates a duplicate. You want every consumer to behave like `apply`.
+> Infra analogy: `kubectl apply -f deploy.yaml` is idempotent (running it again changes nothing): run it 5 times, you get one Deployment. `kubectl create` is not: the second run fails or, for a non-unique resource, creates a duplicate. You want every consumer to behave like `apply`.
 
 ---
 
@@ -29,7 +31,7 @@ Every retry (client retry, queue redelivery, provider webhook resend) can create
 | **Exactly-once** | Not achievable end to end across independent systems | n/a | Marketing term; see below |
 | **Effectively-once** | At-least-once **+ idempotent processing** | Duplicates arrive but have no extra effect | Payments, notifications, counters |
 
-Why exactly-once is impossible across a network boundary: a sender that gets **no response** cannot know whether the receiver (a) never got the request, (b) processed it and the reply was lost. It must either retry (risk duplicate) or not (risk loss). This is the **Two Generals problem**. Kafka's "exactly-once" is real but only **inside Kafka** (read from Kafka, write to Kafka, in one transaction). See [Kafka](../technologies/kafka.md).
+Why exactly-once is impossible across a network boundary: a sender that gets **no response** cannot know whether the receiver (a) never got the request, (b) processed it and the reply was lost. It must either retry (risk duplicate) or not (risk loss). This is the **Two Generals problem** (two armies can never be sure a messenger got through). Kafka's "exactly-once" is real but only **inside Kafka** (read from Kafka, write to Kafka, in one transaction). See [Kafka](../technologies/kafka.md).
 
 ### 3.2 Idempotency keys: end-to-end flow
 
@@ -65,11 +67,13 @@ Two layers of dedup:
 
 ### 3.3 Dedup storage and TTL
 
+> 💡 **Dedup** = deduplication, dropping repeats. **TTL** (time to live) = how long a stored key is kept before it auto-deletes. **Redis** is an in-memory key-value store; **NX** below means "only if the key doesn't exist yet", which makes the claim atomic (one winner).
+
 | Store | How | Notes |
 |---|---|---|
-| [Redis](../technologies/redis.md) | `SET key value NX EX 86400` (set only if absent, expire in 24 h) | Fast, atomic. Lost on failover without persistence, so a small duplicate risk remains. |
-| [PostgreSQL](../technologies/postgresql.md) | `INSERT INTO sent(idem_key) ... ON CONFLICT DO NOTHING` (unique index) | Durable, can share a transaction with the business write. Purge old rows by partition. |
-| [Cassandra](../technologies/cassandra.md) / DynamoDB | Conditional write (`IF NOT EXISTS`) with TTL | Scales horizontally, LWT costs a Paxos round. |
+| [Redis](../technologies/redis.md) | `SET key value NX EX 86400` (set only if absent, expire in 24 h) | Fast, atomic. Lost on failover (switching to a replica when the primary dies) without persistence, so a small duplicate risk remains. |
+| [PostgreSQL](../technologies/postgresql.md) | `INSERT INTO sent(idem_key) ... ON CONFLICT DO NOTHING` (unique index) | Durable, can share a transaction with the business write. Purge old rows by partition (drop a whole old table slice at once instead of deleting row by row). |
+| [Cassandra](../technologies/cassandra.md) / DynamoDB | Conditional write (`IF NOT EXISTS`) with TTL | Scales horizontally, LWT (lightweight transaction, a conditional write) costs a Paxos round (a multi-step agreement between replicas, so it's slower). |
 
 A worker-side claim in Postgres, using states so a crashed attempt can be retried later:
 
@@ -85,7 +89,7 @@ RETURNING notification_id;
 -- After the provider call: UPDATE ... SET state = 'SENT', provider_msg_id = '...'
 ```
 
-**Sizing the TTL:** it must exceed the longest window a duplicate can arrive in: client retry window + max queue retry time + DLQ redrive. If retries run for up to 6 hours, a 24 h TTL is safe. Storage: 50M notifications/day × ~100 bytes per key = **5 GB per day** of keys, which fits in a Redis cluster with a 24 h TTL.
+**Sizing the TTL:** it must exceed the longest window a duplicate can arrive in: client retry window + max queue retry time + DLQ (dead-letter queue, where messages that keep failing are parked) redrive (moving them back for another try). If retries run for up to 6 hours, a 24 h TTL is safe. Storage: 50M notifications/day × ~100 bytes per key = **5 GB per day** of keys, which fits in a Redis cluster with a 24 h TTL.
 
 ### 3.4 The unavoidable gap: third-party side effects
 
@@ -93,7 +97,7 @@ The worker does: `check key → call Twilio → record key → ack`. If it crash
 
 Ways to shrink it:
 
-- **Pass your key to the provider** when it supports one (Stripe's `Idempotency-Key` header is the classic example; some email/SMS APIs accept a client reference you can dedupe on, and FCM/APNs accept a collapse ID so a duplicate push **replaces** the earlier one in the notification tray).
+- **Pass your key to the provider** when it supports one (Stripe's `Idempotency-Key` header is the classic example; some email/SMS APIs accept a client reference you can dedupe on, and FCM/APNs (Google's and Apple's push services) accept a collapse ID so a duplicate push **replaces** the earlier one in the notification tray).
 - **Mark "IN_PROGRESS" before calling**, and on retry of an IN_PROGRESS record, query the provider's API by your reference before re-sending.
 - **Make the message itself harmless to duplicate**: an OTP retry should resend the **same** code, not generate a new one, so two SMS don't confuse the user.
 
@@ -105,7 +109,7 @@ The honest interview answer: "exactly-once SMS across a third-party boundary is 
 
 - Any consumer of a queue or [Kafka](../technologies/kafka.md) topic (they all redeliver).
 - Any API that clients retry on timeout: payments, order creation, `POST /notify`.
-- Webhook receivers (providers resend delivery receipts).
+- Webhook receivers (providers resend delivery receipts: callbacks saying "your message was delivered").
 - State updates: prefer "set status = DELIVERED" over "increment delivered_count".
 
 ## 5. When NOT to use it (and why it's a mistake)
@@ -124,17 +128,17 @@ The honest interview answer: "exactly-once SMS across a third-party boundary is 
 | | **Idempotency** | **Deduplication** | **Exactly-once** | **Ordering** |
 |---|---|---|---|---|
 | Meaning | Op applied twice = once | Detect and drop repeated messages | Each message processed once, guaranteed | Messages processed in send order |
-| Who provides it | Your code / API design | Broker (SQS FIFO 5-min window) or your table | Only within one system (Kafka transactions) | Partition / FIFO group |
+| Who provides it | Your code / API design | Broker (SQS FIFO, AWS's ordered queue, with a 5-min window) or your table | Only within one system (Kafka transactions) | Partition / FIFO group |
 | Relationship | Goal | One technique to achieve idempotency | What people want; idempotency is how you approximate it | Separate concern: dedup doesn't fix reordering |
 
-Also: **HTTP method idempotency.** `PUT` and `DELETE` are idempotent by spec, `POST` is not, which is why `POST` APIs add an `Idempotency-Key` header.
+Also: **HTTP method idempotency.** `PUT` (replace a resource) and `DELETE` are idempotent by spec, `POST` is not, which is why `POST` APIs add an `Idempotency-Key` header.
 
 ---
 
 ## 7. Common mistakes / misuse
 
 1. **Claiming "Kafka gives exactly-once" for SMS.** Kafka's guarantee stops at Kafka's boundary.
-2. **Check-then-act without atomicity:** `if (!exists(key)) { send(); save(key); }` from two workers at once sends twice. Use `SET NX`, a unique constraint, or a conditional write as the claim.
+2. **Check-then-act without atomicity:** `if (!exists(key)) { send(); save(key); }` from two workers at once sends twice. Use `SET NX`, a unique constraint (the DB rejects a duplicate), or a conditional write as the claim.
 3. **Recording the key before the side effect and never clearing it on failure**, so a failed send is never retried (now you have at-most-once). Use states: `IN_PROGRESS` with a lease timeout, then `SENT` / `FAILED`.
 4. **Key too broad:** `userId + template` blocks a legit second "order shipped" for a different order. Include the business event ID.
 5. **Key too narrow:** including a timestamp, so retries differ.

@@ -4,13 +4,15 @@
 
 How a distributed system hands out **unique identifiers** (row keys, short codes, event ids) without two servers ever producing the same one — and with the right size, ordering and guessability for the job.
 
+> 💡 **Shard:** one slice of a database's data, stored on its own machine. **Coordination:** servers having to talk to each other (or to a central service) before acting.
+
 ## 2. The problem it solves
 
-On a single database, `id BIGSERIAL` / `AUTO_INCREMENT` is all you need: the DB keeps a counter and gives out 1, 2, 3...
+On a single database, `id BIGSERIAL` / `AUTO_INCREMENT` (Postgres / MySQL column types that hand out 1, 2, 3...) is all you need: the DB keeps a counter and gives out 1, 2, 3...
 
 The pain starts when you scale out:
 - **Many app servers, many DB shards.** Shard A and shard B both auto-increment from 1 → two rows with id 42. Merging, routing or referencing them breaks.
-- **One central counter is a bottleneck and a single point of failure.** Every insert needs a round trip to it.
+- **One central counter is a bottleneck and a single point of failure** (if it dies, everything depending on it stops). Every insert needs a round trip to it.
 - **Product constraints.** A URL shortener needs ids that are *short* (7 chars), a feed needs ids that are *time-sortable*, a public API might need ids that are *not guessable*.
 
 So the question is never "how do I make a unique number" but "unique **and** short? sortable? unguessable? without coordination?" Each technique below trades these off.
@@ -26,16 +28,16 @@ The DB keeps a counter per table. Simple, compact (8-byte `BIGINT`), ordered.
 ### 3.2 UUID v4 and v7
 
 A **UUID** is a 128-bit (16-byte) id, usually printed as 36 chars: `550e8400-e29b-41d4-a716-446655440000`.
-- **v4** = 122 random bits. Generated anywhere with zero coordination (`java.util.UUID.randomUUID()`). Collision chance is negligible (you'd need ~2.7 × 10^18 ids for a 50% chance of one collision). Downside: **random order** — inserting random keys into a B-tree index (Postgres, MySQL InnoDB) scatters writes across pages, causing page splits and poor cache locality.
-- **v7** (RFC 9562, 2024) = 48-bit Unix millisecond timestamp + random bits. Still coordination-free, but **roughly time-ordered**, so B-tree inserts go to the "right edge" like auto-increment. Prefer v7 over v4 for primary keys today.
-- Both are **too long for a short URL** (22 chars even in Base64).
+- **v4** = 122 random bits. Generated anywhere with zero coordination (`java.util.UUID.randomUUID()`). Collision chance is negligible (you'd need ~2.7 × 10^18 ids for a 50% chance of one collision). Downside: **random order** — inserting random keys into a B-tree index (the sorted tree structure most relational DBs use for indexes; Postgres, MySQL InnoDB) scatters writes across pages (fixed-size disk blocks), causing page splits (a full page is cut in two) and poor cache locality (the pages you need aren't already in memory).
+- **v7** (RFC 9562, 2024; an RFC is an internet standards document) = 48-bit Unix millisecond timestamp (milliseconds since 1 Jan 1970) + random bits. Still coordination-free, but **roughly time-ordered**, so B-tree inserts go to the "right edge" like auto-increment. Prefer v7 over v4 for primary keys today.
+- Both are **too long for a short URL** (22 chars even in Base64, an encoding that writes bytes as 64 printable characters).
 
 ### 3.3 Hash + truncate (+ collision handling)
 
-`code = base62(MD5(longUrl))[0..7]` — hash the input, keep the first 7 characters.
+`code = base62(MD5(longUrl))[0..7]` — hash the input (MD5 is a hash function: any input in, a fixed-size scrambled number out), keep the first 7 characters.
 - Nice property: same long URL → same code (natural deduplication).
-- Problem: truncating to 7 chars (~42 bits) makes **collisions real**. By the birthday paradox, with 62^7 ≈ 3.5 × 10^12 possible codes you expect a first collision after roughly √(3.5 × 10^12) ≈ 1.9 million URLs — and we plan for billions.
-- **Collision handling:** insert with a unique constraint; on conflict, append a salt/counter to the input (`longUrl + "#1"`), rehash, retry. Each retry is another DB round trip, and retries grow as the table fills.
+- Problem: truncating to 7 chars (~42 bits) makes **collisions real**. By the birthday paradox (in a group of 23 people two likely share a birthday; collisions arrive much sooner than you'd think), with 62^7 ≈ 3.5 × 10^12 possible codes you expect a first collision after roughly √(3.5 × 10^12) ≈ 1.9 million URLs — and we plan for billions.
+- **Collision handling:** insert with a unique constraint (the DB refuses duplicates); on conflict, append a salt/counter to the input (`longUrl + "#1"`), rehash, retry. Each retry is another DB round trip, and retries grow as the table fills.
 - SHA-256 instead of MD5 doesn't help — the collision comes from truncation, not from the hash function.
 
 ### 3.4 Base62 encoding of a counter
@@ -89,7 +91,7 @@ The counter itself can come from any of the next three sources.
 ### 3.5 Redis INCR counter
 
 `INCR url:counter` is atomic and fast (~0.5 ms, ~100K ops/s on one node). Easy and good enough for many systems.
-- Risks: it's a single point of failure; with async replication a failover can **lose recent increments and hand out duplicates** unless you persist (AOF `fsync always`) or add a safety jump after failover. See [Redis](../technologies/redis.md).
+- Risks: it's a single point of failure; with async replication (the replica copies writes a moment later) a failover (promoting the replica after the primary dies) can **lose recent increments and hand out duplicates** unless you persist (AOF `fsync always`: Redis's append-only log of writes, flushed to disk on every write) or add a safety jump after failover. See [Redis](../technologies/redis.md).
 
 ### 3.6 Range / batch allocation (ticket server, ZooKeeper, etcd)
 
@@ -109,8 +111,8 @@ sequenceDiagram
     T-->>A: [3,000,000 .. 3,999,999]
 ```
 
-- **DB ticket server** (Flickr's approach): a table with one row; `UPDATE tickets SET next = next + 1000000 RETURNING next` inside a transaction.
-- **ZooKeeper / etcd**: a compare-and-set on a key, which is linearizable (strongly consistent) — see [ZooKeeper / etcd](../technologies/zookeeper-etcd.md).
+- **DB ticket server** (Flickr's approach): a table with one row; `UPDATE tickets SET next = next + 1000000 RETURNING next` inside a transaction. (Flickr is a photo site; a "ticket server" is a tiny DB whose only job is to hand out numbers.)
+- **ZooKeeper / etcd** (small, strongly consistent coordination stores): a compare-and-set on a key (update only if it still has the value I last saw), which is linearizable (strongly consistent: it behaves like a single copy) — see [ZooKeeper / etcd](../technologies/zookeeper-etcd.md).
 - The allocator is hit once per million ids, so it's never a bottleneck, and a brief outage doesn't stop servers that still have ids left.
 - Cost: if a server crashes, the rest of its range is **lost** (gaps). That's fine — ids need to be unique, not dense.
 
@@ -128,10 +130,11 @@ flowchart LR
 |   0   | ms since custom epoch        | machine id | sequence  |
 ```
 
+- *Epoch* = the chosen "time zero" the timestamp counts from.
 - 41 bits of ms: 2^41 ms ≈ 2.2 × 10^12 ms ≈ **69.7 years** from your chosen epoch.
 - 10 bits: 2^10 = **1,024 machines** (often split 5 bits datacenter + 5 bits worker).
 - 12 bits: 2^12 = **4,096 ids per ms per machine** → ~4M ids/s per machine.
-- Machine ids must be unique — usually assigned via ZooKeeper/etcd or from the k8s StatefulSet ordinal.
+- Machine ids must be unique — usually assigned via ZooKeeper/etcd or from the k8s StatefulSet ordinal (the stable index 0, 1, 2... each pod gets).
 - Encoded in Base62, a Snowflake id is ~11 chars — too long for a "short" URL, great for tweet/order/event ids.
 
 ### 3.8 Security: predictability and enumeration
@@ -140,11 +143,11 @@ Sequential ids (auto-increment, Base62 of a counter) are **guessable**:
 - Anyone can walk `/abc123`, `/abc124`, ... and scrape every short link — including "private" ones people shared with a colleague.
 - They leak business metrics ("my order id went up by 50,000 this week → they get ~7K orders/day").
 
-Mitigations: don't rely on id secrecy for authorization (always check permissions); rate-limit lookups; or make the code non-sequential — e.g., run the counter through a reversible bit-shuffle / block cipher (like Feistel or Hashids-style scrambling) before Base62, or use random codes with a uniqueness check.
+Mitigations: don't rely on id secrecy for authorization (always check permissions); rate-limit lookups; or make the code non-sequential — e.g., run the counter through a reversible bit-shuffle / block cipher (like Feistel, a classic way to build a reversible scramble, or Hashids-style scrambling) before Base62, or use random codes with a uniqueness check.
 
 ### 3.9 Clock skew
 
-Any time-based id (Snowflake, UUID v7) depends on the machine clock. NTP can move the clock **backwards**; then a Snowflake generator could re-emit an already-used `(timestamp, sequence)` → duplicate ids.
+Any time-based id (Snowflake, UUID v7) depends on the machine clock. NTP (the protocol that keeps server clocks in sync) can move the clock **backwards**; then a Snowflake generator could re-emit an already-used `(timestamp, sequence)` → duplicate ids.
 Standard handling: remember the last timestamp; if `now < last`, wait until the clock catches up (small skew) or refuse to generate and alert (large skew). Also, ids from different machines are only *roughly* ordered — two machines' clocks differ by a few ms, so never use Snowflake ids for strict global ordering.
 
 ## 4. When to use it (which technique)

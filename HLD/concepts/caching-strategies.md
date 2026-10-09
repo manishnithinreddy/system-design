@@ -4,9 +4,13 @@
 
 Keeping a copy of frequently-read data in a faster place (memory, closer to the user) — plus the rules for **how it gets in, how it stays correct, and how it gets out**.
 
+> 💡 **Hit / miss:** a *hit* means the data was found in the cache; a *miss* means it wasn't and you must go to the slower source (usually the database). The **hit rate** is hits ÷ total lookups.
+
 ## 2. The problem it solves
 
-From the [latency numbers](back-of-the-envelope.md#32-latency-numbers-every-engineer-should-know): a RAM read is ~100 ns, a Redis GET over the network ~0.5 ms, a database query that touches disk 1–10+ ms. Read-heavy systems (URL shortener at 100:1) send the same hot data to the DB over and over. The DB burns CPU and connections answering identical questions, and latency stays high.
+From the [latency numbers](back-of-the-envelope.md#32-latency-numbers-every-engineer-should-know): a RAM read is ~100 ns, a Redis GET over the network ~0.5 ms, a database query that touches disk 1–10+ ms (ns/ms = nanoseconds/milliseconds, a billionth/thousandth of a second). Read-heavy systems (URL shortener at 100:1) send the same hot data to the DB over and over. The DB burns CPU and connections (each client holds a limited, expensive connection slot) answering identical questions, and latency stays high.
+
+> 💡 **Redis** is an in-memory key-value store, the usual shared cache. A **URL shortener** maps a short code to a long URL and redirects visitors.
 
 A cache absorbs the repeated reads. But the moment you have two copies of data, you have new problems: **stale data**, **what happens on a miss storm**, **what to evict when memory is full**. "Add Redis" is the easy part; the strategy is what interviewers probe.
 
@@ -34,7 +38,7 @@ sequenceDiagram
 ```
 
 - Only data that's actually read gets cached. A cache outage degrades to "slower", not "down".
-- On write, **delete** the key (don't update it) — a delete is idempotent and avoids racing two writers that set different values.
+- On write, **delete** the key (don't update it) — a delete is idempotent (doing it twice has the same effect as once) and avoids racing two writers that set different values.
 - First read of each key is always a miss.
 
 **Read-through** — the app only talks to the cache; on a miss, the *cache layer itself* loads from the DB (via a configured loader). Same behaviour as cache-aside, but the logic lives in a library/proxy (e.g., Caffeine `LoadingCache`, Hazelcast/Ehcache with a `CacheLoader`). Cleaner app code; less flexibility.
@@ -43,7 +47,7 @@ sequenceDiagram
 
 **Write-behind (write-back)** — write to cache, acknowledge immediately, flush to the DB asynchronously in batches. Very fast writes, absorbs bursts. Cost: **data loss** if the cache dies before flushing, and the DB is temporarily behind. Used for counters, analytics, view counts — data where losing a few seconds is acceptable.
 
-**Refresh-ahead** — before a hot key's TTL expires, refresh it in the background (e.g., when a read finds less than 20% of TTL left). Hot keys never expire on a user's request, so no latency spike. Cost: wasted refreshes for keys that wouldn't have been read again.
+**Refresh-ahead** — before a hot key's TTL (time to live: how long an entry stays in the cache before it auto-expires) expires, refresh it in the background (e.g., when a read finds less than 20% of TTL left). Hot keys never expire on a user's request, so no latency spike. Cost: wasted refreshes for keys that wouldn't have been read again.
 
 | Pattern | Who loads on miss | Write path | Freshness | Risk |
 |---|---|---|---|---|
@@ -57,8 +61,8 @@ sequenceDiagram
 
 When memory is full, something has to go.
 
-- **LRU (Least Recently Used)** — evict the key untouched for the longest. Good default. (Java: `LinkedHashMap` with `accessOrder=true` + `removeEldestEntry`.) Redis: `maxmemory-policy allkeys-lru` (approximated by sampling).
-- **LFU (Least Frequently Used)** — evict the key with the fewest hits. Better when popularity is stable (a viral link stays popular), resistant to one-off scans pushing out hot keys. Redis: `allkeys-lfu`. Caffeine's W-TinyLFU combines both ideas.
+- **LRU (Least Recently Used)** — evict the key untouched for the longest. Good default. (Java: `LinkedHashMap` with `accessOrder=true` + `removeEldestEntry`.) Redis: `maxmemory-policy allkeys-lru` (approximated by sampling: it checks a few random keys instead of tracking exact order, to save memory).
+- **LFU (Least Frequently Used)** — evict the key with the fewest hits. Better when popularity is stable (a viral link stays popular), resistant to one-off scans pushing out hot keys. Redis: `allkeys-lfu`. Caffeine (a popular Java in-process cache library)'s W-TinyLFU combines both ideas.
 - **TTL (time to live)** — every key expires after a fixed time regardless of memory. Not an eviction policy for memory pressure, but a **correctness backstop**: even if invalidation fails, staleness is bounded.
 - FIFO / random — rarely the right answer, but cheap.
 
@@ -67,9 +71,9 @@ When memory is full, something has to go.
 A very hot key expires (or the cache restarts). In the next millisecond, 5,000 requests all miss, all query the DB for the same row, and all write it back. The DB sees a sudden spike and may tip over — which makes the misses last longer, which makes it worse.
 
 Fixes:
-1. **Request coalescing (single-flight):** only one request per key goes to the DB; the others wait for its result. In-process: a `ConcurrentHashMap<String, CompletableFuture<V>>` with `computeIfAbsent`. Caffeine's `LoadingCache` does this automatically.
-2. **Distributed lock on rebuild:** `SET lock:key 1 NX EX 5` in Redis — the winner rebuilds; losers briefly wait and retry the cache, or serve a stale value.
-3. **Jittered TTL:** instead of `TTL = 3600`, use `3600 + random(0, 300)`. Keys written together (e.g., after a deploy or cache warm-up) don't all expire in the same second.
+1. **Request coalescing (single-flight):** only one request per key goes to the DB; the others wait for its result. In-process: a `ConcurrentHashMap<String, CompletableFuture<V>>` with `computeIfAbsent` (one thread creates the future, everyone else awaits it). Caffeine's `LoadingCache` does this automatically.
+2. **Distributed lock on rebuild:** `SET lock:key 1 NX EX 5` in Redis (`NX` = only set if the key doesn't exist, `EX 5` = auto-expire in 5 s, so a crashed holder can't block forever) — the winner rebuilds; losers briefly wait and retry the cache, or serve a stale value.
+3. **Jittered TTL** (jitter = a small random offset so things don't line up): instead of `TTL = 3600`, use `3600 + random(0, 300)`. Keys written together (e.g., after a deploy or cache warm-up) don't all expire in the same second.
 4. **Refresh-ahead / stale-while-revalidate:** serve the slightly stale value while one background task refreshes it.
 
 ```mermaid
@@ -88,6 +92,8 @@ If someone requests a key that doesn't exist (`/doesNotExist`), cache-aside miss
 
 Fix: cache the **"not found"** result too, with a **short TTL** (e.g., 30–60 s): `SET url:xyz "__NONE__" EX 60`. Keep the TTL short so a newly created key becomes visible quickly (or delete the negative entry on create). For huge scan attacks, a **Bloom filter** of existing keys in front of the DB answers "definitely not present" without touching the DB.
 
+> 💡 **Bloom filter:** a compact in-memory structure that answers "is X in the set?" with either "definitely no" or "probably yes". It never gives a false "no", and uses far less memory than storing all keys.
+
 ### 3.5 Cache invalidation
 
 "There are only two hard things in computer science: cache invalidation and naming things."
@@ -95,7 +101,7 @@ Fix: cache the **"not found"** result too, with a **short TTL** (e.g., 30–60 s
 Options, from simplest to most robust:
 - **TTL only** — accept up to TTL staleness. Great for immutable or rarely-changing data.
 - **Delete on write** (cache-aside) — app updates DB then deletes the key. Edge case: a concurrent reader that loaded the old value can write it back *after* your delete. Mitigate with short TTLs or a delayed second delete.
-- **Event-driven invalidation** — DB changes are published (e.g., via change data capture to [Kafka](../technologies/kafka.md)), and a consumer deletes the matching cache keys. Works across many services and caches.
+- **Event-driven invalidation** — DB changes are published (e.g., via change data capture, i.e. streaming every DB row change out as an event, to [Kafka](../technologies/kafka.md), a distributed append-only message log), and a consumer deletes the matching cache keys. Works across many services and caches.
 - **Versioned keys** — `user:42:v7`; bump the version on write, old entries simply age out.
 
 URL shortener note: a short-code → long-URL mapping is (usually) **immutable**, which makes caching nearly free of invalidation pain. Only deletes/expirations need handling.
@@ -114,7 +120,7 @@ flowchart LR
 | Layer | Latency | Shared by | Invalidation difficulty |
 |---|---|---|---|
 | Browser | 0 (no request) | One user | Hardest — you can't reach it; only TTL |
-| [CDN](../technologies/cdn.md) | ~10–50 ms (near user) | Users in a region | Purge API, TTL |
+| [CDN](../technologies/cdn.md) (content delivery network: servers spread around the world that cache content near users) | ~10–50 ms (near user) | Users in a region | Purge API, TTL |
 | In-process (Caffeine / `ConcurrentHashMap`) | ~µs | One app instance | Each pod has its own copy → short TTL |
 | [Redis](../technologies/redis.md) | ~0.5 ms | All app instances | Delete key |
 | DB buffer pool | ms | Everything | Automatic |
@@ -123,9 +129,11 @@ flowchart LR
 
 Each outer layer removes load from inner layers but is harder to invalidate. For a URL shortener: a **301** redirect lets the browser cache forever (cheap, but you lose click analytics and can't change the target); a **302** forces every click through your servers.
 
+> 💡 **301 / 302:** HTTP status codes meaning "go to this other URL". 301 = *moved permanently* (browsers remember it), 302 = *found / temporary* (browsers ask again each time).
+
 ## 4. When to use it
 
-- **Read-heavy** data with a skewed access pattern (80/20) — feeds, profiles, product pages, short-URL lookups.
+- **Read-heavy** data with a skewed access pattern (80/20: roughly 20% of items get 80% of the requests) — feeds, profiles, product pages, short-URL lookups.
 - **Expensive-to-compute** results (aggregations, rendered pages, ML features).
 - Data that can tolerate **some staleness**, or is immutable.
 - Protecting a DB from **predictable spikes** (launches, viral content).
@@ -134,7 +142,7 @@ Each outer layer removes load from inner layers but is harder to invalidate. For
 
 - **Write-heavy data that's rarely re-read** (logs, metrics, audit events). Every write invalidates or updates the cache, the hit rate is near zero, and you pay for memory, an extra network hop and consistency bugs for nothing.
 - **Data that must be strongly consistent** on every read (account balances during a transfer, inventory at checkout, short-code *uniqueness checks*). A stale read here is a correctness bug, not a slow page.
-- **Before measuring.** If the DB handles the load at acceptable latency, a cache adds a second source of truth, a new failure mode and cold-start behaviour. Add one when metrics (p99 latency, DB CPU, QPS) show you need it — "caching before measuring" is a classic premature optimisation.
+- **Before measuring.** If the DB handles the load at acceptable latency, a cache adds a second source of truth, a new failure mode and cold-start behaviour. Add one when metrics (p99 latency, i.e. the time within which 99% of requests finish and only the slowest 1% take longer; DB CPU; QPS, queries per second) show you need it — "caching before measuring" is a classic premature optimisation.
 - **Low-reuse data** (each key read once): the hit rate will be poor.
 
 ## 6. Commonly confused with
@@ -143,7 +151,7 @@ Each outer layer removes load from inner layers but is harder to invalidate. For
 |---|---|---|---|
 | Holds | Subset (hot data) | Full copy | Static/edge-cacheable responses |
 | Can lose data safely? | Yes (rebuildable) | No | Yes |
-| Consistency | Whatever your invalidation gives | Replication lag | TTL / purge |
+| Consistency | Whatever your invalidation gives | Replication lag (the delay before a copy sees a write) | TTL / purge |
 | Query capability | Key lookup | Full SQL | URL lookup |
 
 | | Write-through | Write-behind |
@@ -161,7 +169,7 @@ Each outer layer removes load from inner layers but is harder to invalidate. For
 - **Updating the cache on write instead of deleting** → racing writers leave the wrong value.
 - **Treating the cache as the source of truth** (with eviction on, data *will* disappear).
 - **No negative caching** → random-key scans go straight to the DB.
-- **Huge values** (multi-MB) in Redis → network and single-thread latency spikes.
+- **Huge values** (multi-MB) in Redis → network and single-thread latency spikes (Redis runs commands on one thread, so one slow command blocks all others).
 - **Forgetting in-process caches differ per pod** → users see different values depending on which pod they hit.
 
 ## 8. Interview cheat-sheet
