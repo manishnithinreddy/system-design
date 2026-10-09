@@ -26,14 +26,13 @@ Each step is an **HLD + LLD pair**. The pairs are ordered so each one adds new i
 | 14 | [Payment System](HLD/interviews/payment-system/README.md) | State machine, idempotency end to end, unknown outcomes, double-entry ledger, outbox + saga, reconciliation, payouts, multi-PSP routing, fraud | [ATM / Digital Wallet](LLD/interviews/digital-wallet/README.md) | ATM states, note planning, reversals, idempotent transfers, lock ordering, holds |
 | 15 | [Distributed Message Queue](HLD/interviews/distributed-message-queue/README.md) | Partitioned logs, ISR + high watermark, leader epochs, consumer groups + rebalancing, exactly-once, compaction, tiered storage, multi-region | [Pub-Sub Broker](LLD/interviews/pub-sub-broker/README.md) | Observer at scale, overflow policies, acks + redelivery + DLQ, per-key ordering, retained log |
 | 16 | [Distributed Job Scheduler](HLD/interviews/distributed-job-scheduler/README.md) | next_run_at + SKIP LOCKED, leases + fencing, sharded leaders, misfires, jitter, DST, DAGs | [Chess](LLD/interviews/chess/README.md) | OOP modelling, legal-move pipeline, special rules, undo, perft testing |
+| 17 | [Ad Click Aggregation](HLD/interviews/ad-click-aggregation/README.md) | Event-time windows, watermarks, exactly-once aggregation, hot keys, Lambda reconciliation, fraud | [Meeting-Room / Hotel Booking](LLD/interviews/meeting-room-booking/README.md) | Interval overlap, availability search, recurring bookings, overbooking |
 
-## 🔜 Next (in order)
+## 🔜 Next
 
-| # | HLD | New ideas it brings | LLD | New ideas it brings |
-|---|---|---|---|---|
-| 17 | **Ad Click Aggregation / Real-time Analytics** | Lambda vs Kappa, windowed aggregation, dedup at scale, reconciliation | **Hotel / Meeting-Room Booking** | Interval overlap, availability search, overbooking rules |
+✅ **All 17 core pairs are done.** Every major building block (storage engines, replication, consensus, caching, queues, streams, search, CDNs, consistency models, concurrency primitives, core design patterns) has been used in at least one full interview.
 
-After these 17 pairs, every major building block (storage engines, replication, consensus, caching, queues, streams, search, CDNs, consistency models, concurrency primitives, core design patterns) will have been used in at least one full interview.
+What's left is optional: the side tracks below (remaining case studies, See it work pieces, Under the Hood pages) and the deferred ideas in CLAUDE.md (the jargon sweep of older files).
 
 ## 🧭 Side tracks (optional, bounded)
 

@@ -66,6 +66,7 @@ See **[ROADMAP.md](ROADMAP.md)** for the full learning path: what's done, what's
 | LLD | [ATM / Digital Wallet](LLD/interviews/digital-wallet/README.md) | [Product intro](LLD/interviews/digital-wallet/00-understand-the-product.md) · [L4](LLD/interviews/digital-wallet/L4-mid.md) · [L5](LLD/interviews/digital-wallet/L5-senior.md) · [L6](LLD/interviews/digital-wallet/L6-staff.md) |
 | LLD | [Pub-Sub Broker (in-memory)](LLD/interviews/pub-sub-broker/README.md) | [Product intro](LLD/interviews/pub-sub-broker/00-understand-the-product.md) · [L4](LLD/interviews/pub-sub-broker/L4-mid.md) · [L5](LLD/interviews/pub-sub-broker/L5-senior.md) · [L6](LLD/interviews/pub-sub-broker/L6-staff.md) |
 | LLD | [Chess](LLD/interviews/chess/README.md) | [Product intro](LLD/interviews/chess/00-understand-the-product.md) · [L4](LLD/interviews/chess/L4-mid.md) · [L5](LLD/interviews/chess/L5-senior.md) · [L6](LLD/interviews/chess/L6-staff.md) |
+| LLD | [Meeting-Room / Hotel Booking](LLD/interviews/meeting-room-booking/README.md) | [Product intro](LLD/interviews/meeting-room-booking/00-understand-the-product.md) · [L4](LLD/interviews/meeting-room-booking/L4-mid.md) · [L5](LLD/interviews/meeting-room-booking/L5-senior.md) · [L6](LLD/interviews/meeting-room-booking/L6-staff.md) |
 
 Indexes: [HLD](HLD/README.md) · [LLD](LLD/README.md)
 
@@ -112,4 +113,6 @@ LLD/interviews/pub-sub-broker/java/run.sh               # Java 21+, tests + demo
 cd LLD/interviews/pub-sub-broker/js && node --test      # Node 22+, tests
 LLD/interviews/chess/java/run.sh                        # Java 21+, tests + demo
 cd LLD/interviews/chess/js && node --test               # Node 22+, tests
+LLD/interviews/meeting-room-booking/java/run.sh         # Java 21+, tests + demo
+cd LLD/interviews/meeting-room-booking/js && node --test # Node 22+, tests
 ```
